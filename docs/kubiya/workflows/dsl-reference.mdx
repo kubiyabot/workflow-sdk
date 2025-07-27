@@ -120,62 +120,6 @@ wf.sub_workflow(
 )
 ```
 
-## Executors
-
-Use specific executors for steps:
-
-### Shell Executor
-
-```python
-from kubiya_workflow_sdk.dsl import shell_executor
-
-wf.step("backup").executor(
-    shell_executor("pg_dump -h localhost -U postgres mydb > backup.sql")
-)
-```
-
-### Python Executor
-
-```python
-from kubiya_workflow_sdk.dsl import python_executor
-
-wf.step("process").executor(
-    python_executor("""
-import pandas as pd
-df = pd.read_csv('data.csv')
-print(f"Processed {len(df)} rows")
-    """, 
-    packages=["pandas", "numpy"])
-)
-```
-
-### Docker Executor
-
-```python
-from kubiya_workflow_sdk.dsl import docker_executor
-
-wf.step("scan").executor(
-    docker_executor(
-        image="aquasec/trivy:latest",
-        command="image --severity HIGH myapp:latest"
-    )
-)
-```
-
-### Inline Agent Executor
-
-```python
-from kubiya_workflow_sdk.dsl import inline_agent_executor
-
-wf.step("analyze").executor(
-    inline_agent_executor(
-        message="Analyze the test results and decide if we should deploy",
-        runners=["kubiya-hosted"],
-        ai_instructions="You are a deployment decision maker"
-    )
-)
-```
-
 ## Advanced Features
 
 ### Lifecycle Handlers
@@ -224,7 +168,7 @@ wf.group("data-pipelines")
 ## Complete Example
 
 ```python
-from kubiya_workflow_sdk.dsl import workflow, python_executor, shell_executor
+from kubiya_workflow_sdk.dsl import workflow
 
 # Build a complete data pipeline
 pipeline = (
@@ -240,40 +184,42 @@ pipeline = (
         DATE="${DATE:-$(date +%Y-%m-%d)}",
         BATCH_SIZE="1000"
     )
-    
+
     # Extract data
     .step("extract", "aws s3 cp s3://data-lake/raw/${DATE}/ /tmp/data/ --recursive")
-    
+
     # Process with Python
-    .step("transform")
-    .executor(python_executor("""
-import pandas as pd
-import glob
-import os
+    .step("transform", callback=lambda step: step.python(
+        """
+        import pandas as pd
+        import glob
+        import os
 
-date = os.getenv('DATE')
-batch_size = int(os.getenv('BATCH_SIZE'))
+        date = os.getenv('DATE')
+        batch_size = int(os.getenv('BATCH_SIZE'))
 
-# Process all files
-for file in glob.glob('/tmp/data/*.csv'):
-    df = pd.read_csv(file)
-    # Transform logic here
-    df.to_parquet(file.replace('.csv', '.parquet'))
-    print(f"Processed {file}: {len(df)} rows")
-    """, packages=["pandas", "pyarrow"]))
-    
+        # Process all files
+        for file in glob.glob('/tmp/data/*.csv'):
+            df = pd.read_csv(file)
+            # Transform logic here
+            df.to_parquet(file.replace('.csv', '.parquet'))
+            print(f"Processed {file}: {len(df)} rows")
+            """
+        )
+    )
+
     # Load to warehouse
     .step("load", "aws s3 sync /tmp/data/ s3://data-warehouse/processed/${DATE}/")
-    
+
     # Cleanup
     .step("cleanup", "rm -rf /tmp/data/")
-    
+
     # Handlers
     .handlers(
         success="./notify.sh success",
         failure="./notify.sh failure && ./rollback.sh"
     )
-    
+
     # Resource limits
     .timeout(7200)  # 2 hours
     .max_active_steps(3)
@@ -284,6 +230,7 @@ print(pipeline.to_yaml())
 
 # Execute
 from kubiya_workflow_sdk import execute_workflow
+
 result = execute_workflow(pipeline.to_dict(), api_key="YOUR_KEY")
 ```
 
