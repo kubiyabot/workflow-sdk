@@ -57,7 +57,7 @@ Let's build a simple deployment workflow that showcases the power of Kubiya SDK.
     # Execute with streaming for real-time updates
     import json
     
-    for event_str in execute_workflow(my_workflow.to_dict(), stream=True)::
+    for event_str in execute_workflow(my_workflow.to_dict(), stream=True):
         try:
             event = json.loads(event_str)
             if event.get("type") == "step_running":
