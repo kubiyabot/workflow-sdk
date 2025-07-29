@@ -25,7 +25,7 @@ Quick Start:
 
 Tool Execution:
 --------------
-    from kubiya_workflow_sdk.tools import tool, execute_tool
+    from kubiya_workflow_sdk.tool_templates import tool, execute_tool
 
     @tool(name="data_processor", requirements=["pandas"])
     def process_data(file_path: str):
@@ -103,7 +103,7 @@ from .client import (
 )
 
 # Tool framework
-from .tools import (
+from .tool_templates import (
     # Decorators
     tool,
     shell_tool,
