@@ -184,8 +184,7 @@ Every tool designed for AI agent understanding and execution:
 
 ```python
 import asyncio
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp import ClientSession, StdioServerParameters, stdio_client
 
 async def use_kubiya_tools():
     # Connect to Kubiya MCP server
@@ -194,16 +193,16 @@ async def use_kubiya_tools():
         args=["mcp", "serve"],
         env={"KUBIYA_API_KEY": "kb-your-key"}
     )
-    
-    async with StdioServerTransport(server_params) as (read, write):
+
+    async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             # Initialize
             await session.initialize()
-            
+
             # List available tools
             tools = await session.list_tools()
             print(f"Available tools: {[t.name for t in tools.tools]}")
-            
+
             # Execute a tool
             result = await session.call_tool(
                 "execute_tool",
