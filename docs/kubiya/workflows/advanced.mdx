@@ -15,8 +15,9 @@ Master the advanced features of Kubiya workflows for production-grade automation
 Execute shell commands in any container:
 
 ```python
-result = step.shell(
-    name="process-data",
+from kubiya_workflow_sdk import step
+
+result = step("process-data").shell(
     image="alpine:latest",
     command="""
     echo "Processing..."
@@ -31,10 +32,14 @@ result = step.shell(
 Run Python scripts with full ecosystem:
 
 ```python
-analysis = step.python(
+from kubiya_workflow_sdk import step
+
+analysis = step(
     name="analyze-metrics",
-    image="python:3.11-slim",
     packages=["pandas", "numpy", "scikit-learn"],
+    image="python:3.11-slim",
+    volumes={"/data": "metrics-volume"}
+).python(
     script="""
 import pandas as pd
 import numpy as np
@@ -42,8 +47,7 @@ import numpy as np
 df = pd.read_csv('/data/metrics.csv')
 summary = df.describe()
 print(summary.to_json())
-    """,
-    volumes={"/data": "metrics-volume"}
+    """
 )
 ```
 
@@ -52,9 +56,10 @@ print(summary.to_json())
 Run any containerized application:
 
 ```python
-server = step.container(
+from kubiya_workflow_sdk import step
+
+server = step(
     name="web-server",
-    image="nginx:alpine",
     ports={"80": "8080"},
     volumes={
         "./config": "/etc/nginx/conf.d",
@@ -65,6 +70,8 @@ server = step.container(
         "interval": "30s",
         "retries": 3
     }
+).docker(
+    image="nginx:alpine",
 )
 ```
 
@@ -73,8 +80,13 @@ server = step.container(
 Embed AI decision-making:
 
 ```python
-decision = step.inline_agent(
+from kubiya_workflow_sdk import step
+
+decision = step(
     name="deployment-decision",
+).inline_agent(
+    agent_name="deployment-decision",
+    ai_instructions="You are an AI assistant that decides whether to deploy based on metrics.",
     message="Analyze these metrics and decide if we should deploy: ${metrics}",
     runners=["kubiya-hosted"],
     llm_model="gpt-4",
@@ -96,50 +108,50 @@ decision = step.inline_agent(
 ### SSE Streaming
 
 ```python
-from kubiya_workflow_sdk import Client
 import json
+from kubiya_workflow_sdk import KubiyaClient
 
-client = Client(api_key="your-key")
+client = KubiyaClient(api_key="your-key") # Replace with your actual API key
 
 # Stream workflow execution
-for event in client.execute_workflow(workflow, stream=True):
-    if event.type == "step.started":
-        print(f"Starting: {event.data['step_name']}")
-    elif event.type == "log":
-        print(f"Log: {event.data['message']}")
-    elif event.type == "step.completed":
-        print(f"Completed: {event.data['step_name']}")
-```
+for event_str in client.execute_workflow(workflow, stream=True):
+    try:
+        event = json.loads(event_str)
+        if event.get("type") == "step_running":
+            print(f"▶️  Starting: {event['step'].get('name')}")
+        elif event.get("type") == "step_completed":
+            print(f"✅ Completed: {event['step'].get('name')}")
+        elif event.get("type") == "log":
+            print(f"   Output: {event.get('message')}")
+    except json.JSONDecodeError:
+        # Handle raw string events
+        print(event_str)
 
-### Vercel AI SDK Format
-
-```python
-# For integration with Vercel AI SDK
-async for chunk in client.stream_workflow(workflow, format="vercel"):
-    # Chunk format compatible with Vercel AI SDK
-    if chunk['type'] == '0':  # Text delta
-        print(chunk['value'], end='')
-    elif chunk['type'] == '8':  # Tool call
-        tool_data = json.loads(chunk['value'])
-        print(f"Tool: {tool_data['toolName']}")
 ```
 
 ### Custom Stream Processing
 
 ```python
+import json
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.dsl import Workflow
+
 class WorkflowStreamProcessor:
-    def __init__(self):
+    def __init__(self, kubiya_client: KubiyaClient):
         self.steps_completed = 0
         self.logs = []
-        
-    async def process_stream(self, workflow):
-        async for event in workflow.stream():
-            if event.type == "step.completed":
+        self.__kubiya_client = kubiya_client
+
+    def process_stream(self, workflow: Workflow):
+        for event in self.__kubiya_client.execute_workflow(workflow.to_dict()):
+            event = json.loads(event)
+            if event.get("type") == "step_completed":
                 self.steps_completed += 1
-                await self.notify_progress(self.steps_completed)
-            elif event.type == "log":
-                self.logs.append(event.data)
-                await self.send_to_monitoring(event.data)
+                self.notify_progress(self.steps_completed)
+            elif event.get("type") == "log":
+                self.logs.append(event)
+                self.send_to_monitoring(event)
+
 ```
 
 ## Custom Providers
@@ -201,260 +213,6 @@ workflow = await provider.compose("Deploy my app")
 Simply create a local runner on the Kubiya platform web interface, REST API, or CLI to get a manifest, give your runner a name - and deploy it on your cluster
 -> You can now reference this runner string for workflow execution
 
-### Local Testing
-
-```python
-# test_workflow.py
-import pytest
-from kubiya_workflow_sdk import Workflow, Client, Step
-
-def test_data_pipeline():
-    workflow = Workflow(
-        name="test-pipeline",
-        steps=[
-            Step("fetch", "curl -o data.json https://api.example.com/data"),
-            Step("process", "jq '.items[]' data.json > processed.json"),
-            Step("validate", "python validate.py processed.json")
-        ]
-    )
-    
-    # Use client with your test runner
-    client = Client(api_key="test-key")
-    result = client.execute_workflow(
-        workflow,
-        runner="your-test-runner"  # Created via Kubiya platform
-    )
-    assert result.success
-    assert len(result.steps) == 3
-```
-
-### Debug Mode
-
-```python
-# Enable debug mode for detailed logs
-workflow = Workflow(
-    name="debug-workflow",
-    debug=True,
-    log_level="DEBUG"
-)
-
-# Step-through debugging
-for step in workflow.steps:
-    print(f"Executing: {step.name}")
-    result = step.execute(breakpoint=True)
-    
-    # Inspect state
-    print(f"Output: {result.output}")
-    print(f"Logs: {result.logs}")
-    
-    # Continue or modify
-    if input("Continue? (y/n): ") != "y":
-        break
-```
-
-## Production Best Practices
-
-### 1. **Error Handling**
-
-```python
-@workflow
-def production_pipeline():
-    try:
-        data = step.fetch_critical_data(
-            retry=3,
-            retry_interval="exponential",
-            timeout="5m",
-            on_failure="continue"  # Don't fail entire workflow
-        )
-    except StepError as e:
-        # Fallback logic
-        data = step.fetch_cached_data()
-        step.alert_team(f"Using cached data: {e}")
-```
-
-### 2. **Monitoring & Observability**
-
-```python
-# Add monitoring hooks
-workflow.add_hook("before_step", lambda s: metrics.increment(f"step.{s.name}.started"))
-workflow.add_hook("after_step", lambda s, r: metrics.histogram(f"step.{s.name}.duration", r.duration))
-
-# Custom spans
-with workflow.span("critical-section"):
-    result = step.critical_operation()
-```
-
-### 3. **Secrets Management**
-
-```python
-# Use Kubernetes secrets
-step.database_operation(
-    env={
-        "DB_PASSWORD": "${k8s:secret/db-credentials/password}",
-        "API_KEY": "${vault:secret/api-keys/external}"
-    }
-)
-
-# Or environment variables
-step.secure_operation(
-    env={
-        "TOKEN": "${env:SECURE_TOKEN}",
-        "CERT": "${file:/secrets/cert.pem}"
-    }
-)
-```
-
-### 4. **Caching & Artifacts**
-
-```python
-# Cache step outputs
-@step.cache(key="data-fetch-${date}", ttl="1h")
-def fetch_expensive_data():
-    return step.shell("./fetch-data.sh")
-
-# Store artifacts
-step.generate_report(
-    output_artifacts={
-        "report.pdf": "/reports/",
-        "metrics.json": "/metrics/"
-    }
-)
-```
-
-## Advanced Patterns
-
-### Dynamic DAG Generation
-
-```python
-@workflow
-def dynamic_pipeline(regions: list):
-    # Generate steps dynamically
-    results = []
-    for region in regions:
-        result = step.process_region(
-            name=f"process-{region}",
-            env={"REGION": region},
-            parallel=True  # Run all regions in parallel
-        )
-        results.append(result)
-    
-    # Wait for all and aggregate
-    step.aggregate_results(
-        inputs=results,
-        wait_for_all=True
-    )
-```
-
-### Conditional Workflows
-
-```python
-@workflow
-def conditional_deployment():
-    test_result = step.run_tests()
-    
-    if test_result.exit_code == 0:
-        if test_result.coverage > 80:
-            step.deploy_to_production()
-        else:
-            step.deploy_to_staging()
-            step.alert_team("Low coverage: ${test_result.coverage}%")
-    else:
-        step.rollback()
-        step.create_incident()
-```
-
-### Map-Reduce Patterns
-
-```python
-@workflow
-def map_reduce_analysis():
-    # Map phase - parallel processing
-    chunks = step.split_data(chunks=10)
-    
-    processed = step.map(
-        over=chunks,
-        operation=lambda chunk: step.process_chunk(
-            data=chunk,
-            image="processor:latest"
-        )
-    )
-    
-    # Reduce phase
-    result = step.reduce(
-        data=processed,
-        operation="merge",
-        image="reducer:latest"
-    )
-```
-
-## Troubleshooting
-
-### Common Issues
-
-<AccordionGroup>
-  <Accordion title="Step Timeout">
-    ```python
-    # Increase timeout for long-running steps
-    step.long_operation(
-        timeout="30m",  # Default is 5m
-        grace_period="5m"  # Time to cleanup after timeout
-    )
-    ```
-  </Accordion>
-  
-  <Accordion title="Memory Issues">
-    ```python
-    # Set appropriate memory limits
-    step.memory_intensive(
-        resources={"limits": {"memory": "32Gi"}},
-        swap_limit="64Gi"
-    )
-    ```
-  </Accordion>
-  
-  <Accordion title="Network Issues">
-    ```python
-    # Configure network policies
-    step.external_api_call(
-        network_mode="host",
-        dns_servers=["8.8.8.8", "8.8.4.4"],
-        extra_hosts={"api.internal": "10.0.0.100"}
-    )
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Performance Optimization
-
-### 1. **Parallel Execution**
-
-```python
-# Maximize parallelism
-workflow.configure(
-    max_parallel_steps=20,
-    queue_size=100
-)
-```
-
-### 2. **Resource Pooling**
-
-```python
-# Reuse containers for similar steps
-workflow.configure(
-    container_reuse=True,
-    pool_size=10
-)
-```
-
-### 3. **Caching Strategies**
-
-```python
-# Layer caching for builds
-step.build_image(
-    cache_from=["registry/base:latest"],
-    build_args={"BUILDKIT_INLINE_CACHE": "1"}
-)
-```
 
 ## Next Steps
 
