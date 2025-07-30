@@ -65,20 +65,20 @@ KUBIYA_API_URL=https://api.kubiya.ai  # Optional, defaults to production
 
 ```bash
 # For ADK provider
-pip install kubiya-workflow-sdk[adk]
+pip install 'kubiya-workflow-sdk[adk]'
 
 # For FastMCP provider
-pip install kubiya-workflow-sdk[mcp]
+pip install 'kubiya-workflow-sdk[mcp]'
 
 # All providers
-pip install kubiya-workflow-sdk[all]
+pip install 'kubiya-workflow-sdk[all]'
 ```
 
 ### For Development
 
 ```bash
 # Install with development dependencies
-pip install kubiya-workflow-sdk[dev]
+pip install 'kubiya-workflow-sdk[dev]'
 ```
 
 ## Docker Installation
@@ -110,11 +110,13 @@ The Kubiya SDK provides comprehensive tools for workflow automation:
   <Step title="Workflow Definition">
     Create workflows using Python DSL or YAML
     ```python
-    from kubiya import workflow, step
-    
-    @workflow
-    def my_automation():
-        step.shell("echo 'Hello Kubiya!'")
+    from kubiya_workflow_sdk import workflow
+
+    wf = (
+        workflow("my-automation")
+        .description("My Automation Workflow")
+        .step("shell", "echo 'Hello Kubiya!'")
+    )
     ```
   </Step>
   
@@ -132,10 +134,13 @@ The Kubiya SDK provides comprehensive tools for workflow automation:
   <Step title="Container Orchestration">
     Run any Docker container as a workflow step
     ```python
-    step.container(
+    from kubiya_workflow_sdk.dsl import step
+
+    st = step("Running Docker Container").docker(
         image="tensorflow/tensorflow:latest",
         command="python train_model.py"
     )
+
     ```
   </Step>
 </Steps>
@@ -145,49 +150,13 @@ The Kubiya SDK provides comprehensive tools for workflow automation:
 ### Basic Setup
 
 ```python
-from kubiya_workflow_sdk import Client
+from kubiya_workflow_sdk import KubiyaClient
 
 # Initialize with API key
-client = Client(
+client = KubiyaClient(
     api_key="your-api-key",
-    api_url="https://api.kubiya.ai"  # Optional, defaults to production
+    base_url="https://api.kubiya.ai"  # Optional, defaults to production
 )
-```
-
-### Advanced Configuration
-
-```python
-from kubiya_workflow_sdk import Client, Config
-
-# Detailed configuration
-config = Config(
-    api_key="your-api-key",
-    api_url="https://api.kubiya.ai",
-    timeout=30,  # Request timeout in seconds
-    retry_count=3,  # Number of retries
-    retry_delay=1.0,  # Delay between retries
-    verify_ssl=True,  # SSL verification
-    proxy=None,  # HTTP proxy if needed
-)
-
-client = Client(config=config)
-```
-
-### Environment Variables
-
-Set environment variables for automatic configuration:
-
-```bash
-export KUBIYA_API_KEY="your-api-key"
-export KUBIYA_API_URL="https://api.kubiya.ai"
-export KUBIYA_TIMEOUT="30"
-export KUBIYA_RETRY_COUNT="3"
-```
-
-Then initialize without parameters:
-
-```python
-client = Client()  # Reads from environment
 ```
 
 ## SDK Components
@@ -195,75 +164,83 @@ client = Client()  # Reads from environment
 ### 1. **Workflow Management**
 
 ```python
-from kubiya_workflow_sdk import Workflow, Step
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.dsl import workflow
 
-# Object-oriented approach
-workflow = Workflow(
-    name="data-pipeline",
-    description="Process daily data",
-    steps=[
-        Step(name="fetch", image="alpine", command="wget data.csv"),
-        Step(name="process", image="python:3.11", script="process.py")
-    ]
+wf = (
+    workflow(name="data-pipeline")
+    .step("fetch", callback=lambda step:
+          step.docker(
+            image="alpine",
+            content="wget data.csv"
+        )
+    )
+    .step("process", callback=lambda step:
+          step.docker(
+            image="python:3.11",
+            content="process.py data.csv"
+        )
+    )
+)
+
+client = KubiyaClient(
+    api_key="Your API Key"
 )
 
 # Execute
-result = client.execute_workflow(workflow)
+result = client.execute_workflow(wf.to_dict())
 ```
 
-### 2. **DSL (Domain Specific Language)**
+### 2. **AI Providers**
 
 ```python
-from kubiya_workflow_sdk.dsl import workflow
-
-# Fluent interface
-wf = (
-    workflow("deployment-pipeline")
-    .description("Deploy application")
-    .step("test", "npm test", image="node:18")
-    .step("build", "npm run build")
-    .step("deploy", "kubectl apply -f k8s/")
-    .build()
-)
-```
-
-### 3. **AI Providers**
-
-```python
+import asyncio
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.providers import get_provider
 
-# ADK provider for AI generation
-adk = get_provider("adk", api_key="...")
+async def main():
+    # Initialize the Kubiya client with your API key
+    client = KubiyaClient(
+        api_key="Your Kubiya API Key Here" # Replace with your actual API key
+    )
 
-# Generate workflow
-result = await adk.compose(
-    task="Create a CI/CD pipeline for Python app",
-    mode="act"  # or "plan" for preview
-)
+    # Get the workflow provider
+    adk = get_provider(name="adk", client=client)
+
+    # Compose and execute a workflow
+    async for chunk in adk.compose(
+        task="Create a zero-downtime deployment pipeline with health checks",
+        mode="act"  # or "plan" for preview
+    ):
+        print(chunk)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### 4. **Streaming Execution**
+### 3. **Streaming Execution**
 
 ```python
 # Real-time execution updates
 for event in client.execute_workflow(workflow, stream=True):
-    print(f"{event.type}: {event.data}")
+    print(event)
 ```
 
-### 5. **MCP Server**
+### 4. **MCP Server**
 
 ```python
-from kubiya_workflow_sdk.mcp import MCPServer
+from kubiya_workflow_sdk import workflow
+from kubiya_workflow_sdk.mcp import create_mcp_server
+
+# Create example workflows
+workflow1 = workflow("example_workflow1")
+workflow2 = workflow("example_workflow2")
 
 # Create MCP-compatible server
-server = MCPServer(
-    name="my-workflows",
-    version="1.0.0"
-)
+server = create_mcp_server(name="my-workflows", workflows=[workflow1, workflow2])
 
-# Register workflows as tools
-server.register_workflow(workflow)
-server.run(port=8080)
+# Run the server
+server.run()
 ```
 
 ## Authentication
@@ -275,26 +252,23 @@ server.run(port=8080)
 </Note>
 
 ```python
+from kubiya_workflow_sdk import KubiyaClient
+
 # Direct API key
-client = Client(api_key="key_...")
-
-# From environment
-os.environ["KUBIYA_API_KEY"] = "key_..."
-client = Client()
-
-# From file
-with open(".kubiya-key", "r") as f:
-    api_key = f.read().strip()
-client = Client(api_key=api_key)
+client = KubiyaClient(
+    api_key="Your Api Key",
+)
 ```
 
 ### Organization Context
 
 ```python
+from kubiya_workflow_sdk import KubiyaClient
+
 # Specify organization
-client = Client(
-    api_key="key_...",
-    org_name="my-company"  # For multi-org accounts
+client = KubiyaClient(
+    api_key="Your Api Key",
+    org_name="my-company" # For multi-org accounts.
 )
 ```
 
@@ -334,45 +308,6 @@ helm install my-runner kubiya/runner -f values.yaml
 
 For detailed setup instructions, see the [Runners documentation](/concepts/runners).
 
-## Proxy Configuration
-
-For corporate environments:
-
-```python
-# HTTP proxy
-client = Client(
-    api_key="...",
-    proxy="http://proxy.company.com:8080"
-)
-
-# SOCKS proxy
-client = Client(
-    api_key="...",
-    proxy="socks5://proxy.company.com:1080"
-)
-
-# With authentication
-client = Client(
-    api_key="...",
-    proxy="http://user:pass@proxy.company.com:8080"
-)
-```
-
-## SSL/TLS Configuration
-
-```python
-# Disable SSL verification (not recommended)
-client = Client(
-    api_key="...",
-    verify_ssl=False
-)
-
-# Custom CA bundle
-client = Client(
-    api_key="...",
-    ca_bundle="/path/to/ca-bundle.crt"
-)
-```
 
 ## SDK Features Matrix
 

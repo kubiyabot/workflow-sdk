@@ -140,16 +140,21 @@ Kubiya provides the best of both worlds:
   
   <Step title="Generate Your First Workflow">
     ```python
+    from kubiya_workflow_sdk import KubiyaClient
     from kubiya_workflow_sdk.providers import get_provider
-    
-    adk = get_provider("adk", api_key="YOUR_KEY")
-    workflow = await adk.compose("Create a backup of my database")
+
+    client = KubiyaClient(
+        api_key="Your API Key", # Replace with your actual API key
+    )
+
+    adk = get_provider("adk", client=client)
+    workflow = adk.compose("Create a backup of my database", stream=False)
     ```
   </Step>
   
   <Step title="Deploy with Confidence">
     ```python
-    result = execute_workflow(workflow)  # Deterministic execution
+    result = client.execute_workflow(workflow)  # Deterministic execution
     ```
   </Step>
 </Steps>

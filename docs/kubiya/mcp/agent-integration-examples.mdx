@@ -231,16 +231,13 @@ Custom implementation for ChatGPT Plus with plugins.
 
 ```python
 # chatgpt_kubiya_plugin.py
-import asyncio
-import json
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp import ClientSession, StdioServerParameters, stdio_client
 
 class KubiyaChatGPTPlugin:
     def __init__(self, api_key):
         self.api_key = api_key
         self.session = None
-    
+
     async def initialize(self):
         """Initialize MCP connection"""
         server_params = StdioServerParameters(
@@ -248,25 +245,25 @@ class KubiyaChatGPTPlugin:
             args=["mcp", "serve"],
             env={"KUBIYA_API_KEY": self.api_key}
         )
-        
-        self.transport = StdioServerTransport(server_params)
+
+        self.transport = stdio_client(server_params)
         read, write = await self.transport.__aenter__()
         self.session = ClientSession(read, write)
         await self.session.initialize()
-    
+
     async def execute_tool(self, tool_name, arguments):
         """Execute Kubiya tool via MCP"""
         if not self.session:
             await self.initialize()
-        
+
         result = await self.session.call_tool(tool_name, arguments)
         return result.content
-    
+
     async def list_available_tools(self):
         """Get list of available tools"""
         if not self.session:
             await self.initialize()
-        
+
         tools = await self.session.list_tools()
         return [{"name": t.name, "description": t.description} for t in tools.tools]
 
@@ -298,42 +295,42 @@ Building custom applications with various LLM frameworks.
 #### LangChain Integration
 
 ```python
+import asyncio
+
 from langchain.tools import BaseTool
 from langchain.agents import initialize_agent, AgentType
 from langchain.llms import OpenAI
-import asyncio
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp import ClientSession, StdioServerParameters, stdio_client
 
 class KubiyaTool(BaseTool):
     name = "kubiya_executor"
     description = "Execute automation tools and workflows using Kubiya"
-    
+
     def __init__(self, api_key):
         super().__init__()
         self.api_key = api_key
         self.session = None
-    
+
     async def _arun(self, tool_name: str, arguments: dict) -> str:
         """Async version of the tool"""
         if not self.session:
             await self._initialize_session()
-        
+
         result = await self.session.call_tool(tool_name, arguments)
         return str(result.content)
-    
+
     def _run(self, tool_name: str, arguments: dict) -> str:
         """Sync version of the tool"""
         return asyncio.run(self._arun(tool_name, arguments))
-    
+
     async def _initialize_session(self):
         server_params = StdioServerParameters(
             command="kubiya",
             args=["mcp", "serve"],
             env={"KUBIYA_API_KEY": self.api_key}
         )
-        
-        self.transport = StdioServerTransport(server_params)
+
+        self.transport = stdio_client(server_params)
         read, write = await self.transport.__aenter__()
         self.session = ClientSession(read, write)
         await self.session.initialize()
@@ -356,33 +353,39 @@ result = agent.run("Deploy my application to production and run health checks")
 #### LlamaIndex Integration
 
 ```python
-from llama_index.tools import BaseTool
-from llama_index.agent import OpenAIAgent
 import asyncio
-from mcp import ClientSession, StdioServerParameters
+
+from llama_index.agent.openai import OpenAIAgent
+from llama_index.core.tools import BaseTool, ToolMetadata
+from pydantic import BaseModel, Field
+
 
 class KubiyaLlamaIndexTool(BaseTool):
     def __init__(self, api_key):
         self.api_key = api_key
         self.session = None
-        
-        metadata = ToolMetadata(
+
+    def __call__(self, *args, **kwargs):
+        return self.call(*args, **kwargs)
+
+    def metadata(self) -> ToolMetadata:
+        return ToolMetadata(
             name="kubiya_executor",
             description="Execute automation tools and workflows using Kubiya MCP server. "
-                       "Can run containerized tools, manage infrastructure, and execute workflows.",
+                        "Can run containerized tools, manage infrastructure, and execute workflows.",
             fn_schema=ExecuteToolSchema
         )
-        super().__init__(metadata=metadata)
-    
+
     async def acall(self, tool_name: str, arguments: dict) -> str:
         if not self.session:
             await self._initialize_session()
-        
+
         result = await self.session.call_tool(tool_name, arguments)
         return str(result.content)
-    
+
     def call(self, tool_name: str, arguments: dict) -> str:
         return asyncio.run(self.acall(tool_name, arguments))
+
 
 # Schema for tool parameters
 class ExecuteToolSchema(BaseModel):
@@ -402,43 +405,47 @@ response = agent.chat("Check the status of our Kubernetes cluster and scale up i
 ```python
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import asyncio
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp.client.stdio import stdio_client
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 app = FastAPI(title="Kubiya MCP Proxy")
+
 
 class ToolRequest(BaseModel):
     tool_name: str
     arguments: dict
     runner: str = "auto"
 
+
 class KubiyaMCPClient:
     def __init__(self, api_key):
         self.api_key = api_key
         self.session = None
-    
+
     async def initialize(self):
         server_params = StdioServerParameters(
             command="kubiya",
             args=["mcp", "serve"],
             env={"KUBIYA_API_KEY": self.api_key}
         )
-        
-        self.transport = StdioServerTransport(server_params)
+
+        self.transport = stdio_client(server_params)
         read, write = await self.transport.__aenter__()
         self.session = ClientSession(read, write)
         await self.session.initialize()
-    
+
     async def execute_tool(self, tool_name, arguments):
         if not self.session:
             await self.initialize()
-        
+
         result = await self.session.call_tool(tool_name, arguments)
         return result
 
+
 # Initialize client
 mcp_client = KubiyaMCPClient(api_key="kb-your-key")
+
 
 @app.post("/execute-tool")
 async def execute_tool(request: ToolRequest):
@@ -451,12 +458,13 @@ async def execute_tool(request: ToolRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/tools")
 async def list_tools():
     try:
         if not mcp_client.session:
             await mcp_client.initialize()
-        
+
         tools = await mcp_client.session.list_tools()
         return {
             "tools": [
@@ -467,17 +475,18 @@ async def list_tools():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # WebSocket endpoint for streaming
 @app.websocket("/execute-tool-stream")
 async def execute_tool_stream(websocket: WebSocket):
     await websocket.accept()
-    
+
     try:
         while True:
             data = await websocket.receive_json()
             tool_name = data["tool_name"]
             arguments = data["arguments"]
-            
+
             # Execute tool with streaming
             async for chunk in mcp_client.execute_tool_stream(tool_name, arguments):
                 await websocket.send_json({
@@ -494,25 +503,26 @@ async def execute_tool_stream(websocket: WebSocket):
 
 ```python
 # multi_tenant_kubiya.py
-import asyncio
-from typing import Dict, Optional
+# multi_tenant_kubiya.py
+from typing import Dict
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp.client.stdio import stdio_client
+
 
 class MultiTenantKubiyaManager:
     def __init__(self):
         self.tenant_sessions: Dict[str, ClientSession] = {}
         self.tenant_configs: Dict[str, dict] = {}
-    
+
     async def add_tenant(self, tenant_id: str, config: dict):
         """Add a new tenant configuration"""
         self.tenant_configs[tenant_id] = config
         await self._initialize_tenant_session(tenant_id)
-    
+
     async def _initialize_tenant_session(self, tenant_id: str):
         """Initialize MCP session for a tenant"""
         config = self.tenant_configs[tenant_id]
-        
+
         server_params = StdioServerParameters(
             command="kubiya",
             args=["mcp", "serve"],
@@ -522,47 +532,49 @@ class MultiTenantKubiyaManager:
                 "KUBIYA_OPA_ENFORCE": config.get("opa_enforce", "true")
             }
         )
-        
-        transport = StdioServerTransport(server_params)
+
+        transport = stdio_client(server_params)
         read, write = await transport.__aenter__()
         session = ClientSession(read, write)
         await session.initialize()
-        
+
         self.tenant_sessions[tenant_id] = session
-    
+
     async def execute_tool_for_tenant(self, tenant_id: str, tool_name: str, arguments: dict):
         """Execute tool for specific tenant"""
         if tenant_id not in self.tenant_sessions:
             await self._initialize_tenant_session(tenant_id)
-        
+
         session = self.tenant_sessions[tenant_id]
         result = await session.call_tool(tool_name, arguments)
         return result
 
-# Usage example
-manager = MultiTenantKubiyaManager()
 
-# Add tenants
-await manager.add_tenant("tenant-a", {
-    "api_key": "kb-tenant-a-key",
-    "default_runner": "tenant-a-k8s",
-    "opa_enforce": "true"
-})
+async def usage_example():
+    # Usage example
+    manager = MultiTenantKubiyaManager()
 
-await manager.add_tenant("tenant-b", {
-    "api_key": "kb-tenant-b-key",
-    "default_runner": "tenant-b-docker",
-    "opa_enforce": "false"
-})
+    # Add tenants
+    await manager.add_tenant("tenant-a", {
+        "api_key": "kb-tenant-a-key",
+        "default_runner": "tenant-a-k8s",
+        "opa_enforce": "true"
+    })
 
-# Execute tools for different tenants
-result_a = await manager.execute_tool_for_tenant("tenant-a", "kubectl", {
-    "command": "get pods -n tenant-a"
-})
+    await manager.add_tenant("tenant-b", {
+        "api_key": "kb-tenant-b-key",
+        "default_runner": "tenant-b-docker",
+        "opa_enforce": "false"
+    })
 
-result_b = await manager.execute_tool_for_tenant("tenant-b", "docker", {
-    "command": "ps"
-})
+    # Execute tools for different tenants
+    result_a = await manager.execute_tool_for_tenant("tenant-a", "kubectl", {
+        "command": "get pods -n tenant-a"
+    })
+
+    result_b = await manager.execute_tool_for_tenant("tenant-b", "docker", {
+        "command": "ps"
+    })
 ```
 
 ### CI/CD Integration
@@ -653,19 +665,19 @@ import asyncio
 import re
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp import ClientSession, StdioServerParameters, stdio_client
+
 
 class KubiyaSlackBot:
     def __init__(self, slack_bot_token, slack_app_token, kubiya_api_key):
         self.app = AsyncApp(token=slack_bot_token)
         self.kubiya_api_key = kubiya_api_key
         self.mcp_session = None
-        
+
         # Register event handlers
         self.app.message(re.compile(r"kubiya", re.IGNORECASE))(self.handle_kubiya_request)
         self.app.command("/kubiya")(self.handle_kubiya_command)
-    
+
     async def initialize_mcp(self):
         """Initialize MCP connection"""
         server_params = StdioServerParameters(
@@ -673,22 +685,22 @@ class KubiyaSlackBot:
             args=["mcp", "serve"],
             env={"KUBIYA_API_KEY": self.kubiya_api_key}
         )
-        
-        self.transport = StdioServerTransport(server_params)
+
+        self.transport = stdio_client(server_params)
         read, write = await self.transport.__aenter__()
         self.mcp_session = ClientSession(read, write)
         await self.mcp_session.initialize()
-    
+
     async def handle_kubiya_request(self, message, say):
         """Handle natural language requests"""
         if not self.mcp_session:
             await self.initialize_mcp()
-        
+
         user_message = message['text']
-        
+
         # Parse natural language request
         await say(f"🤖 Processing your request: {user_message}")
-        
+
         try:
             # Use AI to determine the appropriate tool and arguments
             # This is a simplified example - in practice, you'd use NLP
@@ -712,42 +724,43 @@ class KubiyaSlackBot:
                 })
             else:
                 result = await self.mcp_session.call_tool("list_tools", {})
-            
+
             await say(f"✅ Result:\n```\n{result.content}\n```")
-            
+
         except Exception as e:
             await say(f"❌ Error: {str(e)}")
-    
+
     async def handle_kubiya_command(self, ack, command, say):
         """Handle /kubiya slash command"""
         await ack()
-        
+
         if not self.mcp_session:
             await self.initialize_mcp()
-        
+
         command_text = command['text']
-        
+
         try:
             # Parse command format: /kubiya tool_name arg1=value1 arg2=value2
             parts = command_text.split()
             tool_name = parts[0]
             arguments = {}
-            
+
             for part in parts[1:]:
                 if '=' in part:
                     key, value = part.split('=', 1)
                     arguments[key] = value
-            
+
             result = await self.mcp_session.call_tool(tool_name, arguments)
             await say(f"✅ Command executed:\n```\n{result.content}\n```")
-            
+
         except Exception as e:
             await say(f"❌ Error executing command: {str(e)}")
-    
+
     async def start(self):
         """Start the Slack bot"""
         handler = AsyncSocketModeHandler(self.app, slack_app_token)
         await handler.start_async()
+
 
 # Usage
 bot = KubiyaSlackBot(
@@ -769,7 +782,8 @@ import asyncio
 import speech_recognition as sr
 import pyttsx3
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp.client.stdio import stdio_client
+
 
 class VoiceKubiyaAssistant:
     def __init__(self, kubiya_api_key):
@@ -778,29 +792,29 @@ class VoiceKubiyaAssistant:
         self.microphone = sr.Microphone()
         self.tts = pyttsx3.init()
         self.mcp_session = None
-    
+
     async def initialize_mcp(self):
         server_params = StdioServerParameters(
             command="kubiya",
             args=["mcp", "serve"],
             env={"KUBIYA_API_KEY": self.kubiya_api_key}
         )
-        
-        self.transport = StdioServerTransport(server_params)
+
+        self.transport = stdio_client(server_params)
         read, write = await self.transport.__aenter__()
         self.mcp_session = ClientSession(read, write)
         await self.mcp_session.initialize()
-    
+
     def listen_for_command(self):
         """Listen for voice commands"""
         with self.microphone as source:
             self.recognizer.adjust_for_ambient_noise(source)
-        
+
         print("Listening for Kubiya commands...")
-        
+
         with self.microphone as source:
             audio = self.recognizer.listen(source)
-        
+
         try:
             command = self.recognizer.recognize_google(audio)
             print(f"Recognized: {command}")
@@ -808,27 +822,27 @@ class VoiceKubiyaAssistant:
         except sr.UnknownValueError:
             print("Could not understand audio")
             return None
-    
+
     def speak(self, text):
         """Convert text to speech"""
         self.tts.say(text)
         self.tts.runAndWait()
-    
+
     async def process_voice_command(self, command):
         """Process voice command and execute via Kubiya"""
         if not self.mcp_session:
             await self.initialize_mcp()
-        
+
         # Simple command parsing (in practice, use NLP)
         if "status" in command.lower() and "cluster" in command.lower():
             result = await self.mcp_session.call_tool("execute_tool", {
                 "tool_name": "kubectl",
                 "args": {"command": "get nodes"}
             })
-            
+
             self.speak("Cluster status retrieved successfully")
             return result.content
-        
+
         elif "deploy" in command.lower():
             self.speak("Starting deployment process")
             result = await self.mcp_session.call_tool("execute_workflow", {
@@ -843,28 +857,29 @@ class VoiceKubiyaAssistant:
                     ]
                 }
             })
-            
+
             self.speak("Deployment completed")
             return result.content
-        
+
         else:
             self.speak("Command not recognized")
             return None
-    
+
     async def run(self):
         """Main voice assistant loop"""
         await self.initialize_mcp()
-        
+
         while True:
             command = self.listen_for_command()
             if command:
                 if "exit" in command.lower():
                     self.speak("Goodbye!")
                     break
-                
+
                 result = await self.process_voice_command(command)
                 if result:
                     print(f"Result: {result}")
+
 
 # Usage
 assistant = VoiceKubiyaAssistant(kubiya_api_key="kb-your-key")
@@ -1026,39 +1041,39 @@ export default KubiyaApp;
 
 ```python
 # metrics_integration.py
-import asyncio
 import time
 from prometheus_client import Counter, Histogram, Gauge, start_http_server
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp.client.stdio import stdio_client
+
 
 class KubiyaMetricsCollector:
     def __init__(self, kubiya_api_key):
         self.kubiya_api_key = kubiya_api_key
-        
+
         # Prometheus metrics
         self.tool_executions = Counter(
             'kubiya_tool_executions_total',
             'Total number of tool executions',
             ['tool_name', 'status', 'integration']
         )
-        
+
         self.execution_duration = Histogram(
             'kubiya_execution_duration_seconds',
             'Tool execution duration',
             ['tool_name', 'integration']
         )
-        
+
         self.active_sessions = Gauge(
             'kubiya_active_sessions',
             'Number of active MCP sessions',
             ['integration']
         )
-    
+
     async def monitored_execute_tool(self, tool_name, arguments, integration_name):
         """Execute tool with metrics collection"""
         start_time = time.time()
-        
+
         try:
             # Initialize MCP session
             server_params = StdioServerParameters(
@@ -1066,24 +1081,24 @@ class KubiyaMetricsCollector:
                 args=["mcp", "serve"],
                 env={"KUBIYA_API_KEY": self.kubiya_api_key}
             )
-            
-            async with StdioServerTransport(server_params) as (read, write):
+
+            async with stdio_client(server_params) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
-                    
+
                     self.active_sessions.labels(integration=integration_name).inc()
-                    
+
                     result = await session.call_tool(tool_name, arguments)
-                    
+
                     # Record successful execution
                     self.tool_executions.labels(
                         tool_name=tool_name,
                         status='success',
                         integration=integration_name
                     ).inc()
-                    
+
                     return result
-        
+
         except Exception as e:
             # Record failed execution
             self.tool_executions.labels(
@@ -1092,7 +1107,7 @@ class KubiyaMetricsCollector:
                 integration=integration_name
             ).inc()
             raise
-        
+
         finally:
             # Record execution duration
             duration = time.time() - start_time
@@ -1100,8 +1115,9 @@ class KubiyaMetricsCollector:
                 tool_name=tool_name,
                 integration=integration_name
             ).observe(duration)
-            
+
             self.active_sessions.labels(integration=integration_name).dec()
+
 
 # Start metrics server
 start_http_server(8000)
@@ -1155,7 +1171,7 @@ class MCPConnectionPool:
             env={"KUBIYA_API_KEY": self.api_key}
         )
         
-        transport = StdioServerTransport(server_params)
+        transport = stdio_client(server_params)
         read, write = await transport.__aenter__()
         session = ClientSession(read, write)
         await session.initialize()

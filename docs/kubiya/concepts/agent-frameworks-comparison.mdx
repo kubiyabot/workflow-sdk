@@ -102,19 +102,20 @@ graph TD
   
   <Tab title="Kubiya Approach">
     ```python
-    from kubiya_workflow_sdk import KubiyaWorkflow
-    
-    # Simple, deterministic workflow generation
-    workflow = KubiyaWorkflow.from_prompt(
-        "Deploy my application",
-        runner="kubiya-hosted"
+    from kubiya_workflow_sdk import KubiyaClient
+    from kubiya_workflow_sdk.providers import get_provider
+
+    client = KubiyaClient(
+        api_key="Your Api key"  # Replace with your actual API key
     )
-    
+    adk = get_provider("adk", client=client)
+    workflow = adk.compose("Deploy my application", stream=False)
+
     # See exactly what will happen
-    print(workflow.to_yaml())
-    
+    print(workflow)
+
     # Execute with confidence
-    result = workflow.execute()
+    client.execute_workflow(workflow)
     # Full visibility into every step
     ```
   </Tab>
@@ -162,6 +163,8 @@ graph TD
 **Kubiya Solution:**
 ```python
 # Instead of complex multi-agent systems...
+from kubiya_workflow_sdk import workflow
+
 workflow = (
     workflow("deployment-pipeline")
     .step("research", "analyze requirements")
@@ -304,37 +307,42 @@ graph LR
   
   <Tab title="Kubiya Incident Response">
     ```python
+    from kubiya_workflow_sdk import workflow
+
     # Kubiya approach - predictable and safe
     workflow = (
         workflow("incident-response")
-        .step("detect")
-        .inline_agent(
-            message="Analyze incident: ${ALERT}",
-            agent_name="incident-analyzer",
-            runners=["kubiya-hosted"],
-            tools=[{
-                "name": "check-health",
-                "type": "docker",
-                "image": "alpine:latest",
-                "content": "curl health-check"
-            }]
+        .step("detect", callback=lambda step:
+            step.inline_agent(
+                ai_instructions="You are an incident response agent. Analyze the incident and determine the severity.",
+                message="Analyze incident: ${ALERT}",
+                agent_name="incident-analyzer",
+                runners=["kubiya-hosted"],
+                tools=[{
+                    "name": "check-health",
+                    "type": "docker",
+                    "image": "alpine:latest",
+                    "content": "curl health-check"
+                }]
+            ).output("ANALYSIS")
         )
-        .output("ANALYSIS")
-        
+
         # Deterministic response based on analysis
-        .step("respond")
-        .shell("""
-        if [ "${ANALYSIS.severity}" = "critical" ]; then
-            kubectl rollout restart deployment/app
-        fi
-        """)
-        .preconditions({"condition": "${ANALYSIS.severity}", "expected": "re:(critical|high)"})
-        
+        .step("respond", callback=lambda step:
+            step.shell("""
+                if [ "${ANALYSIS.severity}" = "critical" ]; then
+                    kubectl rollout restart deployment/app
+                fi
+                """)
+                .preconditions({"condition": "${ANALYSIS.severity}", "expected": "re:(critical|high)"})
+        )
+
         # Controlled notification
-        .step("notify")
-        .shell("send-slack-notification.sh")
+        .step("notify", callback=lambda step:
+            step.shell("send-slack-notification.sh")
+        )
     )
-    
+
     # Executes exactly as defined, every time
     ```
   </Tab>
@@ -402,18 +410,21 @@ result = langchain_agent.run("process customer data")
 # Agent used: fetch_data → transform → validate → store
 
 # 3. Convert to Kubiya workflow
-workflow = KubiyaWorkflow.from_prompt(
-    """Create a workflow that:
+client = KubiyaClient(
+    api_key="Your Api key"  # Replace with your actual API key
+)
+adk = get_provider("adk", client=client)
+workflow = adk.compose("""Create a workflow that:
     1. Fetches customer data from API
     2. Transforms using pandas
     3. Validates data quality
     4. Stores in PostgreSQL
     """,
-    runner="kubiya-hosted"
-)
+    stream=False # Set to True for streaming output
+   )
 
 # 4. Deploy with confidence
-production_result = workflow.execute()
+production_result = client.execute_workflow(workflow)
 ```
 
 ## The Bottom Line
@@ -469,7 +480,11 @@ production_result = workflow.execute()
 chain = LLMChain(llm=llm, prompt=prompt) | OutputParser() | Tool()
 
 # Use simple workflows
-workflow = KubiyaWorkflow.from_prompt("Your automation goal")
+client = KubiyaClient(
+    api_key="Your Api key"  # Replace with your actual API key
+)
+adk = get_provider("adk", client=client)
+workflow = adk.compose()
 ```
 
 ### From CrewAI to Kubiya
@@ -484,19 +499,6 @@ workflow = (
     .step("research", "gather requirements")
     .step("develop", "implement solution")
     .step("test", "validate results")
-)
-```
-
-### From AutoGPT to Kubiya
-
-```python
-# Instead of autonomous agents...
-auto_gpt.run_until_complete("achieve goal")
-
-# Use controlled automation
-workflow = KubiyaWorkflow.from_prompt(
-    "Specific, bounded automation task",
-    constraints=["no destructive operations", "max 10 steps"]
 )
 ```
 

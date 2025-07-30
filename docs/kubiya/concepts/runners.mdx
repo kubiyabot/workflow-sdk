@@ -288,84 +288,24 @@ Runners can orchestrate any container:
 
 ```python
 # Python containers
-step.analyze(
+from kubiya_workflow_sdk.dsl import Step
+
+# Python containers
+Step("python-container").docker(
     image="python:3.11-slim",
-    command=["python", "analyze.py"]
+    command="python analyze.py",
 )
 
-# Node.js applications
-step.build(
+# Node.js containers
+Step("nodejs-container").docker(
     image="node:18-alpine",
-    command=["npm", "run", "build"]
+    command="npm run build",
 )
 
-# Custom tools
-step.security_scan(
-    image="aquasec/trivy:latest",
-    command=["trivy", "image", "myapp:latest"]
-)
-
-# Cloud CLIs
-step.deploy(
-    image="amazon/aws-cli:latest",
-    command=["aws", "ecs", "update-service"]
-)
-```
-
-### Advanced Features
-
-#### 1. Sidecar Containers
-
-Run multiple containers in a step:
-
-```python
-step.database_migration(
-    image="migrate:latest",
-    sidecars=[
-        {
-            "name": "postgres",
-            "image": "postgres:15",
-            "env": {"POSTGRES_PASSWORD": "temp"}
-        }
-    ]
-)
-```
-
-#### 2. Init Containers
-
-Prepare environment before main container:
-
-```python
-step.process(
-    image="processor:latest",
-    init_containers=[
-        {
-            "name": "download-data",
-            "image": "aws-cli:latest",
-            "command": ["aws", "s3", "sync", "s3://data", "/data"]
-        }
-    ]
-)
-```
-
-#### 3. Volume Management
-
-Share data between steps:
-
-```python
-# Create volume
-volume = workflow.create_volume("shared-data", size="5Gi")
-
-# Write data
-step.generate(
-    image="generator:latest",
-    volumes=[{"name": "data", "mount": "/output", "volume": volume}]
-)
-
-# Read data
-step.process(
-    image="processor:latest",
-    volumes=[{"name": "data", "mount": "/input", "volume": volume}]
+# R containers
+Step("r-container").docker(
+    image="r-base:latest",
+    command="Rscript analyze.R",
 )
 ```
 

@@ -52,23 +52,20 @@ graph TD
 
 ```python
 # This workflow runs in a fresh environment every time
-workflow = Workflow(
-    name="data-pipeline",
-    runner="kubiya-hosted"
-)
+from kubiya_workflow_sdk.dsl import Workflow
 
-# Step 1 runs in container A
-workflow.add_step(
-    name="fetch-data",
-    image="python:3.11",
-    code="# This container is destroyed after execution"
-)
+workflow = (
+    Workflow(name="data-pipeline")
 
-# Step 2 runs in container B (completely separate)
-workflow.add_step(
-    name="process-data",
-    image="python:3.11",
-    code="# Fresh container, no state from Step 1"
+    # Step 1 runs in container A
+    .step("fetch-data", callback=lambda step:
+        step.python("python fetch_data.py")
+    ) # Container A is destroyed after execution
+
+    # Step 2 runs in container B (completely separate)
+    .step("process-data", callback=lambda step:
+        step.python("python process_data.py")
+    ) # Fresh container, no state from Step 1
 )
 ```
 
@@ -281,11 +278,10 @@ graph TD
 You define workflows using Python SDK, YAML, or through AI generation:
 
 ```python
-from kubiya_workflow_sdk import Workflow, Step
+from kubiya_workflow_sdk.dsl import Workflow
 
 workflow = Workflow(
     name="multi-tool-pipeline",
-    runner="kubiya-hosted"
 )
 ```
 
@@ -294,19 +290,27 @@ Each step specifies its container requirements:
 
 ```python
 # Use pre-built images
-workflow.add_step(Step(
+workflow.step(
     name="python-analysis",
-    image="python:3.11-slim",
-    packages=["pandas", "numpy", "scikit-learn"],
-    code="..."
-))
+    callback=(
+        lambda step: step.docker(
+            image="python:3.11-slim",
+            command="..."
+        )
+    ),
+    packages=["pandas", "numpy", "scikit-learn"]
+)
 
 # Or custom images
-workflow.add_step(Step(
+workflow.step(
     name="custom-tool",
-    image="myregistry/my-tool:latest",
-    code="..."
-))
+    callback=(
+        lambda step: step.docker(
+            image="myregistry/my-tool:latest",
+            command="..."
+        )
+    )
+)
 ```
 
 ### 3. **Execution Flow**
@@ -372,23 +376,33 @@ graph LR
 
 ```python
 # Step 1: Generate data
-workflow.add_step(Step(
+workflow.step(
     name="generate",
-    code="""
-    data = create_dataset()
-    save_artifact('dataset.csv', data)
-    """
-))
+    callback=(
+        lambda step: step.docker(
+            image="python:3.11-slim",
+            command="""
+                data = create_dataset()
+                save_artifact('dataset.csv', data)
+            """
+        )
+    )
+)
 
 # Step 2: Process data
-workflow.add_step(Step(
-    name="process",
-    code="""
-    data = load_artifact('dataset.csv')
-    results = analyze(data)
-    save_artifact('results.json', results)
-    """
-))
+workflow.step(
+    name="generate",
+    callback=(
+        lambda step: step.docker(
+            image="python:3.11-slim",
+            command="""
+                data = load_artifact('dataset.csv')
+                results = analyze(data)
+                save_artifact('results.json', results)
+            """
+        )
+    )
+)
 ```
 
 ## Real-World Examples
@@ -481,11 +495,13 @@ COPY models/ /opt/models/
 ```
 
 ```python
-workflow.add_step(Step(
+workflow.step(
     name="ml-pipeline",
-    image="myregistry/ml-base:latest",
-    code="# Use pre-installed ML tools"
-))
+    callback=lambda step: step.docker(
+        image="myregistry/ml-base:latest",
+        command="# Use pre-installed ML tool",
+    ),
+)
 ```
 
 ### Resource Management
@@ -510,16 +526,18 @@ graph TD
 ```
 
 ```python
-workflow.add_step(Step(
+workflow.step(
     name="memory-intensive",
-    image="python:3.11",
+    callback=lambda step: step.docker(
+        image="python:3.11",
+        command="# Run memory-intensive operations"
+    ),
     resources={
         "memory": "8Gi",
         "cpu": "4",
         "gpu": "1"  # For ML workloads
-    },
-    code="# Run memory-intensive operations"
-))
+    }
+)
 ```
 
 ### Network Isolation
@@ -562,19 +580,22 @@ graph TD
 
 ```python
 # Step 1: Start a service
-workflow.add_step(Step(
+workflow.step(
     name="api-server",
-    image="node:20",
+    callback=lambda step: step.docker(
+        image="node:20",
+        command="npm start",
+    ),
     ports=[3000],
-    code="# Start API server"
-))
+)
 
 # Step 2: Different network namespace
-workflow.add_step(Step(
+workflow.step(
     name="client",
-    image="python:3.11",
-    code="# Cannot access Step 1's ports directly"
-))
+    callback=lambda step: step.python(
+        script="# Cannot access Step 1's ports directly"
+    )
+)
 ```
 
 ## AI-Powered Generation
@@ -609,10 +630,15 @@ graph TD
 ```
 
 ```python
-from kubiya_workflow_sdk import KubiyaWorkflow
+from kubiya_workflow_sdk.providers import get_provider
 
-# Generate entire workflow from description
-workflow = KubiyaWorkflow.from_prompt(
+from kubiya_workflow_sdk import KubiyaClient
+
+client = KubiyaClient(
+    api_key="Your Api key"  # Replace with your actual API key
+)
+adk = get_provider("adk", client=client)
+workflow = adk.compose(
     """
     Create a data pipeline that:
     1. Extracts data from PostgreSQL and MongoDB
@@ -620,11 +646,11 @@ workflow = KubiyaWorkflow.from_prompt(
     3. Runs ML predictions with TensorFlow
     4. Stores results in S3 and sends Slack notification
     """,
-    runner="kubiya-hosted"
+stream=False # Set to True for streaming output
 )
 
-# ADK generates the complete containerized workflow
-result = workflow.execute()
+# 4. Deploy with confidence
+production_result = client.execute_workflow(workflow)
 ```
 
 ## Benefits Summary

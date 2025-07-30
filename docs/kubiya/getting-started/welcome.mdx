@@ -1,6 +1,6 @@
 ---
 title: Welcome to Kubiya
-description: Kubiya provides you with everything you need to get reliable, determinstic AI automation for the enteprise
+description: Kubiya provides you with everything you need to get reliable, deterministic AI automation for the enterprise
 icon: rocket
 ---
 
@@ -25,14 +25,28 @@ icon: rocket
 <Tabs>
   <Tab title="🤖 AI Workflow Generation">
     ```python
+    import asyncio
+    from kubiya_workflow_sdk import KubiyaClient
     from kubiya_workflow_sdk.providers import get_provider
-    
-    # Generate workflows with AI
-    adk = get_provider("adk")
-    result = await adk.compose(
-        task="Create a zero-downtime deployment pipeline with health checks",
-        mode="act"  # Instantly execute!
-    )
+
+    async def main():
+        # Initialize the Kubiya client with your API key
+        client = KubiyaClient(
+            api_key="Your Kubiya API Key Here" # Replace with your actual API key
+        )
+
+        # Get the workflow provider
+        adk = get_provider(name="adk", client=client)
+
+        # Compose and execute a workflow
+        async for chunk in adk.compose(
+            task="Create a zero-downtime deployment pipeline with health checks",
+            mode="act"  # Instantly execute!
+        ):
+            print(chunk)
+
+    if __name__ == "__main__":
+        asyncio.run(main())
     ```
   </Tab>
   
@@ -62,6 +76,8 @@ icon: rocket
   
   <Tab title="🧠 Intelligent Agents">
     ```python
+    from kubiya_workflow_sdk import workflow, step
+
     @workflow
     def smart_incident_response():
         # Embed AI decision-making in workflows
@@ -72,11 +88,12 @@ icon: rocket
             runners=["kubiya-hosted"],
             llm_model="gpt-4o"
         )
-        
+
         # AI generates remediation scripts
         fix = step("auto-fix").inline_agent(
             message="Generate safe remediation for: ${ANALYSIS}",
             agent_name="remediation-expert",
+            ai_instructions="You are a remediation expert. Create scripts to fix the issues identified.",
             runners=["kubiya-hosted"]
         ).depends("analyze")
     ```
@@ -120,22 +137,25 @@ icon: rocket
     ```
   </Step>
   
-  <Step title="Set your API key">
-    ```bash
-    export KUBIYA_API_KEY="your-api-key"
-    ```
-  </Step>
-  
   <Step title="Create your first workflow">
     ```python
-    from kubiya_workflow_sdk import workflow, step, run
-    
-    @workflow
-    def hello_kubiya():
-        step("greet").shell("echo 'Hello from Kubiya! 🚀'")
-    
-    # Run it!
-    run(hello_kubiya)
+    from kubiya_workflow_sdk.dsl import workflow
+    from kubiya_workflow_sdk import execute_workflow
+
+    # Create a simple workflow
+    wf = (
+        workflow("hello-world")
+        .description("My first Kubiya workflow")
+        .step("greet", "echo 'Hello from Kubiya!'")
+    )
+
+    # Execute it
+    result = execute_workflow(
+        wf.to_dict(),
+        api_key="your_api_key_here",  # Replace with your actual API key
+        stream=False
+    )
+    print(result)
     ```
   </Step>
 </Steps>

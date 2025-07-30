@@ -77,12 +77,9 @@ A workflow in Kubiya is:
 ### 1. **Workflow Definition**
 
 ```python
-from kubiya import workflow, step
+from kubiya_workflow_sdk import workflow
 
-@workflow
-def my_data_pipeline():
-    # Your workflow logic here
-    pass
+my_workflow = workflow("my-workflow-example")
 ```
 
 ### 2. **Steps**
@@ -90,11 +87,11 @@ def my_data_pipeline():
 Each step is an atomic unit of work:
 
 ```python
-data = step.extract(
-    name="extract-data",
-    image="python:3.11",
-    script="extract.py",
-    inputs={"source": "database"}
+from kubiya_workflow_sdk import step
+
+data = step("extract-data").docker(
+    image="python:3.12",
+    command="python extract.py"
 )
 ```
 
@@ -190,9 +187,9 @@ Dynamic paths based on results:
 
 ```python
 if data.quality_score > 0.8:
-    step.proceed_to_production()
+    step("deploy")
 else:
-    step.alert_data_team()
+    step("alert")
 ```
 
 ### Error Handling
@@ -200,11 +197,9 @@ else:
 Built-in retry mechanisms:
 
 ```python
-step.critical_operation(
-    retry=3,
-    backoff="exponential",
-    on_failure="alert"
-)
+step(
+    "critical_operation"
+).retry(limit=3)
 ```
 
 ### Inline AI Agents
@@ -212,10 +207,12 @@ step.critical_operation(
 Embed intelligent decision-making:
 
 ```python
-analysis = step.inline_agent(
+analysis = step("critical_operation").inline_agent(
+    agent_name="analyzer-agent",
+    ai_instructions="You are an expert in log analysis.",
     message="Analyze these logs for anomalies",
     runners=["kubiya-hosted"],
-    tools=[log_parser_tool]
+    tools=[],
 )
 ```
 
@@ -266,103 +263,6 @@ analysis = step.inline_agent(
   </Row>
 </ComparisonTable>
 
-## Real-World Example
-
-Let's see a complete workflow that showcases Kubiya's power:
-
-```python
-from kubiya import workflow, step
-
-@workflow(
-    name="intelligent-deployment",
-    description="AI-assisted deployment with safety checks"
-)
-def deploy_with_intelligence():
-    # Run tests in Node.js container
-    test_results = step.run_tests(
-        image="node:18",
-        script="npm test",
-        timeout="5m"
-    )
-    
-    # Analyze results with AI
-    analysis = step.inline_agent(
-        message=f"Analyze these test results: {test_results}",
-        runners=["kubiya-hosted"],
-        tools=[{
-            "name": "decide-deployment",
-            "type": "function",
-            "description": "Decide if safe to deploy"
-        }]
-    )
-    
-    # Conditional deployment
-    if analysis.should_deploy:
-        # Build in parallel
-        image = step.build_docker_image(
-            dockerfile="./Dockerfile",
-            tag="myapp:latest"
-        )
-        
-        # Deploy to Kubernetes
-        step.deploy_to_k8s(
-            manifest="k8s/deployment.yaml",
-            image=image.tag,
-            namespace="production"
-        )
-        
-        # Notify team
-        step.send_notification(
-            channel="deployments",
-            message="🚀 Deployed successfully!"
-        )
-    else:
-        # Alert on issues
-        step.create_incident(
-            severity="high",
-            details=analysis.concerns
-        )
-```
-
-## Visual Workflow Builder
-
-```mermaid
-graph TD
-    subgraph "Workflow Definition"
-        DEF[Natural Language: "Deploy my app safely"]
-    end
-    
-    subgraph "AI Generation"
-        GEN[ADK Generates DAG]
-    end
-    
-    subgraph "Execution DAG"
-        TEST[Run Tests<br/>node:18]
-        AI[Analyze Results<br/>inline_agent]
-        
-        BUILD[Build Image<br/>docker:dind]
-        DEPLOY[Deploy to K8s<br/>kubectl:latest]
-        NOTIFY[Send Notification<br/>slack-cli:latest]
-        
-        ALERT[Create Incident<br/>pagerduty:latest]
-    end
-    
-    DEF --> GEN
-    GEN --> TEST
-    
-    TEST --> AI
-    AI -->|"Safe"| BUILD
-    AI -->|"Issues"| ALERT
-    
-    BUILD --> DEPLOY
-    DEPLOY --> NOTIFY
-    
-    style DEF fill:#E1BEE7,stroke:#333,stroke-width:2px
-    style GEN fill:#9C27B0,stroke:#333,stroke-width:3px,color:#fff
-    style AI fill:#FFF59D,stroke:#333,stroke-width:2px
-    style BUILD fill:#4CAF50,stroke:#333,stroke-width:2px
-    style ALERT fill:#FF5252,stroke:#333,stroke-width:2px,color:#fff
-```
 
 ## Benefits of Kubiya Workflows
 

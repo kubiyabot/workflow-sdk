@@ -29,26 +29,34 @@ Unlike traditional workflow engines that run scripts in a shared Python environm
 
 ```python
 # This workflow uses multiple languages and tools
-workflow("multi-language-pipeline")
-.step("extract")
-.docker(
-    image="python:3.11",
-    code="import pandas as pd; df = pd.read_csv('data.csv')"
-)
-.step("transform")
-.docker(
-    image="node:20",
-    code="const data = require('./data.json'); /* Node.js processing */"
-)
-.step("analyze")
-.docker(
-    image="r-base:latest",
-    code="library(ggplot2); # R statistical analysis"
-)
-.step("deploy")
-.docker(
-    image="hashicorp/terraform:latest",
-    command="terraform apply -auto-approve"
+from kubiya_workflow_sdk.dsl import workflow
+
+wf = (
+    workflow("multi-language-pipeline")
+    .step("extract", callback=lambda step:
+        step.docker(
+            image="python:3.11",
+            content="import pandas as pd; df = pd.read_csv('data.csv')"
+        )
+    )
+    .step("transform", callback=lambda step:
+        step.docker(
+            image="node:20",
+            content="const data = require('./data.json'); /* Node.js processing */"
+        )
+    )
+    .step("analyze", callback=lambda step:
+        step.docker(
+            image="r-base:latest",
+            content="library(ggplot2); # R statistical analysis"
+        )
+    )
+    .step("deploy", callback=lambda step:
+          step.docker(
+            image="hashicorp/terraform:latest",
+            command="terraform apply -auto-approve"
+        )
+    )
 )
 ```
 
@@ -92,17 +100,30 @@ graph TB
 The atomic unit of work in a workflow:
 
 ```python
-from kubiya import step
+from kubiya_workflow_sdk.dsl import Step
 
-# Simple command step
-step.run("echo 'Hello World'", image="alpine:latest")
+# Create a simple step object
+step = Step("greet", "echo 'Hello, world!'")
 
-# Step with custom name and resources
-step.process_data(
-    image="python:3.11",
-    command=["python", "process.py"],
-    resources={"cpu": "2", "memory": "4Gi"}
+# Shell command
+shell_step = (
+    Step(name="simple-command")
+    .shell("grep \"TODO\" *.py | less")
+    .shell_type("shell")
 )
+
+# Python script step
+python_step = (
+    Step(name="python-step")
+    .script(
+        """
+            colors = ["red", "yellow", "green", "blue"]
+            for color in colors:
+                print(f"Color: {color}")
+        """
+    )
+)
+
 ```
 
 ### Dependencies
@@ -110,22 +131,23 @@ step.process_data(
 Steps can depend on other steps, creating the DAG:
 
 ```python
-@workflow
-def data_pipeline():
-    # Step 1: Extract
-    raw = step.extract(image="extractor:latest")
-    
-    # Step 2: Transform (depends on extract)
-    clean = step.transform(
-        image="transformer:latest",
-        depends_on=[raw]
+from kubiya_workflow_sdk.dsl import Workflow
+
+# An example of a multistep workflow. 3rd step depends on the output of the 2nd step.
+wf = (
+    Workflow("multistep-workflow")
+    .step("initial-step", "echo 'This is the first step!'")
+    .step("produce-data", callback = lambda s:
+        s.shell("echo '7'")
+          .output("RESULT_VAR")
     )
-    
-    # Step 3: Load (depends on transform)
-    step.load(
-        image="loader:latest",
-        depends_on=[clean]
+    .step("consume-data", callback = lambda s:
+        s.depends("produce-data")
+          .shell("echo $((RESULT_VAR+5))")
+          .output("FINAL_RESULT")
     )
+)
+
 ```
 
 ### Parallel Execution
@@ -133,104 +155,18 @@ def data_pipeline():
 Steps without dependencies run in parallel:
 
 ```python
-@workflow
-def parallel_processing():
-    # These run simultaneously
-    data1 = step.fetch_source1(image="fetcher:latest")
-    data2 = step.fetch_source2(image="fetcher:latest")
-    data3 = step.fetch_source3(image="fetcher:latest")
-    
-    # This waits for all three
-    step.merge_data(
-        image="merger:latest",
-        depends_on=[data1, data2, data3]
+from kubiya_workflow_sdk.dsl import workflow
+
+wf = (
+    workflow("parallel-pipeline")
+    .parallel_steps(
+        "deploy-regions",
+        items=["us-east-1", "eu-west-1", "ap-south-1"],
+        command="deploy-to-region.sh ${ITEM}",
+        max_concurrent=2
     )
-```
+)
 
-## Workflow Formats
-
-### Python DSL
-
-The recommended way to define workflows:
-
-```python
-from kubiya import workflow, step, params
-
-@workflow
-def deploy_application():
-    """Deploy application with health checks"""
-    
-    # Parameters
-    env = params.get("environment", default="staging")
-    version = params.get("version", required=True)
-    
-    # Build step
-    build = step.build(
-        image="docker:latest",
-        command=f"docker build -t app:{version} .",
-        retry={"limit": 3}
-    )
-    
-    # Test step
-    test = step.test(
-        image="app:{version}",
-        command="pytest tests/",
-        depends_on=[build],
-        timeout="10m"
-    )
-    
-    # Deploy step
-    deploy = step.deploy(
-        image="kubectl:latest",
-        command=f"kubectl apply -f deploy/{env}.yaml",
-        depends_on=[test],
-        approval_required=True if env == "production" else False
-    )
-    
-    # Health check
-    step.health_check(
-        image="curl:latest",
-        command="curl -f http://app/health",
-        depends_on=[deploy],
-        retry={"limit": 5, "interval": "30s"}
-    )
-```
-
-### JSON Format
-
-For programmatic generation or storage:
-
-```json
-{
-  "name": "deploy-application",
-  "description": "Deploy application with health checks",
-  "params": {
-    "environment": {"default": "staging"},
-    "version": {"required": true}
-  },
-  "steps": [
-    {
-      "name": "build",
-      "image": "docker:latest",
-      "command": "docker build -t app:${version} .",
-      "retry": {"limit": 3}
-    },
-    {
-      "name": "test",
-      "image": "app:${version}",
-      "command": "pytest tests/",
-      "depends_on": ["build"],
-      "timeout": "10m"
-    },
-    {
-      "name": "deploy",
-      "image": "kubectl:latest",
-      "command": "kubectl apply -f deploy/${environment}.yaml",
-      "depends_on": ["test"],
-      "approval_required": "${environment == 'production'}"
-    }
-  ]
-}
 ```
 
 ## Execution Model
@@ -261,125 +197,6 @@ Throughout execution:
 - Workflow state reflects overall progress
 - State is persisted for durability
 - Failures trigger retry logic if configured
-
-## Advanced Features
-
-### Conditional Execution
-
-Execute steps based on conditions:
-
-```python
-@workflow
-def conditional_deployment():
-    test_result = step.run_tests(image="tester:latest")
-    
-    # Only deploy if tests pass
-    step.deploy(
-        image="deployer:latest",
-        when=f"{test_result.exit_code} == 0"
-    )
-    
-    # Send notification either way
-    step.notify(
-        image="notifier:latest",
-        env={
-            "STATUS": "success" if test_result.success else "failed"
-        }
-    )
-```
-
-### Loops and Iteration
-
-Process lists of items:
-
-```python
-@workflow
-def batch_processing():
-    # Get list of files
-    files = step.list_files(
-        image="aws-cli:latest",
-        command="aws s3 ls s3://bucket/",
-        output_format="lines"
-    )
-    
-    # Process each file
-    for file in files:
-        step.process_file(
-            name=f"process-{file}",
-            image="processor:latest",
-            env={"FILE": file}
-        )
-```
-
-### Error Handling
-
-Robust error handling and recovery:
-
-```python
-@workflow
-def fault_tolerant_pipeline():
-    # Step with retries
-    data = step.fetch_data(
-        image="fetcher:latest",
-        retry={
-            "limit": 3,
-            "interval": "30s",
-            "backoff": "exponential"
-        }
-    )
-    
-    # Step with fallback
-    try:
-        result = step.primary_processor(
-            image="processor:v2",
-            depends_on=[data]
-        )
-    except StepFailure:
-        result = step.fallback_processor(
-            image="processor:v1",
-            depends_on=[data]
-        )
-    
-    # Cleanup runs regardless
-    step.cleanup(
-        image="cleaner:latest",
-        always_run=True
-    )
-```
-
-### Resource Management
-
-Fine-grained resource control:
-
-```python
-@workflow
-def resource_aware_pipeline():
-    # CPU-intensive step
-    step.cpu_task(
-        image="cpu-heavy:latest",
-        resources={
-            "cpu": "4",
-            "memory": "2Gi"
-        }
-    )
-    
-    # GPU-accelerated step
-    step.ml_training(
-        image="tensorflow:gpu",
-        resources={
-            "nvidia.com/gpu": "1",
-            "memory": "16Gi"
-        }
-    )
-    
-    # Spot/preemptible instances
-    step.batch_job(
-        image="batch:latest",
-        node_selector={
-            "node.kubernetes.io/instance-type": "spot"
-        }
-    )
-```
 
 ## Workflow Patterns
 

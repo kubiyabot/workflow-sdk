@@ -65,6 +65,8 @@ graph LR
 Workflows are **Directed Acyclic Graphs (DAGs)**:
 
 ```python
+from kubiya_workflow_sdk.dsl import Workflow
+
 workflow = (
     Workflow("deploy-app")
     .step("validate", "validate.sh")
@@ -72,6 +74,7 @@ workflow = (
     .step("test", "pytest tests/", depends_on=["build"])
     .step("deploy", "kubectl apply -f k8s/", depends_on=["test"])
 )
+
 ```
 
 **Why DAGs?**
@@ -152,6 +155,8 @@ Dependencies are declared, not discovered:
 ### Example: Database Backup Workflow
 
 ```python
+from kubiya_workflow_sdk.dsl import Workflow
+
 backup_workflow = (
     Workflow("db-backup")
     # Always executes in this order
@@ -162,6 +167,7 @@ backup_workflow = (
     .step("verify", "aws s3 ls s3://backups/backup.sql.gz", depends_on=["upload"])
     .step("cleanup", "rm backup.sql.gz", depends_on=["verify"])
 )
+
 ```
 
 **Guarantees:**
@@ -177,13 +183,12 @@ Even with external services, maintain determinism:
 
 ```python
 # Deterministic retry logic
-.step("api-call", 
-    command="curl https://api.example.com/data",
-    retry=RetryPolicy(
-        max_attempts=3,
-        backoff="exponential",
-        max_delay=60
-    )
+.step("api-call",
+      command="curl https://api.example.com/data",
+      retry=RetryPolicy(
+          max_attempts=3,
+          delay_seconds=10
+      )
 )
 ```
 
@@ -193,7 +198,13 @@ When using AI providers, the workflow structure remains deterministic:
 
 ```python
 # AI generates the workflow, but execution is deterministic
-adk = get_provider("adk")
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.providers import get_provider
+
+client = KubiyaClient(
+    api_key="Your Api Key Here",  # Replace with your actual API key
+)
+adk = get_provider("adk", client=client)
 workflow = adk.generate_workflow("backup databases")
 
 # The generated workflow is a fixed DAG
@@ -216,6 +227,8 @@ client.execute_workflow(workflow)
 ### 1. Reliable Deployments
 
 ```python
+from kubiya_workflow_sdk.dsl import Workflow
+
 deploy_workflow = (
     Workflow("production-deploy")
     .step("run-tests", "pytest")

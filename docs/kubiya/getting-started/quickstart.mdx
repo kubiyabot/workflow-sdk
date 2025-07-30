@@ -60,10 +60,10 @@ Let's build a simple deployment workflow that showcases the power of Kubiya SDK.
     for event_str in execute_workflow(my_workflow.to_dict(), stream=True):
         try:
             event = json.loads(event_str)
-            if event.get("type") == "step_started":
-                print(f"▶️  Starting: {event.get('step_name')}")
+            if event.get("type") == "step_running":
+                print(f"▶️  Starting: {event['step'].get('name')}")
             elif event.get("type") == "step_completed":
-                print(f"✅ Completed: {event.get('step_name')}")
+                print(f"✅ Completed: {event['step'].get('name')}")
             elif event.get("type") == "log":
                 print(f"   Output: {event.get('message')}")
         except json.JSONDecodeError:
@@ -78,9 +78,9 @@ Let's build a simple deployment workflow that showcases the power of Kubiya SDK.
 Now let's create a more realistic deployment workflow with error handling and retries:
 
 ```python
+import json
 from kubiya_workflow_sdk.dsl import workflow, step, retry_policy
 from kubiya_workflow_sdk import execute_workflow
-import json
 
 # Create a production-ready deployment workflow
 deployment_workflow = (
@@ -142,10 +142,10 @@ for event_str in execute_workflow(
 ):
     try:
         event = json.loads(event_str)
-        if event.get("type") == "step_started":
-            print(f"▶️  {event.get('step_name', 'Unknown')}: Starting...")
+        if event.get("type") == "step_running":
+            print(f"▶️  Starting: {event['step'].get('name', 'Unknown')}")
         elif event.get("type") == "step_completed":
-            print(f"✅ {event.get('step_name', 'Unknown')}: Completed")
+            print(f"✅ Completed: {event['step'].get('name', 'Unknown')}")
         elif event.get("type") == "log":
             print(f"   {event.get('message', '')}")
     except json.JSONDecodeError:
@@ -159,17 +159,25 @@ for event_str in execute_workflow(
 Use the ADK provider to generate workflows from natural language:
 
 ```python
-from kubiya_workflow_sdk.providers import get_provider
 import asyncio
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.providers import get_provider
+
 
 async def generate_workflow():
+    # Initialize Kubiya SDK client
+    client = KubiyaClient(
+        api_key="YOUR_API_KEY",  # Replace with your actual API key
+    )
+
     # Initialize ADK provider
     adk = get_provider(
-        "adk", 
+        "adk",
         api_key="YOUR_API_KEY",
-        model="gemini-1.5-pro"
+        model="gemini-1.5-pro",
+        client=client,
     )
-    
+
     # Generate a workflow from description
     task = """
     Create a workflow that:
@@ -178,16 +186,17 @@ async def generate_workflow():
     3. Verifies the backup integrity
     4. Sends a Slack notification with results
     """
-    
+
     # Generate workflow
-    result = await adk.compose(
+    result = adk.compose(
         task=task,
         mode="plan",  # Just generate, don't execute
         stream=True
     )
-    
+
     async for event in result:
         print(event)
+
 
 # Run the async function
 asyncio.run(generate_workflow())
