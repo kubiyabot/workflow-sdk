@@ -116,7 +116,8 @@ For custom applications, use the MCP protocol directly:
 ```python
 import asyncio
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import StdioServerTransport
+from mcp.client.stdio import stdio_client
+
 
 async def use_kubiya():
     # Connect to Kubiya MCP server
@@ -125,16 +126,16 @@ async def use_kubiya():
         args=["mcp", "serve"],
         env={"KUBIYA_API_KEY": "kb-your-key"}
     )
-    
-    async with StdioServerTransport(server_params) as (read, write):
+
+    async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             # Initialize connection
             await session.initialize()
-            
+
             # List available tools
             tools = await session.list_tools()
             print(f"Available tools: {[t.name for t in tools.tools]}")
-            
+
             # Execute a simple tool
             result = await session.call_tool(
                 "execute_tool",
