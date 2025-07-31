@@ -1,0 +1,622 @@
+---
+title: "Docker Tools"
+description: "Create containerized tools that run in Docker with full system access"
+---
+
+# Docker Tools
+
+Docker tools provide the ultimate flexibility by running arbitrary commands and software in containerized environments. They're perfect for system operations, CLI integrations, and any task requiring specific software or system access.
+
+## Overview
+
+Docker tools run as containers with:
+- Full system access within the container
+- Custom base images with pre-installed software
+- Volume mounts for file system access
+- Network access for external integrations
+- Environment variables and secrets injection
+- Service dependencies (databases, caches, etc.)
+
+## Basic Usage
+
+### Simple Docker Tool
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+# Basic Docker tool
+simple_tool = Tool(
+    name="echo_tool",
+    type="docker",
+    image="alpine:latest",
+    description="Echo a message",
+    args=[
+        Arg(name="message", type="str", description="Message to echo", required=True)
+    ],
+    content="echo '{{ .message }}'"
+)
+
+# Register the tool
+from kubiya_workflow_sdk.tools import tool_registry
+tool_registry.register(simple_tool)
+```
+
+### Tool with Script Content
+
+```python
+kubectl_tool = Tool(
+    name="kubectl_manager",
+    type="docker",
+    image="bitnami/kubectl:latest",
+    description="Kubernetes cluster management",
+    args=[
+        Arg(name="command", type="str", description="Kubectl command", required=True),
+        Arg(name="namespace", type="str", description="Namespace", default="default"),
+        Arg(name="dry_run", type="bool", description="Dry run mode", default=False)
+    ],
+    env=["KUBECONFIG", "KUBE_CONTEXT"],
+    content="""
+#!/bin/bash
+set -e
+
+# Setup kubectl context if provided
+if [ ! -z "$KUBE_CONTEXT" ]; then
+    kubectl config use-context $KUBE_CONTEXT
+fi
+
+# Build command with dry-run option
+KUBECTL_CMD="kubectl --namespace={{ .namespace }} {{ .command }}"
+if {{ .dry_run }}; then
+    KUBECTL_CMD="$KUBECTL_CMD --dry-run=client"
+fi
+
+echo "Executing: $KUBECTL_CMD"
+eval $KUBECTL_CMD
+    """
+)
+```
+
+## Configuration Options
+
+### Environment Variables
+
+Pass environment variables to your containers:
+
+```python
+aws_tool = Tool(
+    name="aws_s3_sync",
+    type="docker",
+    image="amazon/aws-cli:latest",
+    description="Sync files with AWS S3",
+    args=[
+        Arg(name="source_path", type="str", description="Source path", required=True),
+        Arg(name="bucket", type="str", description="S3 bucket name", required=True),
+        Arg(name="prefix", type="str", description="S3 prefix", default=""),
+        Arg(name="delete", type="bool", description="Delete extra files", default=False)
+    ],
+    env=[
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY", 
+        "AWS_DEFAULT_REGION",
+        "AWS_PROFILE"
+    ],
+    content="""
+#!/bin/bash
+set -e
+
+# Build S3 path
+S3_PATH="s3://{{ .bucket }}"
+if [ ! -z "{{ .prefix }}" ]; then
+    S3_PATH="$S3_PATH/{{ .prefix }}"
+fi
+
+# Build sync command
+SYNC_CMD="aws s3 sync {{ .source_path }} $S3_PATH"
+if {{ .delete }}; then
+    SYNC_CMD="$SYNC_CMD --delete"
+fi
+
+echo "Syncing {{ .source_path }} to $S3_PATH"
+eval $SYNC_CMD
+    """
+)
+```
+
+### Secrets Management
+
+Use secrets for sensitive data:
+
+```python
+database_tool = Tool(
+    name="postgres_backup",
+    type="docker",
+    image="postgres:13",
+    description="Create PostgreSQL backups",
+    args=[
+        Arg(name="database", type="str", description="Database name", required=True),
+        Arg(name="backup_name", type="str", description="Backup filename", required=True)
+    ],
+    env=["POSTGRES_HOST", "POSTGRES_PORT"],
+    secrets=["postgres_user", "postgres_password"],
+    content="""
+#!/bin/bash
+set -e
+
+# Set defaults
+POSTGRES_PORT=${POSTGRES_PORT:-5432}
+
+echo "Creating backup of database {{ .database }}"
+pg_dump -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d {{ .database }} > {{ .backup_name }}.sql
+
+echo "Compressing backup"
+gzip {{ .backup_name }}.sql
+
+echo "Backup completed: {{ .backup_name }}.sql.gz"
+    """
+)
+```
+
+## Advanced Features
+
+### Volume Mounts
+
+Mount host directories or files into containers:
+
+```python
+file_processor = Tool(
+    name="log_analyzer",
+    type="docker",
+    image="python:3.11-slim",
+    description="Analyze log files",
+    args=[
+        Arg(name="log_file", type="str", description="Log file path", required=True),
+        Arg(name="pattern", type="str", description="Search pattern", required=True)
+    ],
+    with_volumes=[
+        {"source": "/host/logs", "destination": "/logs", "mode": "ro"},
+        {"source": "/host/output", "destination": "/output", "mode": "rw"}
+    ],
+    content="""
+#!/bin/bash
+pip install -q pandas
+
+python3 << 'EOF'
+import pandas as pd
+import re
+import json
+from datetime import datetime
+
+log_file = "/logs/{{ .log_file }}"
+pattern = r"{{ .pattern }}"
+
+print(f"Analyzing {log_file} for pattern: {pattern}")
+
+matches = []
+with open(log_file, 'r') as f:
+    for line_num, line in enumerate(f, 1):
+        if re.search(pattern, line):
+            matches.append({
+                "line_number": line_num,
+                "content": line.strip(),
+                "timestamp": datetime.now().isoformat()
+            })
+
+result = {
+    "file_analyzed": "{{ .log_file }}",
+    "pattern": "{{ .pattern }}",
+    "matches_found": len(matches),
+    "matches": matches[:100]  # Limit to first 100 matches
+}
+
+with open("/output/analysis_result.json", "w") as f:
+    json.dump(result, f, indent=2)
+
+print(f"Analysis complete. Found {len(matches)} matches.")
+print("Results saved to /output/analysis_result.json")
+EOF
+    """
+)
+```
+
+### File Injection
+
+Include files in your container:
+
+```python
+config_driven_tool = Tool(
+    name="terraform_deployer",
+    type="docker",
+    image="hashicorp/terraform:latest",
+    description="Deploy infrastructure with Terraform",
+    args=[
+        Arg(name="action", type="str", description="Terraform action", 
+            options=["plan", "apply", "destroy"], required=True),
+        Arg(name="workspace", type="str", description="Terraform workspace", default="default")
+    ],
+    env=["TF_VAR_region", "TF_VAR_environment"],
+    secrets=["aws_access_key", "aws_secret_key"],
+    with_files=[
+        {
+            "destination": "/terraform/main.tf",
+            "content": '''
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "aws_access_key" {
+  description = "AWS access key"
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_secret_key" {
+  description = "AWS secret key"
+  type        = string
+  sensitive   = true
+}
+            '''
+        },
+        {
+            "destination": "/terraform/terraform.tfvars",
+            "content": '''
+region = "${TF_VAR_region}"
+environment = "${TF_VAR_environment}"
+aws_access_key = "${AWS_ACCESS_KEY}"
+aws_secret_key = "${AWS_SECRET_KEY}"
+            '''
+        }
+    ],
+    content="""
+#!/bin/sh
+set -e
+
+cd /terraform
+
+# Initialize Terraform
+terraform init
+
+# Select workspace
+terraform workspace select {{ .workspace }} || terraform workspace new {{ .workspace }}
+
+# Execute action
+case {{ .action }} in
+    plan)
+        terraform plan -var-file=terraform.tfvars
+        ;;
+    apply)
+        terraform apply -var-file=terraform.tfvars -auto-approve
+        ;;
+    destroy)
+        terraform destroy -var-file=terraform.tfvars -auto-approve
+        ;;
+esac
+    """
+)
+```
+
+## Complex Examples
+
+### CI/CD Pipeline Tool
+
+```python
+cicd_tool = Tool(
+    name="deploy_pipeline",
+    type="docker",
+    image="alpine/git:latest",
+    description="Complete CI/CD pipeline for application deployment",
+    args=[
+        Arg(name="repo_url", type="str", description="Git repository URL", required=True),
+        Arg(name="branch", type="str", description="Git branch", default="main"),
+        Arg(name="environment", type="str", description="Target environment", 
+            options=["dev", "staging", "production"], required=True),
+        Arg(name="run_tests", type="bool", description="Run tests", default=True),
+        Arg(name="force_deploy", type="bool", description="Force deployment", default=False)
+    ],
+    env=["DOCKER_REGISTRY", "KUBE_CONFIG"],
+    secrets=["git_token", "registry_password", "deploy_key"],
+    with_volumes=[
+        {"source": "/var/run/docker.sock", "destination": "/var/run/docker.sock", "mode": "rw"},
+        {"source": "/host/workspace", "destination": "/workspace", "mode": "rw"}
+    ],
+    with_files=[
+        {
+            "destination": "/scripts/build.sh",
+            "content": '''#!/bin/bash
+set -e
+
+echo "Building application..."
+docker build -t $DOCKER_REGISTRY/myapp:$BUILD_TAG .
+
+echo "Running security scan..."
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+    aquasec/trivy image $DOCKER_REGISTRY/myapp:$BUILD_TAG
+
+echo "Pushing to registry..."
+echo $REGISTRY_PASSWORD | docker login $DOCKER_REGISTRY -u $REGISTRY_USER --password-stdin
+docker push $DOCKER_REGISTRY/myapp:$BUILD_TAG
+            '''
+        },
+        {
+            "destination": "/scripts/deploy.sh", 
+            "content": '''#!/bin/bash
+set -e
+
+echo "Deploying to {{ .environment }}..."
+
+# Update Kubernetes deployment
+kubectl set image deployment/myapp myapp=$DOCKER_REGISTRY/myapp:$BUILD_TAG \
+    -n {{ .environment }}
+
+# Wait for rollout
+kubectl rollout status deployment/myapp -n {{ .environment }} --timeout=300s
+
+echo "Deployment completed successfully"
+            '''
+        }
+    ],
+    content="""
+#!/bin/bash
+set -e
+
+# Install dependencies
+apk add --no-cache docker kubectl curl jq
+
+cd /workspace
+
+# Clone repository
+if [ -d "repo" ]; then
+    rm -rf repo
+fi
+
+echo "Cloning repository {{ .repo_url }}..."
+git clone -b {{ .branch }} https://$GIT_TOKEN@{{ .repo_url }} repo
+cd repo
+
+# Set build tag
+export BUILD_TAG="{{ .branch }}-$(git rev-parse --short HEAD)-$(date +%s)"
+echo "Build tag: $BUILD_TAG"
+
+# Run tests if requested
+if {{ .run_tests }}; then
+    echo "Running tests..."
+    if [ -f "package.json" ]; then
+        npm install && npm test
+    elif [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt && python -m pytest
+    elif [ -f "go.mod" ]; then
+        go test ./...
+    else
+        echo "No test configuration found, skipping tests"
+    fi
+fi
+
+# Build and push
+chmod +x /scripts/build.sh
+/scripts/build.sh
+
+# Deploy
+if [ "{{ .environment }}" = "production" ] && [ "{{ .force_deploy }}" != "true" ]; then
+    echo "Production deployment requires force_deploy=true"
+    exit 1
+fi
+
+chmod +x /scripts/deploy.sh
+/scripts/deploy.sh
+
+echo "Pipeline completed successfully!"
+    """
+)
+```
+
+### Monitoring and Alerting Tool
+
+```python
+monitoring_tool = Tool(
+    name="system_monitor",
+    type="docker",
+    image="python:3.11-slim",
+    description="System monitoring with alerting",
+    args=[
+        Arg(name="targets", type="array", description="Monitoring targets", required=True),
+        Arg(name="check_interval", type="int", description="Check interval in seconds", default=60),
+        Arg(name="alert_threshold", type="float", description="Alert threshold", default=0.8),
+        Arg(name="send_alerts", type="bool", description="Send alerts", default=True)
+    ],
+    env=["PROMETHEUS_URL", "GRAFANA_URL"],
+    secrets=["slack_webhook", "pagerduty_key"],
+    with_services=[
+        {
+            "name": "prometheus",
+            "image": "prom/prometheus:latest",
+            "exposed_ports": [9090],
+            "with_files": [
+                {
+                    "destination": "/etc/prometheus/prometheus.yml",
+                    "content": '''
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+                    '''
+                }
+            ]
+        }
+    ],
+    content="""
+#!/bin/bash
+pip install -q requests prometheus-client pandas
+
+python3 << 'EOF'
+import requests
+import time
+import json
+import os
+from datetime import datetime
+from prometheus_client.parser import text_string_to_metric_families
+
+def check_target_health(target):
+    \"\"\"Check if a target is healthy.\"\"\"
+    try:
+        response = requests.get(f"http://{target}/health", timeout=10)
+        return {
+            "target": target,
+            "status": "healthy" if response.status_code == 200 else "unhealthy",
+            "response_time": response.elapsed.total_seconds(),
+            "status_code": response.status_code,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "target": target,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+def send_alert(message, severity="warning"):
+    \"\"\"Send alert to configured channels.\"\"\"
+    if not {{ .send_alerts }}:
+        return
+    
+    webhook_url = os.environ.get("SLACK_WEBHOOK")
+    if webhook_url:
+        payload = {
+            "text": f"🚨 {severity.upper()}: {message}",
+            "username": "System Monitor"
+        }
+        requests.post(webhook_url, json=payload)
+
+def query_prometheus_metrics():
+    \"\"\"Query Prometheus for system metrics.\"\"\"
+    prom_url = os.environ.get("PROMETHEUS_URL", "http://prometheus:9090")
+    
+    metrics = {}
+    queries = {
+        "cpu_usage": "100 - (avg(rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)",
+        "memory_usage": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+        "disk_usage": "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)"
+    }
+    
+    for metric_name, query in queries.items():
+        try:
+            response = requests.get(f"{prom_url}/api/v1/query", 
+                                  params={"query": query})
+            if response.status_code == 200:
+                data = response.json()
+                if data["data"]["result"]:
+                    value = float(data["data"]["result"][0]["value"][1])
+                    metrics[metric_name] = value
+        except Exception as e:
+            print(f"Error querying {metric_name}: {e}")
+    
+    return metrics
+
+# Parse targets
+targets = {{ .targets | toJson }}
+check_interval = {{ .check_interval }}
+alert_threshold = {{ .alert_threshold }}
+
+print(f"Starting monitoring for targets: {targets}")
+print(f"Check interval: {check_interval}s, Alert threshold: {alert_threshold}")
+
+while True:
+    print(f"\\n--- Monitoring Check at {datetime.now()} ---")
+    
+    # Check target health
+    for target in targets:
+        result = check_target_health(target)
+        print(f"Target {target}: {result['status']}")
+        
+        if result["status"] != "healthy":
+            send_alert(f"Target {target} is {result['status']}", "critical")
+    
+    # Check system metrics
+    metrics = query_prometheus_metrics()
+    for metric_name, value in metrics.items():
+        print(f"{metric_name}: {value:.2f}%")
+        
+        if value > (alert_threshold * 100):
+            send_alert(f"High {metric_name}: {value:.2f}%", "warning")
+    
+    time.sleep(check_interval)
+EOF
+    """
+)
+```
+
+## Best Practices
+
+### Docker Image Selection
+
+1. **Use Specific Tags**: Avoid `latest` tags in production
+2. **Minimal Images**: Use Alpine or distroless images when possible
+3. **Security Updates**: Regularly update base images
+4. **Multi-stage Builds**: Use multi-stage builds for smaller images
+
+### Resource Management
+
+1. **Resource Limits**: Set appropriate CPU and memory limits
+2. **Cleanup**: Always clean up temporary files and processes
+3. **Exit Codes**: Use proper exit codes for error handling
+4. **Logging**: Provide clear, structured logging
+
+### Security Considerations
+
+1. **Non-root Users**: Run containers as non-root when possible
+2. **Read-only Filesystems**: Use read-only root filesystems
+3. **Network Policies**: Implement network restrictions
+4. **Secret Rotation**: Regularly rotate secrets and credentials
+
+### Development Tips
+
+1. **Template Variables**: Use `{{ .variable }}` syntax for arguments
+2. **Script Organization**: Use external files for complex scripts
+3. **Error Handling**: Implement comprehensive error handling
+4. **Testing**: Test tools locally before deployment
+
+## Working with Tool Registry
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry
+
+# List all Docker tools
+docker_tools = [
+    tool for tool in tool_registry.list_tools() 
+    if tool.type == "docker"
+]
+
+print(f"Docker tools available: {len(docker_tools)}")
+for tool in docker_tools:
+    print(f"- {tool.name} (image: {tool.image}): {tool.description}")
+```
+
+## Related Documentation
+
+- [Installation Guide](./installation)
+- [Function Tools](./function-tools)
+- [Advanced Examples](./advanced-examples)
+- [API Reference](./api-reference)
