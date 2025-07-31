@@ -105,16 +105,16 @@
           {
             "group": "MCP Integration",
             "pages": [
-              "mcp/overview",
-              "mcp/quickstart",
-              "mcp/serverless-architecture",
-              "mcp/infrastructure-compatibility",
-              "mcp/agent-integration-examples",
-              "mcp/deployment-guide",
-              "mcp/agent-server",
-              "mcp/authentication",
-              "mcp/tools-reference",
-              "mcp/examples"
+              "mcpserver/overview",
+              "mcpserver/quickstart",
+              "mcpserver/serverless-architecture",
+              "mcpserver/infrastructure-compatibility",
+              "mcpserver/agent-integration-examples",
+              "mcpserver/deployment-guide",
+              "mcpserver/agent-server",
+              "mcpserver/authentication",
+              "mcpserver/tools-reference",
+              "mcpserver/examples"
             ]
           },
           {
@@ -176,9 +176,9 @@
           {
             "group": "MCP Server APIs",
             "pages": [
-              "api-reference/mcp/overview",
-              "api-reference/mcp/tools",
-              "api-reference/mcp/protocol"
+              "api-reference/mcpserver/overview",
+              "api-reference/mcpserver/tools",
+              "api-reference/mcpserver/protocol"
             ]
           },
           {
@@ -253,23 +253,23 @@
     },
     {
       "source": "/full-stack-agents",
-      "destination": "/mcp/full-stack-agents/overview"
+      "destination": "/mcpserver/full-stack-agents/overview"
     },
     {
       "source": "/full-stack-agents/overview",
-      "destination": "/mcp/full-stack-agents/overview"
+      "destination": "/mcpserver/full-stack-agents/overview"
     },
     {
       "source": "/full-stack-agents/architecture",
-      "destination": "/mcp/full-stack-agents/architecture"
+      "destination": "/mcpserver/full-stack-agents/architecture"
     },
     {
       "source": "/full-stack-agents/quickstart",
-      "destination": "/mcp/full-stack-agents/quickstart"
+      "destination": "/mcpserver/full-stack-agents/quickstart"
     },
     {
       "source": "/full-stack-agents/examples",
-      "destination": "/mcp/full-stack-agents/examples"
+      "destination": "/mcpserver/full-stack-agents/examples"
     },
     {
       "source": "/agent-servers",
@@ -281,11 +281,11 @@
     },
     {
       "source": "/frontend",
-      "destination": "/mcp/streaming-ui/overview"
+      "destination": "/mcpserver/streaming-ui/overview"
     },
     {
       "source": "/frontend/vercel-ai-sdk",
-      "destination": "/mcp/streaming-ui/vercel-ai-sdk"
+      "destination": "/mcpserver/streaming-ui/vercel-ai-sdk"
     },
     {
       "source": "/deployment/helm-chart",
