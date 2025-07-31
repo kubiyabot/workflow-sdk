@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Union, Literal, Optional, Annotated
 
-from pydantic import Field, HttpUrl, BaseModel, field_validator, ValidationInfo
+from pydantic import Field, HttpUrl, BaseModel, field_validator, ValidationInfo, ConfigDict
 
 MAX_DESCRIPTION_LENGTH = 1024
 
@@ -20,8 +20,8 @@ class Arg(BaseModel):
     options: Optional[List[str]] = None
     options_from: Optional[Dict[str, str]] = None
 
-    @classmethod
     @field_validator("type")
+    @classmethod
     def validate_type(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             type_mapping = {
@@ -34,8 +34,8 @@ class Arg(BaseModel):
             return type_mapping.get(v, v)
         return v
 
-    @classmethod
     @field_validator("default")
+    @classmethod
     def validate_default(cls, v: Optional[Union[str, List[Any], bool, int, float]], info: ValidationInfo) -> Optional[Union[str, List[Any], bool, int, float]]:
         if v is not None and info.data and "type" in info.data:
             expected_type = info.data["type"]
@@ -162,8 +162,7 @@ class Tool(BaseModel):
     workflow: Optional[bool] = False
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def validate_inputs(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         validated_inputs = {}
@@ -192,13 +191,13 @@ class Tool(BaseModel):
 
     @staticmethod
     def _convert_type(value: Any, type_str: str) -> Any:
-        if type_str == "string":
+        if type_str == "str":
             return str(value)
-        elif type_str == "integer":
+        elif type_str == "int":
             return int(value)
         elif type_str == "float":
             return float(value)
-        elif type_str == "boolean":
+        elif type_str == "bool":
             return bool(value)
         elif type_str == "array":
             return list(value)
