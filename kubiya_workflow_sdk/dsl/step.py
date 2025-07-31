@@ -71,10 +71,11 @@ class Step:
         return self
 
     # Executor configurations
-    def shell(self, command: str, **config) -> "Step":
+    def shell(self, command: str, with_config: bool = True, **config) -> "Step":
         """Configure as shell executor."""
         self.data["command"] = command
-        self.data["executor"] = {"type": "command", "config": config}
+        if with_config:
+            self.data["executor"] = {"type": "command", "config": config}
         return self
 
     def python(self, script: str) -> "Step":
@@ -390,6 +391,7 @@ class Step:
         exponential_base: float = 2.0,
         exit_codes: Optional[List[int]] = None,
         retry_on: Optional[List[str]] = None,
+        backoff: float = None
     ) -> "Step":
         """Configure retry policy."""
         retry_policy = {"limit": limit, "intervalSec": interval_sec}
@@ -402,6 +404,8 @@ class Step:
             retry_policy["exitCodes"] = exit_codes
         if retry_on:
             retry_policy["retryOn"] = retry_on
+        if backoff:
+            retry_policy["backoff"] = backoff
 
         self.data["retryPolicy"] = retry_policy
         return self
@@ -440,14 +444,14 @@ class Step:
         """Configure continue-on conditions."""
         continue_config = {}
 
-        if failure:
-            continue_config["failure"] = True
+        if failure is not None:
+            continue_config["failure"] = failure
         if exit_code:
             continue_config["exitCode"] = exit_code
         if output:
             continue_config["output"] = output
-        if mark_success:
-            continue_config["markSuccess"] = True
+        if mark_success is not None:
+            continue_config["markSuccess"] = mark_success
 
         if continue_config:
             self.data["continueOn"] = continue_config

@@ -170,7 +170,7 @@ print("Hello from script")
 
     def timeout(self, seconds: int) -> "Workflow":
         """Set workflow timeout."""
-        self.data["timeoutSec"] = seconds
+        self.data["timeout"] = seconds
         return self
 
     def cleanup_timeout(self, seconds: int) -> "Workflow":
