@@ -21,7 +21,10 @@ Function tools run as containerized Python functions with automatic argument han
 
 ### Simple Function Tool
 
+**Note**: The `@function_tool` decorator must be defined at module level (not indented) due to source code parsing requirements.
+
 ```python
+# my_tools.py
 from kubiya_workflow_sdk.tools import function_tool
 
 @function_tool(
@@ -32,6 +35,37 @@ def calculate_area(width: float, height: float) -> float:
     return width * height
 
 # Tool is automatically registered and ready to use
+```
+
+**Alternative approach using Tool class directly**:
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+def calculate_area_func(width: float, height: float) -> float:
+    """Calculate rectangle area."""
+    return width * height
+
+# Create tool manually for more control
+area_tool = Tool(
+    name="calculate_area",
+    type="docker",
+    image="python:3.12-slim",
+    description="Calculate the area of a rectangle",
+    args=[
+        Arg(name="width", description="Rectangle width", required=True),
+        Arg(name="height", description="Rectangle height", required=True)
+    ],
+    content="""
+python -c "
+import sys
+width = float(sys.argv[1])
+height = float(sys.argv[2])
+result = width * height
+print(f'Area: {result}')
+" {{ .width }} {{ .height }}
+    """
+)
 ```
 
 ### Function Tool with Requirements
@@ -454,7 +488,7 @@ from kubiya_workflow_sdk.tools import tool_registry
 
 # List all function tools
 function_tools = [
-    tool for tool in tool_registry.list_tools() 
+    tool for tool in tool_registry.list_tools("default") 
     if hasattr(tool, 'function')
 ]
 
@@ -463,7 +497,7 @@ for tool in function_tools:
     print(f"- {tool.name}: {tool.description}")
 
 # Get specific tool
-calculator = tool_registry.get_tool("calculate_area")
+calculator = tool_registry.get_tool("default", "calculate_area")
 if calculator:
     print(f"Arguments: {[arg.name for arg in calculator.args]}")
 ```
@@ -478,7 +512,7 @@ class TestFunctionTools(unittest.TestCase):
     
     def test_calculate_area(self):
         """Test the calculate_area function tool."""
-        tool = tool_registry.get_tool("calculate_area")
+        tool = tool_registry.get_tool("default", "calculate_area")
         self.assertIsNotNone(tool)
         
         # Validate inputs
@@ -489,7 +523,7 @@ class TestFunctionTools(unittest.TestCase):
     
     def test_process_csv(self):
         """Test CSV processing tool."""
-        tool = tool_registry.get_tool("process_csv")
+        tool = tool_registry.get_tool("default", "process_csv")
         self.assertIsNotNone(tool)
         
         # Check required arguments

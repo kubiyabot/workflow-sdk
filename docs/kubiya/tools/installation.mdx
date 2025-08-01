@@ -192,7 +192,6 @@ Verify your installation works correctly:
 # test_installation.py
 from kubiya_workflow_sdk import __version__
 from kubiya_workflow_sdk.tools import Tool, function_tool
-from kubiya_workflow_sdk.tool_templates import execute_tool
 
 print(f"Kubiya SDK version: {__version__}")
 
@@ -201,18 +200,21 @@ print(f"Kubiya SDK version: {__version__}")
     description="Test tool",
     requirements=[]
 )
-def test_tool(message: str = "Hello, World!") -> str:
+def test_tool(message: "str" = "Hello, World!") -> "str":
     return f"Test successful: {message}"
 
-# Test tool execution
+# Test tool registry
 try:
     from kubiya_workflow_sdk.tools import tool_registry
-    result = execute_tool(
-        tool=tool_registry.get_tool("test_tool"),
-        args={"message": "Installation verified!"}
-    )
-    print("✅ Tools functionality working correctly")
-    print(f"Result: {result}")
+    tool = tool_registry.get_tool("default", "test_tool")
+    if tool:
+        print("✅ Tools functionality working correctly")
+        print(f"Tool found: {tool.name} - {tool.description}")
+        # Test input validation
+        validated = tool.validate_inputs({"message": "Installation verified!"})
+        print(f"Input validation: {validated}")
+    else:
+        print("❌ Tool not found in registry")
 except Exception as e:
     print(f"❌ Installation issue: {e}")
 ```
@@ -222,6 +224,8 @@ Run the test:
 ```bash
 python test_installation.py
 ```
+
+**Note**: The `@function_tool` decorator must be defined at module level (not indented) due to source code parsing requirements.
 
 
 ### Docker Verification

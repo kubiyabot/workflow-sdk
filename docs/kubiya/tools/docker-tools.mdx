@@ -31,7 +31,7 @@ simple_tool = Tool(
     image="alpine:latest",
     description="Echo a message",
     args=[
-        Arg(name="message", type="str", description="Message to echo", required=True)
+        Arg(name="message",  description="Message to echo", required=True)
     ],
     content="echo '{{ .message }}'"
 )
@@ -50,8 +50,8 @@ kubectl_tool = Tool(
     image="bitnami/kubectl:latest",
     description="Kubernetes cluster management",
     args=[
-        Arg(name="command", type="str", description="Kubectl command", required=True),
-        Arg(name="namespace", type="str", description="Namespace", default="default"),
+        Arg(name="command",  description="Kubectl command", required=True),
+        Arg(name="namespace",  description="Namespace", default="default"),
         Arg(name="dry_run", type="bool", description="Dry run mode", default=False)
     ],
     env=["KUBECONFIG", "KUBE_CONTEXT"],
@@ -89,9 +89,9 @@ aws_tool = Tool(
     image="amazon/aws-cli:latest",
     description="Sync files with AWS S3",
     args=[
-        Arg(name="source_path", type="str", description="Source path", required=True),
-        Arg(name="bucket", type="str", description="S3 bucket name", required=True),
-        Arg(name="prefix", type="str", description="S3 prefix", default=""),
+        Arg(name="source_path",  description="Source path", required=True),
+        Arg(name="bucket",  description="S3 bucket name", required=True),
+        Arg(name="prefix",  description="S3 prefix", default=""),
         Arg(name="delete", type="bool", description="Delete extra files", default=False)
     ],
     env=[
@@ -133,8 +133,8 @@ database_tool = Tool(
     image="postgres:13",
     description="Create PostgreSQL backups",
     args=[
-        Arg(name="database", type="str", description="Database name", required=True),
-        Arg(name="backup_name", type="str", description="Backup filename", required=True)
+        Arg(name="database",  description="Database name", required=True),
+        Arg(name="backup_name",  description="Backup filename", required=True)
     ],
     env=["POSTGRES_HOST", "POSTGRES_PORT"],
     secrets=["postgres_user", "postgres_password"],
@@ -163,18 +163,20 @@ echo "Backup completed: {{ .backup_name }}.sql.gz"
 Mount host directories or files into containers:
 
 ```python
+from kubiya_workflow_sdk.tools import Tool, Arg, Volume
+
 file_processor = Tool(
     name="log_analyzer",
     type="docker",
     image="python:3.11-slim",
     description="Analyze log files",
     args=[
-        Arg(name="log_file", type="str", description="Log file path", required=True),
-        Arg(name="pattern", type="str", description="Search pattern", required=True)
+        Arg(name="log_file",  description="Log file path", required=True),
+        Arg(name="pattern",  description="Search pattern", required=True)
     ],
     with_volumes=[
-        {"source": "/host/logs", "destination": "/logs", "mode": "ro"},
-        {"source": "/host/output", "destination": "/output", "mode": "rw"}
+        Volume(name="/host/logs", path="/logs"),
+        Volume(name="/host/output", path="/output")
     ],
     content="""
 #!/bin/bash
@@ -229,9 +231,9 @@ config_driven_tool = Tool(
     image="hashicorp/terraform:latest",
     description="Deploy infrastructure with Terraform",
     args=[
-        Arg(name="action", type="str", description="Terraform action", 
+        Arg(name="action",  description="Terraform action", 
             options=["plan", "apply", "destroy"], required=True),
-        Arg(name="workspace", type="str", description="Terraform workspace", default="default")
+        Arg(name="workspace",  description="Terraform workspace", default="default")
     ],
     env=["TF_VAR_region", "TF_VAR_environment"],
     secrets=["aws_access_key", "aws_secret_key"],
@@ -320,15 +322,17 @@ esac
 ### CI/CD Pipeline Tool
 
 ```python
+from kubiya_workflow_sdk.tools import Tool, Arg, Volume, FileSpec
+
 cicd_tool = Tool(
     name="deploy_pipeline",
     type="docker",
     image="alpine/git:latest",
     description="Complete CI/CD pipeline for application deployment",
     args=[
-        Arg(name="repo_url", type="str", description="Git repository URL", required=True),
-        Arg(name="branch", type="str", description="Git branch", default="main"),
-        Arg(name="environment", type="str", description="Target environment", 
+        Arg(name="repo_url",  description="Git repository URL", required=True),
+        Arg(name="branch",  description="Git branch", default="main"),
+        Arg(name="environment",  description="Target environment", 
             options=["dev", "staging", "production"], required=True),
         Arg(name="run_tests", type="bool", description="Run tests", default=True),
         Arg(name="force_deploy", type="bool", description="Force deployment", default=False)
@@ -336,13 +340,13 @@ cicd_tool = Tool(
     env=["DOCKER_REGISTRY", "KUBE_CONFIG"],
     secrets=["git_token", "registry_password", "deploy_key"],
     with_volumes=[
-        {"source": "/var/run/docker.sock", "destination": "/var/run/docker.sock", "mode": "rw"},
-        {"source": "/host/workspace", "destination": "/workspace", "mode": "rw"}
+        Volume(name="/var/run/docker.sock", path="/var/run/docker.sock"),
+        Volume(name="/host/workspace", path="/workspace")
     ],
     with_files=[
-        {
-            "destination": "/scripts/build.sh",
-            "content": '''#!/bin/bash
+        FileSpec(
+            destination="/scripts/build.sh",
+            content='''#!/bin/bash
 set -e
 
 echo "Building application..."
@@ -356,10 +360,10 @@ echo "Pushing to registry..."
 echo $REGISTRY_PASSWORD | docker login $DOCKER_REGISTRY -u $REGISTRY_USER --password-stdin
 docker push $DOCKER_REGISTRY/myapp:$BUILD_TAG
             '''
-        },
-        {
-            "destination": "/scripts/deploy.sh", 
-            "content": '''#!/bin/bash
+        ),
+        FileSpec(
+            destination="/scripts/deploy.sh", 
+            content='''#!/bin/bash
 set -e
 
 echo "Deploying to {{ .environment }}..."
@@ -373,7 +377,7 @@ kubectl rollout status deployment/myapp -n {{ .environment }} --timeout=300s
 
 echo "Deployment completed successfully"
             '''
-        }
+        )
     ],
     content="""
 #!/bin/bash
@@ -432,6 +436,7 @@ echo "Pipeline completed successfully!"
 ### Monitoring and Alerting Tool
 
 ```python
+from kubiya_workflow_sdk.tools import tool_registry
 monitoring_tool = Tool(
     name="system_monitor",
     type="docker",
@@ -566,6 +571,7 @@ while True:
 EOF
     """
 )
+tool_registry.register_tool("default", monitoring_tool)
 ```
 
 ## Best Practices
@@ -605,7 +611,7 @@ from kubiya_workflow_sdk.tools import tool_registry
 
 # List all Docker tools
 docker_tools = [
-    tool for tool in tool_registry.list_tools() 
+    tool for tool in tool_registry.list_tools("default") 
     if tool.type == "docker"
 ]
 

@@ -47,7 +47,7 @@ from kubiya_workflow_sdk.tools import function_tool
     description="Simple greeting tool",
     requirements=[]
 )
-def greet(name: str, greeting: str = "Hello") -> str:
+def greet(name: "str", greeting: "str" = "Hello") -> "str":
     """Generate a personalized greeting."""
     return f"{greeting}, {name}!"
 
@@ -55,12 +55,15 @@ def greet(name: str, greeting: str = "Hello") -> str:
 from kubiya_workflow_sdk.tools import tool_registry
 
 # List registered tools
-tools = tool_registry.list_tools()
+tools = tool_registry.list_tools("default")
 print(f"Available tools: {[tool.name for tool in tools]}")
 
 # Get the tool
-greeting_tool = tool_registry.get_tool("greet")
-print(f"Tool description: {greeting_tool.description}")
+greeting_tool = tool_registry.get_tool("default", "greet")
+if greeting_tool:
+    print(f"Tool description: {greeting_tool.description}")
+else:
+    print("Tool not found")
 ```
 
 ## Tool Types
@@ -77,7 +80,7 @@ from kubiya_workflow_sdk.tools import function_tool
     description="Calculate mathematical operations",
     requirements=["numpy"]
 )
-def calculate(operation: str, x: float, y: float) -> float:
+def calculate(operation: "str", x: "float", y: "float") -> "float":
     """Perform mathematical calculations."""
     import numpy as np
     
@@ -97,7 +100,7 @@ def calculate(operation: str, x: float, y: float) -> float:
     env=["DATA_PATH"],
     secrets=["api_key"]
 )
-def process_csv(file_path: str, delimiter: str = ",") -> dict:
+def process_csv(file_path: "str", delimiter: "str" = ",") -> "dict":
     """Process a CSV file and return basic statistics."""
     import pandas as pd
     import os
@@ -131,13 +134,11 @@ kubectl_tool = Tool(
     args=[
         Arg(
             name="command",
-            type="str",
             description="Kubectl command to execute",
             required=True
         ),
         Arg(
             name="namespace",
-            type="str", 
             description="Kubernetes namespace",
             default="default"
         )
@@ -150,6 +151,9 @@ kubectl --namespace={{ .namespace }} {{ .command }}
     """
 )
 
+# Import Volume and FileSpec for the example
+from kubiya_workflow_sdk.tools import Volume, FileSpec
+
 # Advanced Docker tool with file mounts and services
 database_tool = Tool(
     name="postgres_backup",
@@ -157,18 +161,18 @@ database_tool = Tool(
     image="postgres:13",
     description="Create and manage database backups",
     args=[
-        Arg(name="action", type="str", description="Action: backup, restore, list", required=True),
-        Arg(name="database", type="str", description="Database name", required=True),
-        Arg(name="backup_name", type="str", description="Backup file name", default="")
+        Arg(name="action", description="Action: backup, restore, list", required=True),
+        Arg(name="database", description="Database name", required=True),
+        Arg(name="backup_name", description="Backup file name", default="")
     ],
     env=["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST"],
     with_volumes=[
-        {"source": "/host/backups", "destination": "/backups", "mode": "rw"}
+        Volume(name="/host/backups", path="/backups")
     ],
     with_files=[
-        {
-            "destination": "/backup-script.sh",
-            "content": """#!/bin/bash
+        FileSpec(
+            destination="/backup-script.sh",
+            content="""#!/bin/bash
 case $1 in
   backup)
     pg_dump -h $POSTGRES_HOST -U $POSTGRES_USER $2 > /backups/$3.sql
@@ -182,7 +186,7 @@ case $1 in
     ;;
 esac
             """
-        }
+        )
     ],
     content="""
 chmod +x /backup-script.sh
@@ -196,25 +200,40 @@ chmod +x /backup-script.sh
 Create native Python tools using the `Tool` class directly:
 
 ```python
-from kubiya_workflow_sdk.tools import Tool, Arg, FunctionTool
+from kubiya_workflow_sdk.tools import Tool, Arg, FunctionTool, Source
 
 # Using FunctionTool class
-def data_processor(input_data: dict, format_type: str = "json") -> dict:
-    """Process input data and return formatted output."""
+def data_processor(input_data: str, format_type: str = "json") -> dict:
+    """Process input data and return formatted output.
+    
+    Args:
+        input_data: JSON string containing the data to process
+        format_type: Output format type
+    """
+    import json
+    
+    # Parse the JSON string to get the dictionary
+    data_dict = json.loads(input_data)
+    
     processed = {
-        "original_keys": list(input_data.keys()),
+        "original_keys": list(data_dict.keys()),
         "processed_at": "2024-01-01T00:00:00Z",
         "format": format_type,
-        "item_count": len(input_data)
+        "item_count": len(data_dict)
     }
     return processed
 
-# Create tool from function
-processor_tool = FunctionTool.from_function(
-    func=data_processor,
+# Create tool from function with explicit args
+processor_tool = Tool(
     name="data_processor",
     description="Process and format data",
-    source={"id": "local"}
+    type="python",
+    args=[
+        Arg(name="input_data", type="str", description="JSON string containing the data to process", required=True),
+        Arg(name="format_type", type="str", description="Output format type", required=False, default="json")
+    ],
+    source=Source(id="local"),
+    function=data_processor
 )
 
 # Register the tool
@@ -227,11 +246,11 @@ tool_registry.register(processor_tool)
 Tools are automatically registered when using decorators, or can be registered manually:
 
 ```python
-from kubiya_workflow_sdk.tools import tool_registry, Tool, Arg
+from kubiya_workflow_sdk.tools import tool_registry, function_tool, Tool, Arg
 
 # Automatic registration with decorators
 @function_tool(description="Auto-registered tool")
-def my_function(x: int) -> int:
+def my_function(x: "int") -> "int":
     return x * 2
 
 # Manual registration
@@ -240,17 +259,17 @@ manual_tool = Tool(
     type="docker",
     image="alpine:latest",
     description="Manually registered tool",
-    args=[Arg(name="message", type="str", description="Message to echo")],
+    args=[Arg(name="message", description="Message to echo")],
     content="echo '{{ .message }}'"
 )
 tool_registry.register(manual_tool)
 
 # Discovery
-tools = tool_registry.list_tools()
+tools = tool_registry.list_tools("default")
 print(f"Available tools: {[tool.name for tool in tools]}")
 
 # Get specific tool
-my_tool = tool_registry.get_tool("my_function")
+my_tool = tool_registry.get_tool("default", "my_function")
 if my_tool:
     print(f"Found tool: {my_tool.description}")
 ```
@@ -271,7 +290,6 @@ advanced_tool = Tool(
     args=[
         Arg(
             name="input_file",
-            type="str",
             description="Path to input file",
             required=True
         ),
@@ -292,7 +310,8 @@ advanced_tool = Tool(
             name="enable_debug",
             type="bool",
             description="Enable debug mode",
-            default=False
+            default=True,
+            required=False
         ),
         Arg(
             name="max_records",
@@ -332,48 +351,6 @@ validated_inputs = advanced_tool.validate_inputs(inputs)
 print(f"Validated inputs: {validated_inputs}")
 ```
 
-## Workflow Integration
-
-Tools integrate seamlessly with Kubiya workflows:
-
-```yaml
-# workflow.yaml
-name: data_processing_workflow
-steps:
-  - name: extract_data
-    tool: api_fetcher
-    args:
-      url: "https://api.example.com/data"
-      format: "json"
-      
-  - name: process_data
-    tool: data_processor
-    args:
-      input_file: "{{ steps.extract_data.result.file_path }}"
-      output_format: "csv"
-      
-  - name: upload_results
-    tool: s3_uploader
-    args:
-      file_path: "{{ steps.process_data.result.output_file }}"
-      bucket: "my-data-bucket"
-```
-
-You can also run workflows programmatically:
-
-```python
-from kubiya_workflow_sdk.dsl.workflows import Workflow
-
-# Load and execute workflow
-workflow = Workflow.from_file("workflow.yaml")
-result = workflow.execute({
-    "api_url": "https://my-api.com/data",
-    "bucket": "my-processed-data"
-})
-
-print(f"Workflow result: {result}")
-```
-
 ## Environment Configuration
 
 ### Environment Variables & Secrets
@@ -382,13 +359,15 @@ Tools can access environment variables and secrets for configuration:
 
 ```python
 # Function tool with environment access
+from kubiya_workflow_sdk.tools import function_tool, Tool, Arg
+
 @function_tool(
     description="GitHub API client",
     env=["GITHUB_TOKEN", "GITHUB_ORG"],
     secrets=["github_webhook_secret"],
     requirements=["requests"]
 )
-def create_github_issue(title: str, body: str, repo: str) -> dict:
+def create_github_issue(title: "str", body: "str", repo: "str") -> "dict":
     """Create a GitHub issue using API."""
     import os
     import requests
@@ -411,8 +390,8 @@ api_tool = Tool(
     image="curlimages/curl:latest",
     description="Make API calls with authentication",
     args=[
-        Arg(name="endpoint", type="str", description="API endpoint", required=True),
-        Arg(name="method", type="str", description="HTTP method", default="GET")
+        Arg(name="endpoint", description="API endpoint", required=True),
+        Arg(name="method", description="HTTP method", default="GET")
     ],
     env=["API_TOKEN", "API_BASE_URL"],
     secrets=["api_secret"],
@@ -432,15 +411,15 @@ curl -X {{ .method }} \
 The tool registry manages all tools in your application:
 
 ```python
-from kubiya_workflow_sdk.tools import tool_registry, Tool, function_tool
+from kubiya_workflow_sdk.tools import tool_registry, function_tool, Tool, Arg
 
 # Check registered tools
 print("Available tools:")
-for tool in tool_registry.list_tools():
+for tool in tool_registry.list_tools("default"):
     print(f"- {tool.name}: {tool.description}")
 
 # Get specific tool
-my_tool = tool_registry.get_tool("greet")
+my_tool = tool_registry.get_tool("default", "greet")
 if my_tool:
     print(f"Tool found: {my_tool.name}")
     print(f"Arguments: {[arg.name for arg in my_tool.args]}")
@@ -451,13 +430,10 @@ custom_tool = Tool(
     type="docker",
     image="alpine:latest",
     description="Echo a message",
-    args=[Arg(name="message", type="str", description="Message to echo")],
+    args=[Arg(name="message", description="Message to echo")],
     content="echo '{{ .message }}'"
 )
 tool_registry.register(custom_tool)
-
-# Clear registry (useful for testing)
-# tool_registry.clear()
 ```
 
 ## Type System & Validation
@@ -472,7 +448,7 @@ tool = Tool(
     description="Demonstrates all supported types",
     args=[
         # String type
-        Arg(name="name", type="str", description="User name", required=True),
+        Arg(name="name", description="User name", required=True),
         
         # Numeric types
         Arg(name="age", type="int", description="Age in years", default=0),
@@ -485,7 +461,7 @@ tool = Tool(
         Arg(name="tags", type="array", description="List of tags", default=[]),
         
         # Optional with choices
-        Arg(name="level", type="str", description="Difficulty level", 
+        Arg(name="level", description="Difficulty level", 
             default="medium", options=["easy", "medium", "hard"])
     ]
 )
@@ -533,12 +509,14 @@ print(f"Validation passed: {validated}")
 ### Data Processing Tool
 
 ```python
+from kubiya_workflow_sdk.tools import function_tool
+
 @function_tool(
     description="Process data files",
     requirements=["pandas", "numpy"],
     env=["DATA_DIR"]
 )
-def process_data(file_path: str, output_format: str = "csv") -> dict:
+def process_data(file_path: "str", output_format: "str" = "csv") -> "dict":
     """Process data and return summary statistics."""
     import pandas as pd
     import os
@@ -565,12 +543,14 @@ def process_data(file_path: str, output_format: str = "csv") -> dict:
 ### API Integration Tool
 
 ```python
+from kubiya_workflow_sdk.tools import function_tool
+
 @function_tool(
     description="Slack notification sender",
     requirements=["requests"],
     secrets=["slack_webhook"]
 )
-def send_slack_message(channel: str, message: str, username: str = "Bot") -> dict:
+def send_slack_message(channel: "str", message: "str", username: "str" = "Bot") -> "dict":
     """Send message to Slack channel."""
     import requests
     import os

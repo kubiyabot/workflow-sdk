@@ -14,7 +14,7 @@ Complete reference for all classes, functions, and decorators in the `kubiya_wor
 The main class for defining containerized tools.
 
 ```python
-from kubiya_workflow_sdk.tools import Tool, Arg
+from kubiya_workflow_sdk.tools import Arg
 
 class Tool(BaseModel):
     """Main tool definition class."""
@@ -27,29 +27,10 @@ class Tool(BaseModel):
     args: List[Arg] = []               # Tool arguments
     env: List[str] = []                # Environment variables
     secrets: Optional[List[str]] = []   # Required secrets
-    with_volumes: Optional[List[dict]] = []      # Volume mounts
-    with_files: Optional[List[dict]] = []        # File injections
-    with_services: Optional[List[dict]] = []     # Service dependencies
+    with_volumes: Optional[List[Volume]] = []      # Volume mounts
+    with_files: Optional[List[FileSpec]] = []        # File injections
+    with_services: Optional[List[ServiceSpec]] = []     # Service dependencies
     timeout: int = 300                  # Execution timeout
-```
-
-#### Constructor
-
-```python
-Tool(
-    name: str,
-    description: str,
-    type: Literal["python", "golang", "docker"] = "docker",
-    image: Optional[str] = None,
-    content: Optional[str] = None,
-    args: List[Arg] = [],
-    env: List[str] = [],
-    secrets: Optional[List[str]] = [],
-    with_volumes: Optional[List[dict]] = [],
-    with_files: Optional[List[dict]] = [],
-    with_services: Optional[List[dict]] = [],
-    **kwargs
-)
 ```
 
 #### Methods
@@ -59,12 +40,14 @@ Tool(
 Validate and process input arguments according to tool definition.
 
 ```python
+from kubiya_workflow_sdk.tools import Tool
+
 tool = Tool(
     name="example",
     description="Example tool",
     args=[
-        Arg(name="count", type="int", required=True),
-        Arg(name="message", type="str", default="hello")
+        Arg(name="count", type="int", required=True, description="Number of times to repeat"),
+        Arg(name="message",  default="hello", type="str", required=False, description="Message to repeat"),
     ]
 )
 
@@ -72,17 +55,11 @@ validated = tool.validate_inputs({"count": 5})
 # Returns: {"count": 5, "message": "hello"}
 ```
 
-**`to_dict() -> Dict[str, Any]`**
-
-Convert tool to dictionary representation.
-
-```python
-tool_dict = tool.to_dict()
-```
-
 #### Examples
 
 ```python
+from kubiya_workflow_sdk.tools import Tool, Arg, Volume, ServiceSpec
+ 
 # Basic Docker tool
 web_tool = Tool(
     name="curl_client",
@@ -90,8 +67,8 @@ web_tool = Tool(
     image="curlimages/curl:latest",
     description="Make HTTP requests",
     args=[
-        Arg(name="url", type="str", description="Target URL", required=True),
-        Arg(name="method", type="str", description="HTTP method", default="GET")
+        Arg(name="url",  description="Target URL", required=True),
+        Arg(name="method",  description="HTTP method", default="GET")
     ],
     content="curl -X {{ .method }} {{ .url }}"
 )
@@ -104,10 +81,10 @@ database_tool = Tool(
     description="Database operations",
     env=["POSTGRES_USER", "POSTGRES_PASSWORD"],
     with_volumes=[
-        {"source": "/host/backups", "destination": "/backups", "mode": "rw"}
+        Volume(path="/host/backups", name="/backups")
     ],
     with_services=[
-        {"name": "redis", "image": "redis:alpine", "exposed_ports": [6379]}
+        ServiceSpec(name="redis", image="redis:alpine", exposed_ports=[6379])
     ],
     content="pg_dump $POSTGRES_DB > /backups/backup.sql"
 )
@@ -131,26 +108,14 @@ class Arg(BaseModel):
     options: Optional[List[str]] = None          # Valid options
 ```
 
-#### Constructor
-
-```python
-Arg(
-    name: str,
-    type: Optional[Literal["str", "int", "float", "bool", "array"]] = None,
-    description: str,
-    required: Optional[bool] = None,
-    default: Optional[Union[str, int, float, bool, List]] = None,
-    options: Optional[List[str]] = None
-)
-```
-
 #### Examples
 
+**Note**: Type specifications are optional for string arguments (they default to string). For other types (`int`, `float`, `bool`, `array`), specify the type to enable automatic validation and conversion.
+
 ```python
-# String argument with validation
+# String argument (type can be omitted, defaults to string)
 url_arg = Arg(
     name="url",
-    type="str", 
     description="Target URL",
     required=True
 )
@@ -164,7 +129,7 @@ count_arg = Arg(
     required=False
 )
 
-# String with options
+# String with options (type can be specified or omitted)
 level_arg = Arg(
     name="level",
     type="str",
@@ -210,14 +175,16 @@ class FunctionTool(Tool):
 Create a FunctionTool from a Python function.
 
 ```python
-def my_function(x: int, y: str = "default") -> dict:
+from kubiya_workflow_sdk.tools import FunctionTool, Source
+
+def my_function(x: "int", y: "str" = "default") -> "dict":
     return {"x": x, "y": y}
 
 tool = FunctionTool.from_function(
     func=my_function,
     name="my_tool",
     description="Example function tool",
-    source={"id": "local"}
+    source=Source(id="local")
 )
 ```
 
@@ -267,7 +234,7 @@ def my_function(...):
 ```python
 # Simple function tool
 @function_tool(description="Add two numbers")
-def add(x: int, y: int) -> int:
+def add(x: "int", y: "int") -> "int":
     return x + y
 
 # With requirements and environment
@@ -277,7 +244,7 @@ def add(x: int, y: int) -> int:
     env=["DATA_PATH"],
     secrets=["api_key"]
 )
-def process_data(filename: str, output_format: str = "csv") -> dict:
+def process_data(filename: "str", output_format: "str" = "csv") -> "dict":
     import pandas as pd
     import os
     
@@ -297,7 +264,7 @@ def process_data(filename: str, output_format: str = "csv") -> dict:
     requirements=["requests"],
     env=["GITHUB_TOKEN", "GITHUB_REPO"]
 )
-def create_issue(title: str, body: str, labels: List[str] = []) -> dict:
+def create_issue(title: "str", body: "str", labels: "List[str]" = []) -> "dict":
     import requests
     import os
     
@@ -326,16 +293,16 @@ class ToolRegistry:
     """Global tool registry."""
     
     def register(self, tool: Tool) -> None:
-        """Register a tool."""
+        """Register a tool with default source."""
+    
+    def register_tool(self, source: str, tool: Tool):
+        """Register a tool with a given source."""
     
     def get_tool(self, name: str) -> Optional[Tool]:
         """Get tool by name."""
     
     def list_tools(self) -> List[Tool]:
         """List all registered tools."""
-    
-    def clear(self) -> None:
-        """Clear all tools (for testing)."""
 ```
 
 #### Methods
@@ -351,33 +318,24 @@ my_tool = Tool(name="example", description="Example tool")
 tool_registry.register(my_tool)
 ```
 
-**`get_tool(name: str) -> Optional[Tool]`**
+**`get_tool(source: str, name: str) -> Optional[Tool]`**
 
-Retrieve a tool by name.
+Retrieve a tool by source and name.
 
 ```python
-tool = tool_registry.get_tool("example")
+tool = tool_registry.get_tool("default", "example")
 if tool:
     print(f"Found tool: {tool.description}")
 ```
 
-**`list_tools() -> List[Tool]`**
+**`list_tools(source: str) -> List[Tool]`**
 
-Get all registered tools.
+Get all registered tools from a source.
 
 ```python
-all_tools = tool_registry.list_tools()
+all_tools = tool_registry.list_tools("default")
 for tool in all_tools:
     print(f"- {tool.name}: {tool.description}")
-```
-
-**`clear() -> None`**
-
-Clear all registered tools (useful for testing).
-
-```python
-# Clear registry
-tool_registry.clear()
 ```
 
 #### Usage Examples
@@ -387,21 +345,21 @@ from kubiya_workflow_sdk.tools import tool_registry, function_tool
 
 # Check what tools are available
 print("Registered tools:")
-for tool in tool_registry.list_tools():
+for tool in tool_registry.list_tools("default"):
     print(f"- {tool.name}: {tool.description}")
 
 # Get a specific tool
-calculator = tool_registry.get_tool("add")
+calculator = tool_registry.get_tool("default", "add")
 if calculator:
     print(f"Calculator tool args: {[arg.name for arg in calculator.args]}")
 
 # Function tools are auto-registered
 @function_tool(description="Multiply numbers")
-def multiply(x: float, y: float) -> float:
+def multiply(x: "float", y: "float") -> "float":
     return x * y
 
 # Now available in registry
-mult_tool = tool_registry.get_tool("multiply")
+mult_tool = tool_registry.get_tool("default", "multiply")
 print(f"Multiply tool available: {mult_tool is not None}")
 ```
 
@@ -423,9 +381,8 @@ Volume mount specification.
 
 ```python
 class Volume(BaseModel):
-    source: str          # Host path
-    destination: str     # Container path
-    mode: str = "rw"     # Mount mode (ro/rw)
+    path: str           # Host path  
+    name: str           # Volume name/mount point
 ```
 
 ### FileSpec
@@ -434,8 +391,9 @@ File injection specification.
 
 ```python
 class FileSpec(BaseModel):
-    destination: str     # Container file path
-    content: str         # File content
+    source: Optional[str] = None    # File source
+    destination: str                # Container file path
+    content: Optional[str] = None   # File content
 ```
 
 ### ServiceSpec  
@@ -444,10 +402,12 @@ Service dependency specification.
 
 ```python
 class ServiceSpec(BaseModel):
-    name: str                    # Service name
-    image: str                   # Docker image
-    exposed_ports: List[int]     # Exposed ports
-    env: Optional[Dict[str, str]] = {}  # Environment variables
+    name: str                               # Service name
+    image: str                              # Docker image
+    env: Optional[Dict[str, str]] = {}      # Environment variables
+    entrypoint: Optional[List[str]] = []    # Container entrypoint
+    exposed_ports: Optional[List[int]] = [] # Exposed ports
+    volumes: Optional[List[Volume]] = []    # Volume mounts
 ```
 
 ### ToolOutput
@@ -456,11 +416,10 @@ Tool execution result.
 
 ```python
 class ToolOutput(BaseModel):
-    success: bool                # Execution success
-    output: Optional[str] = None # Standard output
-    error: Optional[str] = None  # Error output  
-    exit_code: Optional[int] = None  # Exit code
-    metadata: Optional[Dict[str, Any]] = None  # Additional metadata
+    stdout: str        # Standard output
+    stderr: str        # Standard error
+    exit_code: int     # Exit code
+    output: Any        # Parsed output data
 ```
 
 ## Type System
@@ -485,11 +444,12 @@ The system automatically converts types based on argument definitions:
 # Tool definition
 tool = Tool(
     name="example",
+    description="Example tool for type conversion",
     args=[
-        Arg(name="count", type="int", required=True),
-        Arg(name="rate", type="float", default=1.0),
-        Arg(name="enabled", type="bool", default=False),
-        Arg(name="items", type="array", default=[])
+        Arg(name="count", type="int", description="Number of items to process", required=True),
+        Arg(name="rate", type="float", description="Processing rate multiplier", default=1.0),
+        Arg(name="enabled", type="bool", description="Enable advanced processing", default=False),
+        Arg(name="items", type="array", description="List of items to process", default=[])
     ]
 )
 
@@ -552,20 +512,17 @@ good_tool = Tool(
     args=[
         Arg(
             name="log_file", 
-            type="str", 
             description="Path to the log file to process",
             required=True
         ),
         Arg(
             name="level",
-            type="str",
             description="Minimum log level to include",
             options=["debug", "info", "warning", "error"],
             default="info"
         ),
         Arg(
             name="output_format",
-            type="str", 
             description="Output format for processed logs",
             options=["json", "csv", "text"],
             default="json"
@@ -588,6 +545,8 @@ good_tool = Tool(
 4. **Return Types**: Always return structured data (dict)
 
 ```python
+from typing import List, Dict, Any
+
 @function_tool(
     description="Calculate statistical measures for a dataset",
     requirements=["pandas>=1.3.0", "numpy>=1.20.0"]
@@ -645,27 +604,6 @@ def calculate_stats(
     except Exception as e:
         return {"error": f"Processing error: {str(e)}"}
 ```
-
-## Migration Guide
-
-### From sdk-py to workflow_sdk
-
-If migrating from the old sdk-py tools:
-
-```python
-# Old (sdk-py)
-from kubiya_sdk.tools import function_tool, Tool
-
-# New (workflow_sdk)  
-from kubiya_workflow_sdk.tools import function_tool, Tool
-
-# API is compatible, no code changes needed
-@function_tool(description="Same API")
-def my_tool(x: int) -> int:
-    return x * 2
-```
-
-The API is fully backward compatible, only the import path has changed.
 
 ## Related Documentation
 
