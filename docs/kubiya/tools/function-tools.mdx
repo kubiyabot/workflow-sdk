@@ -1,0 +1,639 @@
+---
+title: "Function Tools"
+description: "Create tools from Python functions using decorators"
+---
+
+# Function Tools
+
+Function tools allow you to convert Python functions into Kubiya tools using the `@function_tool` decorator. This is the simplest and most powerful way to create tools for data processing, API integrations, and business logic.
+
+## Overview
+
+Function tools run as containerized Python functions with automatic argument handling, dependency management, and environment configuration. They're perfect for:
+
+- Data processing and analysis
+- API integrations
+- File operations
+- Business logic implementations
+- Utility functions
+
+## Basic Usage
+
+### Simple Function Tool
+
+**Note**: The `@function_tool` decorator must be defined at module level (not indented) due to source code parsing requirements.
+
+```python
+# my_tools.py
+from kubiya_workflow_sdk.tools import function_tool
+
+@function_tool(
+    description="Calculate the area of a rectangle"
+)
+def calculate_area(width: float, height: float) -> float:
+    """Calculate rectangle area."""
+    return width * height
+
+# Tool is automatically registered and ready to use
+```
+
+**Alternative approach using Tool class directly**:
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+def calculate_area_func(width: float, height: float) -> float:
+    """Calculate rectangle area."""
+    return width * height
+
+# Create tool manually for more control
+area_tool = Tool(
+    name="calculate_area",
+    type="docker",
+    image="python:3.12-slim",
+    description="Calculate the area of a rectangle",
+    args=[
+        Arg(name="width", description="Rectangle width", required=True),
+        Arg(name="height", description="Rectangle height", required=True)
+    ],
+    content="""
+python -c "
+import sys
+width = float(sys.argv[1])
+height = float(sys.argv[2])
+result = width * height
+print(f'Area: {result}')
+" {{ .width }} {{ .height }}
+    """
+)
+```
+
+### Function Tool with Requirements
+
+```python
+@function_tool(
+    description="Process CSV data and return statistics",
+    requirements=["pandas>=1.3.0", "numpy>=1.20.0"]
+)
+def process_csv(file_path: str, delimiter: str = ",") -> dict:
+    """Process a CSV file and return basic statistics."""
+    import pandas as pd
+    
+    df = pd.read_csv(file_path, delimiter=delimiter)
+    return {
+        "rows": len(df),
+        "columns": len(df.columns),
+        "memory_usage": df.memory_usage(deep=True).sum(),
+        "column_names": list(df.columns)
+    }
+```
+
+## Configuration Options
+
+### Environment Variables
+
+Access environment variables in your tools:
+
+```python
+@function_tool(
+    description="GitHub repository manager",
+    requirements=["requests"],
+    env=["GITHUB_TOKEN", "GITHUB_ORG"]
+)
+def create_repo(name: str, description: str = "", private: bool = False) -> dict:
+    """Create a new GitHub repository."""
+    import os
+    import requests
+    
+    token = os.environ["GITHUB_TOKEN"]
+    org = os.environ["GITHUB_ORG"]
+    
+    headers = {"Authorization": f"token {token}"}
+    data = {
+        "name": name,
+        "description": description,
+        "private": private
+    }
+    
+    response = requests.post(
+        f"https://api.github.com/orgs/{org}/repos",
+        headers=headers,
+        json=data
+    )
+    
+    return response.json()
+```
+
+### Secrets Management
+
+Use secrets for sensitive configuration:
+
+```python
+@function_tool(
+    description="Send Slack notifications",
+    requirements=["requests"],
+    secrets=["slack_webhook", "slack_token"]
+)
+def send_slack_message(channel: str, message: str, urgent: bool = False) -> dict:
+    """Send a message to Slack."""
+    import os
+    import requests
+    
+    webhook_url = os.environ["SLACK_WEBHOOK"]
+    
+    payload = {
+        "channel": channel,
+        "text": message,
+        "username": "Kubiya Bot"
+    }
+    
+    if urgent:
+        payload["text"] = f"🚨 URGENT: {message}"
+    
+    response = requests.post(webhook_url, json=payload)
+    
+    return {
+        "status": "sent" if response.ok else "failed",
+        "status_code": response.status_code,
+        "channel": channel
+    }
+```
+
+### Custom Names
+
+Override the default tool name:
+
+```python
+@function_tool(
+    name="data_analyzer",
+    description="Analyze data trends and patterns",
+    requirements=["pandas", "matplotlib", "seaborn"]
+)
+def analyze_data_trends(data_file: str, chart_type: str = "line") -> dict:
+    """Analyze data and generate visualizations."""
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    df = pd.read_csv(data_file)
+    
+    # Generate chart
+    plt.figure(figsize=(10, 6))
+    if chart_type == "line":
+        df.plot(kind="line")
+    elif chart_type == "bar":
+        df.plot(kind="bar")
+    
+    chart_file = f"chart_{chart_type}.png"
+    plt.savefig(chart_file)
+    
+    return {
+        "analysis_complete": True,
+        "chart_generated": chart_file,
+        "data_shape": df.shape
+    }
+```
+
+## Type Annotations
+
+Function tools automatically infer argument types from Python type hints:
+
+```python
+from typing import List, Dict, Optional
+
+@function_tool(
+    description="Process user data with type validation"
+)
+def process_users(
+    users: List[str],
+    min_age: int = 18,
+    include_inactive: bool = False,
+    metadata: Optional[Dict[str, str]] = None
+) -> Dict[str, any]:
+    """Process a list of users with filtering."""
+    
+    processed = {
+        "total_users": len(users),
+        "min_age_filter": min_age,
+        "include_inactive": include_inactive,
+        "processed_users": []
+    }
+    
+    if metadata:
+        processed["metadata"] = metadata
+    
+    for user in users:
+        # Process each user
+        processed["processed_users"].append({
+            "name": user,
+            "processed": True
+        })
+    
+    return processed
+```
+
+## Advanced Examples
+
+### File Processing Tool
+
+```python
+@function_tool(
+    description="Advanced file processor with multiple formats",
+    requirements=["pandas", "openpyxl", "python-docx"],
+    env=["WORKSPACE_DIR"]
+)
+def process_file(
+    file_path: str, 
+    output_format: str = "json",
+    encoding: str = "utf-8"
+) -> dict:
+    """Process various file formats and convert to specified output."""
+    import os
+    import pandas as pd
+    from pathlib import Path
+    
+    workspace = os.environ.get("WORKSPACE_DIR", ".")
+    full_path = os.path.join(workspace, file_path)
+    
+    # Determine file type
+    file_ext = Path(file_path).suffix.lower()
+    
+    if file_ext == ".csv":
+        df = pd.read_csv(full_path, encoding=encoding)
+    elif file_ext in [".xlsx", ".xls"]:
+        df = pd.read_excel(full_path)
+    elif file_ext == ".json":
+        df = pd.read_json(full_path)
+    else:
+        return {"error": f"Unsupported file type: {file_ext}"}
+    
+    # Process data
+    summary = {
+        "file_processed": file_path,
+        "rows": len(df),
+        "columns": len(df.columns),
+        "column_names": list(df.columns),
+        "data_types": df.dtypes.to_dict(),
+        "missing_values": df.isnull().sum().to_dict()
+    }
+    
+    # Save in requested format
+    output_file = f"processed_{Path(file_path).stem}.{output_format}"
+    output_path = os.path.join(workspace, output_file)
+    
+    if output_format == "json":
+        df.to_json(output_path, orient="records", indent=2)
+    elif output_format == "csv":
+        df.to_csv(output_path, index=False)
+    elif output_format == "excel":
+        df.to_excel(output_path, index=False)
+    
+    summary["output_file"] = output_file
+    return summary
+```
+
+### API Integration Tool
+
+```python
+@function_tool(
+    description="Multi-platform API client",
+    requirements=["requests", "jwt"],
+    env=["API_BASE_URL"],
+    secrets=["api_key", "api_secret"]
+)
+def api_client(
+    endpoint: str,
+    method: str = "GET",
+    payload: dict = None,
+    headers: dict = None
+) -> dict:
+    """Make authenticated API calls to various endpoints."""
+    import os
+    import requests
+    import jwt
+    import time
+    
+    base_url = os.environ["API_BASE_URL"]
+    api_key = os.environ["API_KEY"]
+    api_secret = os.environ["API_SECRET"]
+    
+    # Generate JWT token
+    token_payload = {
+        "api_key": api_key,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 3600  # 1 hour expiry
+    }
+    token = jwt.encode(token_payload, api_secret, algorithm="HS256")
+    
+    # Prepare headers
+    request_headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    if headers:
+        request_headers.update(headers)
+    
+    # Make request
+    url = f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+    
+    try:
+        if method.upper() == "GET":
+            response = requests.get(url, headers=request_headers)
+        elif method.upper() == "POST":
+            response = requests.post(url, headers=request_headers, json=payload)
+        elif method.upper() == "PUT":
+            response = requests.put(url, headers=request_headers, json=payload)
+        elif method.upper() == "DELETE":
+            response = requests.delete(url, headers=request_headers)
+        else:
+            return {"error": f"Unsupported method: {method}"}
+        
+        return {
+            "status_code": response.status_code,
+            "success": response.ok,
+            "data": response.json() if response.content else None,
+            "url": url,
+            "method": method.upper()
+        }
+        
+    except requests.exceptions.RequestException as e:
+        return {
+            "error": str(e),
+            "status_code": None,
+            "success": False,
+            "url": url,
+            "method": method.upper()
+        }
+```
+
+### Data Analysis Tool
+
+```python
+@function_tool(
+    description="Comprehensive data analysis and reporting",
+    requirements=[
+        "pandas>=1.3.0",
+        "numpy>=1.20.0", 
+        "scikit-learn>=1.0.0",
+        "matplotlib>=3.5.0",
+        "seaborn>=0.11.0"
+    ],
+    env=["ANALYSIS_OUTPUT_DIR"]
+)
+def analyze_dataset(
+    data_file: str,
+    target_column: str = None,
+    analysis_type: str = "descriptive",
+    generate_plots: bool = True
+) -> dict:
+    """Perform comprehensive data analysis with optional ML insights."""
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import os
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+    
+    # Load data
+    df = pd.read_csv(data_file)
+    output_dir = os.environ.get("ANALYSIS_OUTPUT_DIR", ".")
+    
+    # Basic analysis
+    analysis = {
+        "dataset_info": {
+            "shape": df.shape,
+            "columns": list(df.columns),
+            "dtypes": df.dtypes.to_dict(),
+            "missing_values": df.isnull().sum().to_dict()
+        },
+        "descriptive_stats": df.describe().to_dict(),
+        "correlation_analysis": {}
+    }
+    
+    # Correlation analysis for numeric columns
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if len(numeric_cols) > 1:
+        corr_matrix = df[numeric_cols].corr()
+        analysis["correlation_analysis"] = corr_matrix.to_dict()
+        
+        if generate_plots:
+            # Generate correlation heatmap
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", center=0)
+            plt.title("Correlation Matrix")
+            corr_plot = os.path.join(output_dir, "correlation_matrix.png")
+            plt.savefig(corr_plot)
+            plt.close()
+            analysis["plots"] = {"correlation_matrix": corr_plot}
+    
+    # Advanced analysis
+    if analysis_type == "advanced" and len(numeric_cols) > 2:
+        # PCA Analysis
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(df[numeric_cols])
+        
+        pca = PCA()
+        pca_result = pca.fit_transform(scaled_data)
+        
+        analysis["pca_analysis"] = {
+            "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
+            "cumulative_variance": np.cumsum(pca.explained_variance_ratio_).tolist(),
+            "n_components_95_variance": np.argmax(np.cumsum(pca.explained_variance_ratio_) >= 0.95) + 1
+        }
+        
+        if generate_plots:
+            # PCA variance plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(range(1, len(pca.explained_variance_ratio_) + 1), 
+                    np.cumsum(pca.explained_variance_ratio_), 'bo-')
+            plt.axhline(y=0.95, color='r', linestyle='--', label='95% Variance')
+            plt.xlabel("Number of Components")
+            plt.ylabel("Cumulative Explained Variance")
+            plt.title("PCA Analysis")
+            plt.legend()
+            pca_plot = os.path.join(output_dir, "pca_analysis.png")
+            plt.savefig(pca_plot)
+            plt.close()
+            
+            if "plots" not in analysis:
+                analysis["plots"] = {}
+            analysis["plots"]["pca_analysis"] = pca_plot
+    
+    # Target variable analysis
+    if target_column and target_column in df.columns:
+        target_analysis = {
+            "unique_values": df[target_column].nunique(),
+            "value_counts": df[target_column].value_counts().to_dict(),
+            "missing_values": df[target_column].isnull().sum()
+        }
+        
+        if df[target_column].dtype in ['int64', 'float64']:
+            target_analysis.update({
+                "mean": df[target_column].mean(),
+                "median": df[target_column].median(),
+                "std": df[target_column].std()
+            })
+        
+        analysis["target_analysis"] = target_analysis
+    
+    return analysis
+```
+
+## Working with Tool Registry
+
+Function tools are automatically registered when decorated:
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry
+
+# List all function tools
+function_tools = [
+    tool for tool in tool_registry.list_tools("default") 
+    if hasattr(tool, 'function')
+]
+
+print(f"Function tools available: {len(function_tools)}")
+for tool in function_tools:
+    print(f"- {tool.name}: {tool.description}")
+
+# Get specific tool
+calculator = tool_registry.get_tool("default", "calculate_area")
+if calculator:
+    print(f"Arguments: {[arg.name for arg in calculator.args]}")
+```
+
+## Testing Function Tools
+
+```python
+import unittest
+from kubiya_workflow_sdk.tools import tool_registry
+
+class TestFunctionTools(unittest.TestCase):
+    
+    def test_calculate_area(self):
+        """Test the calculate_area function tool."""
+        tool = tool_registry.get_tool("default", "calculate_area")
+        self.assertIsNotNone(tool)
+        
+        # Validate inputs
+        inputs = {"width": 10.0, "height": 5.0}
+        validated = tool.validate_inputs(inputs)
+        self.assertEqual(validated["width"], 10.0)
+        self.assertEqual(validated["height"], 5.0)
+    
+    def test_process_csv(self):
+        """Test CSV processing tool."""
+        tool = tool_registry.get_tool("default", "process_csv")
+        self.assertIsNotNone(tool)
+        
+        # Check required arguments
+        required_args = [arg for arg in tool.args if arg.required]
+        self.assertTrue(any(arg.name == "file_path" for arg in required_args))
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+## Best Practices
+
+### Function Design
+
+1. **Pure Functions**: Keep functions stateless when possible
+2. **Clear Signatures**: Use type hints for all parameters
+3. **Documentation**: Include comprehensive docstrings
+4. **Error Handling**: Handle exceptions gracefully
+5. **Return Structured Data**: Always return dictionaries for complex results
+
+### Performance Considerations
+
+1. **Dependency Management**: Only include necessary requirements
+2. **Data Processing**: Use efficient pandas operations
+3. **Memory Usage**: Process large files in chunks
+4. **Caching**: Cache expensive computations when appropriate
+
+### Security Guidelines
+
+1. **Input Validation**: Validate all inputs before processing
+2. **File Access**: Restrict file access to designated directories
+3. **Secrets**: Never log or return sensitive information
+4. **Resource Limits**: Be mindful of CPU and memory usage
+
+## Common Patterns
+
+### Configuration Loader
+
+```python
+@function_tool(
+    description="Load and validate configuration files"
+)
+def load_config(config_file: str, validate: bool = True) -> dict:
+    """Load configuration from JSON or YAML files."""
+    import json
+    import yaml
+    from pathlib import Path
+    
+    config_path = Path(config_file)
+    
+    if config_path.suffix == ".json":
+        with open(config_path) as f:
+            config = json.load(f)
+    elif config_path.suffix in [".yaml", ".yml"]:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+    else:
+        return {"error": "Unsupported config format"}
+    
+    if validate:
+        # Add validation logic here
+        required_keys = ["name", "version"]
+        missing = [key for key in required_keys if key not in config]
+        if missing:
+            return {"error": f"Missing required keys: {missing}"}
+    
+    return {"config": config, "valid": True}
+```
+
+### Batch Processor
+
+```python
+@function_tool(
+    description="Process multiple files in batch",
+    requirements=["concurrent.futures"]
+)
+def batch_process(
+    file_pattern: str,
+    operation: str = "count_lines",
+    max_workers: int = 4
+) -> dict:
+    """Process multiple files concurrently."""
+    import glob
+    from concurrent.futures import ThreadPoolExecutor
+    
+    files = glob.glob(file_pattern)
+    
+    def process_file(file_path):
+        if operation == "count_lines":
+            with open(file_path) as f:
+                return {"file": file_path, "lines": sum(1 for _ in f)}
+        elif operation == "file_size":
+            import os
+            return {"file": file_path, "size": os.path.getsize(file_path)}
+    
+    results = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_file, f) for f in files]
+        results = [future.result() for future in futures]
+    
+    return {
+        "processed_files": len(results),
+        "results": results,
+        "operation": operation
+    }
+```
+
+## Related Documentation
+
+- [Installation Guide](./installation)
+- [Docker Tools](./docker-tools)
+- [Advanced Examples](./advanced-examples)
+- [API Reference](./api-reference)

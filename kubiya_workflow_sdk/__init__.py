@@ -25,7 +25,7 @@ Quick Start:
 
 Tool Execution:
 --------------
-    from kubiya_workflow_sdk.tools import tool, execute_tool
+    from kubiya_workflow_sdk.tool_templates import tool, execute_tool
 
     @tool(name="data_processor", requirements=["pandas"])
     def process_data(file_path: str):
@@ -103,7 +103,7 @@ from .client import (
 )
 
 # Tool framework
-from .tools import (
+from .tool_templates import (
     # Decorators
     tool,
     shell_tool,
@@ -129,6 +129,39 @@ try:
     from kubiya_workflow_sdk.mcp import KubiyaWorkflowServer as MCPServer
 except ImportError:
     MCPServer = None
+
+# Tools framework (optional)
+try:
+    from kubiya_workflow_sdk.tools import (
+        Tool as ToolsModels_Tool,
+        Source as ToolsModels_Source,
+        Arg as ToolsModels_Arg,
+        ToolOutput as ToolsModels_ToolOutput,
+        tool_registry,
+        FunctionTool,
+        ToolManagerBridge,
+        FileSpec,
+        Volume as ToolsModels_Volume,
+        ServiceSpec as ToolsModels_ServiceSpec,
+        GitRepoSpec,
+        OpenAPISpec,
+        function_tool,
+    )
+except ImportError:
+    # Tools not available
+    ToolsModels_Tool = None
+    ToolsModels_Source = None
+    ToolsModels_Arg = None
+    ToolsModels_ToolOutput = None
+    tool_registry = None
+    FunctionTool = None
+    ToolManagerBridge = None
+    FileSpec = None
+    ToolsModels_Volume = None
+    ToolsModels_ServiceSpec = None
+    GitRepoSpec = None
+    OpenAPISpec = None
+    function_tool = None
 
 # Sentry integration (optional)
 try:
@@ -219,6 +252,20 @@ __all__ = [
     "create_server",
     # MCP (optional)
     "MCPServer",
+    # Tools (optional)
+    "ToolsModels_Tool",
+    "ToolsModels_Source",
+    "ToolsModels_Arg",
+    "ToolsModels_ToolOutput",
+    "tool_registry",
+    "FunctionTool",
+    "ToolManagerBridge",
+    "FileSpec",
+    "ToolsModels_Volume",
+    "ToolsModels_ServiceSpec",
+    "GitRepoSpec",
+    "OpenAPISpec",
+    "function_tool",
     # Sentry (optional)
     "initialize_sentry",
     "capture_exception",
@@ -240,6 +287,7 @@ def get_version_info() -> dict:
         "license": __license__,
         "has_server": WorkflowServer is not None,
         "has_mcp": MCPServer is not None,
+        "has_tools": ToolsModels_Tool is not None,
         "has_sentry": is_sentry_initialized(),
     }
 

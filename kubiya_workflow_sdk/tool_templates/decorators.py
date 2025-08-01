@@ -1,4 +1,4 @@
-"""Python decorators for creating tools easily."""
+"""Python decorators for creating tool_templates easily."""
 
 import inspect
 import functools

@@ -1,0 +1,614 @@
+---
+title: "Tools API Reference"
+description: "Complete API reference for Kubiya tools functionality"
+---
+
+# Tools API Reference
+
+Complete reference for all classes, functions, and decorators in the `kubiya_workflow_sdk.tools` module.
+
+## Core Classes
+
+### Tool
+
+The main class for defining containerized tools.
+
+```python
+from kubiya_workflow_sdk.tools import Arg
+
+class Tool(BaseModel):
+    """Main tool definition class."""
+    
+    name: str                           # Tool name (required)
+    description: str                    # Tool description (required)
+    type: Literal["python", "golang", "docker"] = "docker"  # Tool type
+    image: Optional[str] = None         # Docker image
+    content: Optional[str] = None       # Script content
+    args: List[Arg] = []               # Tool arguments
+    env: List[str] = []                # Environment variables
+    secrets: Optional[List[str]] = []   # Required secrets
+    with_volumes: Optional[List[Volume]] = []      # Volume mounts
+    with_files: Optional[List[FileSpec]] = []        # File injections
+    with_services: Optional[List[ServiceSpec]] = []     # Service dependencies
+    timeout: int = 300                  # Execution timeout
+```
+
+#### Methods
+
+**`validate_inputs(inputs: Dict[str, Any]) -> Dict[str, Any]`**
+
+Validate and process input arguments according to tool definition.
+
+```python
+from kubiya_workflow_sdk.tools import Tool
+
+tool = Tool(
+    name="example",
+    description="Example tool",
+    args=[
+        Arg(name="count", type="int", required=True, description="Number of times to repeat"),
+        Arg(name="message",  default="hello", type="str", required=False, description="Message to repeat"),
+    ]
+)
+
+validated = tool.validate_inputs({"count": 5})
+# Returns: {"count": 5, "message": "hello"}
+```
+
+#### Examples
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg, Volume, ServiceSpec
+ 
+# Basic Docker tool
+web_tool = Tool(
+    name="curl_client",
+    type="docker",
+    image="curlimages/curl:latest",
+    description="Make HTTP requests",
+    args=[
+        Arg(name="url",  description="Target URL", required=True),
+        Arg(name="method",  description="HTTP method", default="GET")
+    ],
+    content="curl -X {{ .method }} {{ .url }}"
+)
+
+# Tool with volumes and services
+database_tool = Tool(
+    name="db_manager",
+    type="docker", 
+    image="postgres:13",
+    description="Database operations",
+    env=["POSTGRES_USER", "POSTGRES_PASSWORD"],
+    with_volumes=[
+        Volume(path="/host/backups", name="/backups")
+    ],
+    with_services=[
+        ServiceSpec(name="redis", image="redis:alpine", exposed_ports=[6379])
+    ],
+    content="pg_dump $POSTGRES_DB > /backups/backup.sql"
+)
+```
+
+### Arg
+
+Class for defining tool arguments with type validation.
+
+```python
+from kubiya_workflow_sdk.tools import Arg
+
+class Arg(BaseModel):
+    """Tool argument definition."""
+    
+    name: str                                    # Argument name (required)
+    type: Optional[Literal["str", "int", "float", "bool", "array"]] = None  # Type
+    description: str                             # Description (required, max 1024 chars)
+    required: Optional[bool] = None              # Whether required
+    default: Optional[Union[str, int, float, bool, List]] = None  # Default value
+    options: Optional[List[str]] = None          # Valid options
+```
+
+#### Examples
+
+**Note**: Type specifications are optional for string arguments (they default to string). For other types (`int`, `float`, `bool`, `array`), specify the type to enable automatic validation and conversion.
+
+```python
+# String argument (type can be omitted, defaults to string)
+url_arg = Arg(
+    name="url",
+    description="Target URL",
+    required=True
+)
+
+# Integer with default
+count_arg = Arg(
+    name="count",
+    type="int",
+    description="Number of items",
+    default=10,
+    required=False
+)
+
+# String with options (type can be specified or omitted)
+level_arg = Arg(
+    name="level",
+    type="str",
+    description="Log level",
+    options=["debug", "info", "warning", "error"],
+    default="info"
+)
+
+# Boolean flag
+debug_arg = Arg(
+    name="debug",
+    type="bool", 
+    description="Enable debug mode",
+    default=False
+)
+
+# Array argument
+tags_arg = Arg(
+    name="tags",
+    type="array",
+    description="List of tags",
+    default=[]
+)
+```
+
+### FunctionTool
+
+Class for creating tools from Python functions.
+
+```python
+from kubiya_workflow_sdk.tools import FunctionTool
+
+class FunctionTool(Tool):
+    """Tool created from a Python function."""
+    
+    function: Callable  # The wrapped function
+```
+
+#### Class Methods
+
+**`from_function(func: Callable, name: str, description: str, source: Source) -> FunctionTool`**
+
+Create a FunctionTool from a Python function.
+
+```python
+from kubiya_workflow_sdk.tools import FunctionTool, Source
+
+def my_function(x: "int", y: "str" = "default") -> "dict":
+    return {"x": x, "y": y}
+
+tool = FunctionTool.from_function(
+    func=my_function,
+    name="my_tool",
+    description="Example function tool",
+    source=Source(id="local")
+)
+```
+
+#### Methods
+
+**`async execute(args: Dict[str, Any]) -> Dict[str, Any]`**
+
+Execute the wrapped function with provided arguments.
+
+```python
+result = await tool.execute({"x": 42, "y": "hello"})
+# Returns: {"x": 42, "y": "hello"}
+```
+
+## Decorators
+
+### @function_tool
+
+Decorator to convert Python functions into tools.
+
+```python
+from kubiya_workflow_sdk.tools import function_tool
+
+@function_tool(
+    description: str,
+    name: Optional[str] = None,
+    env: List[str] = [],
+    secrets: List[str] = [],
+    requirements: List[str] = [],
+    image: str = "python:3.12-slim"
+)
+def my_function(...):
+    pass
+```
+
+#### Parameters
+
+- **`description`** (str): Tool description (required)
+- **`name`** (Optional[str]): Tool name (defaults to function name)
+- **`env`** (List[str]): Required environment variables
+- **`secrets`** (List[str]): Required secrets
+- **`requirements`** (List[str]): Python package requirements
+- **`image`** (str): Docker base image
+
+#### Examples
+
+```python
+# Simple function tool
+@function_tool(description="Add two numbers")
+def add(x: "int", y: "int") -> "int":
+    return x + y
+
+# With requirements and environment
+@function_tool(
+    description="Process data with pandas",
+    requirements=["pandas>=1.3.0", "numpy"],
+    env=["DATA_PATH"],
+    secrets=["api_key"]
+)
+def process_data(filename: "str", output_format: "str" = "csv") -> "dict":
+    import pandas as pd
+    import os
+    
+    data_path = os.environ["DATA_PATH"]
+    df = pd.read_csv(os.path.join(data_path, filename))
+    
+    return {
+        "rows": len(df),
+        "columns": list(df.columns),
+        "output_format": output_format
+    }
+
+# With custom name
+@function_tool(
+    name="github_issue_creator",
+    description="Create GitHub issues via API",
+    requirements=["requests"],
+    env=["GITHUB_TOKEN", "GITHUB_REPO"]
+)
+def create_issue(title: "str", body: "str", labels: "List[str]" = []) -> "dict":
+    import requests
+    import os
+    
+    token = os.environ["GITHUB_TOKEN"]
+    repo = os.environ["GITHUB_REPO"]
+    
+    response = requests.post(
+        f"https://api.github.com/repos/{repo}/issues",
+        headers={"Authorization": f"token {token}"},
+        json={"title": title, "body": body, "labels": labels}
+    )
+    
+    return response.json()
+```
+
+## Registry
+
+### ToolRegistry
+
+Global registry for managing tools.
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry
+
+class ToolRegistry:
+    """Global tool registry."""
+    
+    def register(self, tool: Tool) -> None:
+        """Register a tool with default source."""
+    
+    def register_tool(self, source: str, tool: Tool):
+        """Register a tool with a given source."""
+    
+    def get_tool(self, name: str) -> Optional[Tool]:
+        """Get tool by name."""
+    
+    def list_tools(self) -> List[Tool]:
+        """List all registered tools."""
+```
+
+#### Methods
+
+**`register(tool: Tool) -> None`**
+
+Register a tool in the global registry.
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry, Tool
+
+my_tool = Tool(name="example", description="Example tool")
+tool_registry.register(my_tool)
+```
+
+**`get_tool(source: str, name: str) -> Optional[Tool]`**
+
+Retrieve a tool by source and name.
+
+```python
+tool = tool_registry.get_tool("default", "example")
+if tool:
+    print(f"Found tool: {tool.description}")
+```
+
+**`list_tools(source: str) -> List[Tool]`**
+
+Get all registered tools from a source.
+
+```python
+all_tools = tool_registry.list_tools("default")
+for tool in all_tools:
+    print(f"- {tool.name}: {tool.description}")
+```
+
+#### Usage Examples
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry, function_tool
+
+# Check what tools are available
+print("Registered tools:")
+for tool in tool_registry.list_tools("default"):
+    print(f"- {tool.name}: {tool.description}")
+
+# Get a specific tool
+calculator = tool_registry.get_tool("default", "add")
+if calculator:
+    print(f"Calculator tool args: {[arg.name for arg in calculator.args]}")
+
+# Function tools are auto-registered
+@function_tool(description="Multiply numbers")
+def multiply(x: "float", y: "float") -> "float":
+    return x * y
+
+# Now available in registry
+mult_tool = tool_registry.get_tool("default", "multiply")
+print(f"Multiply tool available: {mult_tool is not None}")
+```
+
+## Supporting Classes
+
+### Source
+
+Source information for tools.
+
+```python
+class Source(BaseModel):
+    id: Optional[str] = None     # Source identifier  
+    url: Optional[str] = None    # Source URL
+```
+
+### Volume
+
+Volume mount specification.
+
+```python
+class Volume(BaseModel):
+    path: str           # Host path  
+    name: str           # Volume name/mount point
+```
+
+### FileSpec
+
+File injection specification.
+
+```python
+class FileSpec(BaseModel):
+    source: Optional[str] = None    # File source
+    destination: str                # Container file path
+    content: Optional[str] = None   # File content
+```
+
+### ServiceSpec  
+
+Service dependency specification.
+
+```python
+class ServiceSpec(BaseModel):
+    name: str                               # Service name
+    image: str                              # Docker image
+    env: Optional[Dict[str, str]] = {}      # Environment variables
+    entrypoint: Optional[List[str]] = []    # Container entrypoint
+    exposed_ports: Optional[List[int]] = [] # Exposed ports
+    volumes: Optional[List[Volume]] = []    # Volume mounts
+```
+
+### ToolOutput
+
+Tool execution result.
+
+```python
+class ToolOutput(BaseModel):
+    stdout: str        # Standard output
+    stderr: str        # Standard error
+    exit_code: int     # Exit code
+    output: Any        # Parsed output data
+```
+
+## Type System
+
+### Supported Argument Types
+
+The tools system supports the following argument types:
+
+| Type | Python Type | Description | Example |
+|------|-------------|-------------|---------|
+| `str` | `str` | String values | `"hello world"` |
+| `int` | `int` | Integer numbers | `42` |
+| `float` | `float` | Floating point numbers | `3.14` |
+| `bool` | `bool` | Boolean values | `true`, `false` |
+| `array` | `list` | Arrays/Lists | `["a", "b", "c"]` |
+
+### Type Conversion
+
+The system automatically converts types based on argument definitions:
+
+```python
+# Tool definition
+tool = Tool(
+    name="example",
+    description="Example tool for type conversion",
+    args=[
+        Arg(name="count", type="int", description="Number of items to process", required=True),
+        Arg(name="rate", type="float", description="Processing rate multiplier", default=1.0),
+        Arg(name="enabled", type="bool", description="Enable advanced processing", default=False),
+        Arg(name="items", type="array", description="List of items to process", default=[])
+    ]
+)
+
+# Input validation and conversion
+inputs = {
+    "count": "5",        # String "5" -> int 5
+    "rate": "2.5",       # String "2.5" -> float 2.5  
+    "enabled": "true",   # String "true" -> bool True
+    "items": ["a", "b"]  # Already correct type
+}
+
+validated = tool.validate_inputs(inputs)
+# Returns: {"count": 5, "rate": 2.5, "enabled": True, "items": ["a", "b"]}
+```
+
+## Error Handling
+
+### Validation Errors
+
+Tools raise `ValueError` for validation issues:
+
+```python
+try:
+    validated = tool.validate_inputs({"invalid_arg": "value"})
+except ValueError as e:
+    print(f"Validation error: {e}")
+```
+
+### Common Validation Errors
+
+1. **Missing Required Arguments**
+   ```python
+   # Error: Required argument 'name' is missing
+   ```
+
+2. **Invalid Type**
+   ```python
+   # Error: Invalid type for argument 'count'. Expected int
+   ```
+
+3. **Invalid Options**
+   ```python
+   # Error: Invalid value for argument 'level'. Must be one of: debug, info, warning, error
+   ```
+
+## Best Practices
+
+### Tool Definition
+
+1. **Clear Descriptions**: Use descriptive names and comprehensive descriptions
+2. **Type Safety**: Always specify argument types
+3. **Default Values**: Provide sensible defaults where appropriate
+4. **Validation**: Use options for enum-like arguments
+
+```python
+# Good tool definition
+good_tool = Tool(
+    name="log_processor",
+    description="Process log files with configurable filtering and output formats",
+    args=[
+        Arg(
+            name="log_file", 
+            description="Path to the log file to process",
+            required=True
+        ),
+        Arg(
+            name="level",
+            description="Minimum log level to include",
+            options=["debug", "info", "warning", "error"],
+            default="info"
+        ),
+        Arg(
+            name="output_format",
+            description="Output format for processed logs",
+            options=["json", "csv", "text"],
+            default="json"
+        ),
+        Arg(
+            name="max_lines",
+            type="int",
+            description="Maximum number of lines to process (0 for unlimited)",
+            default=0
+        )
+    ]
+)
+```
+
+### Function Tools
+
+1. **Type Hints**: Use Python type hints for automatic type inference
+2. **Docstrings**: Include comprehensive docstrings
+3. **Error Handling**: Handle exceptions gracefully
+4. **Return Types**: Always return structured data (dict)
+
+```python
+from typing import List, Dict, Any
+
+@function_tool(
+    description="Calculate statistical measures for a dataset",
+    requirements=["pandas>=1.3.0", "numpy>=1.20.0"]
+)
+def calculate_stats(
+    data_file: str,
+    columns: List[str] = None,
+    include_correlation: bool = False
+) -> Dict[str, Any]:
+    """
+    Calculate descriptive statistics for a CSV dataset.
+    
+    Args:
+        data_file: Path to CSV file
+        columns: Specific columns to analyze (None for all)
+        include_correlation: Whether to include correlation matrix
+        
+    Returns:
+        Dictionary containing statistical measures
+        
+    Raises:
+        FileNotFoundError: If data file doesn't exist
+        ValueError: If specified columns don't exist
+    """
+    import pandas as pd
+    import numpy as np
+    
+    try:
+        df = pd.read_csv(data_file)
+        
+        if columns:
+            missing_cols = [col for col in columns if col not in df.columns]
+            if missing_cols:
+                raise ValueError(f"Columns not found: {missing_cols}")
+            df = df[columns]
+        
+        # Calculate statistics
+        stats = {
+            "shape": df.shape,
+            "column_names": list(df.columns),
+            "dtypes": df.dtypes.to_dict(),
+            "missing_values": df.isnull().sum().to_dict(),
+            "descriptive_stats": df.describe().to_dict()
+        }
+        
+        if include_correlation:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            if len(numeric_cols) > 1:
+                stats["correlation_matrix"] = df[numeric_cols].corr().to_dict()
+        
+        return stats
+        
+    except FileNotFoundError:
+        return {"error": f"File not found: {data_file}"}
+    except Exception as e:
+        return {"error": f"Processing error: {str(e)}"}
+```
+
+## Related Documentation
+
+- [Installation Guide](./installation)
+- [Overview](./overview)
+- [Function Tools](./function-tools)
+- [Docker Tools](./docker-tools)
+- [Advanced Examples](./advanced-examples)

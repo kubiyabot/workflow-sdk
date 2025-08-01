@@ -1,6 +1,6 @@
-"""Base templates for creating tools.
+"""Base templates for creating tool_templates.
 
-These templates provide the foundation for creating tools that handle
+These templates provide the foundation for creating tool_templates that handle
 authentication, environment setup, and common patterns.
 """
 
@@ -18,7 +18,7 @@ class ToolTemplate:
 
 
 class DockerToolTemplate:
-    """Template for Docker-based tools with common patterns."""
+    """Template for Docker-based tool_templates with common patterns."""
 
     @staticmethod
     def with_credentials(
@@ -135,7 +135,7 @@ EOF
 
 
 class AuthenticatedToolTemplate:
-    """Templates for tools that require authentication."""
+    """Templates for tool_templates that require authentication."""
 
     @staticmethod
     def oauth_tool(
@@ -240,7 +240,7 @@ class AuthenticatedToolTemplate:
 
 
 class CLIToolTemplate:
-    """Templates for CLI-based tools."""
+    """Templates for CLI-based tool_templates."""
 
     @staticmethod
     def cloud_cli(
@@ -357,7 +357,7 @@ class CLIToolTemplate:
 
 
 class DataProcessingToolTemplate:
-    """Templates for data processing tools."""
+    """Templates for data processing tool_templates."""
 
     @staticmethod
     def with_data_volumes(
