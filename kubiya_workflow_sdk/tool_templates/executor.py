@@ -72,7 +72,7 @@ class ToolExecutionResult:
 
 
 class ToolExecutor:
-    """Execute tools on Kubiya runners."""
+    """Execute tool_templates on Kubiya runners."""
 
     def __init__(
         self,
@@ -138,7 +138,7 @@ class ToolExecutor:
     def execute_batch(
         self, requests: List[ToolExecutionRequest], max_concurrent: int = 5
     ) -> List[ToolExecutionResult]:
-        """Execute multiple tools concurrently.
+        """Execute multiple tool_templates concurrently.
 
         Args:
             requests: List of tool execution requests
@@ -176,7 +176,7 @@ class ToolExecutor:
 
         try:
             # API endpoint
-            url = f"{self.base_url}/api/v1/tools/exec"
+            url = f"{self.base_url}/api/v1/tool_templates/exec"
             params = {"runner": request.runner}
 
             # Make request
@@ -263,13 +263,13 @@ class ToolExecutor:
         # Type-specific validation
         if tool_def.type == "docker":
             if not tool_def.image:
-                errors.append("Docker image is required for docker tools")
+                errors.append("Docker image is required for docker tool_templates")
         elif tool_def.type == "python":
             if not tool_def.content:
-                errors.append("Python content is required for python tools")
+                errors.append("Python content is required for python tool_templates")
         elif tool_def.type == "shell":
             if not tool_def.content and not tool_def.command:
-                errors.append("Shell content or command is required for shell tools")
+                errors.append("Shell content or command is required for shell tool_templates")
 
         return errors
 
@@ -325,7 +325,7 @@ class AsyncToolExecutor:
     async def execute_batch(
         self, requests: List[ToolExecutionRequest], max_concurrent: int = 10
     ) -> List[ToolExecutionResult]:
-        """Execute multiple tools concurrently."""
+        """Execute multiple tool_templates concurrently."""
         semaphore = asyncio.Semaphore(max_concurrent)
 
         async def execute_with_limit(request):
@@ -352,7 +352,7 @@ class AsyncToolExecutor:
 
         try:
             async with aiohttp.ClientSession() as session:
-                url = f"{self.base_url}/api/v1/tools/exec"
+                url = f"{self.base_url}/api/v1/tool_templates/exec"
                 params = {"runner": request.runner}
 
                 async with session.post(

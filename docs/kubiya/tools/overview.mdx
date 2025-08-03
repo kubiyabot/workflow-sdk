@@ -1,378 +1,584 @@
 ---
 title: "Tools Overview"
-description: "Overview of Kubiya tools and how to use them"
+description: "Overview of Kubiya tools and how to use them in workflows"
 ---
 
 # Tools Overview
 
-Kubiya tools are the building blocks of workflows, enabling agents to perform specific tasks and operations.
+Kubiya tools are the fundamental building blocks of workflows, enabling both AI agents and developers to perform specific tasks and operations. 
+Every tool runs in its own isolated environment, providing deterministic and reliable execution.
 
 ## What Are Tools?
 
-Tools in Kubiya are reusable components that:
-- Execute specific functions or operations
-- Accept parameters and return results
-- Can be chained together in workflows
-- Are discoverable through the platform
+Tools in Kubiya are containerized, reusable components that:
+- Execute specific functions or operations in isolation
+- Accept typed parameters and return structured results
+- Can be chained together in complex workflows
+- Are discoverable and executable by AI agents
+- Support authentication, secrets, and environment configuration
+
+## Installation
+
+Install the tools functionality with specific extras:
+
+```bash
+# Install with tools support
+pip install kubiya-workflow-sdk[tools]
+
+# Install with all features (recommended)
+pip install kubiya-workflow-sdk[all]
+
+# For development with all tools features
+pip install kubiya-workflow-sdk[dev,tools]
+```
+
+## Quick Start
+
+Get started with tools in 5 minutes:
+
+```python
+# 1. Install the SDK with tools support
+# pip install kubiya-workflow-sdk[tools]
+
+# 2. Create your first tool using the function_tool decorator
+from kubiya_workflow_sdk.tools import function_tool
+
+@function_tool(
+    description="Simple greeting tool",
+    requirements=[]
+)
+def greet(name: "str", greeting: "str" = "Hello") -> "str":
+    """Generate a personalized greeting."""
+    return f"{greeting}, {name}!"
+
+# 3. The tool is automatically registered and ready to use
+from kubiya_workflow_sdk.tools import tool_registry
+
+# List registered tools
+tools = tool_registry.list_tools("default")
+print(f"Available tools: {[tool.name for tool in tools]}")
+
+# Get the tool
+greeting_tool = tool_registry.get_tool("default", "greet")
+if greeting_tool:
+    print(f"Tool description: {greeting_tool.description}")
+else:
+    print("Tool not found")
+```
 
 ## Tool Types
 
-### System Tools
+### Function Tools
 
-Built-in tools provided by the platform:
-
-```yaml
-tools:
-  - name: http_request
-    description: Make HTTP requests
-    parameters:
-      url: string
-      method: string
-      headers: object
-      
-  - name: file_processor
-    description: Process files
-    parameters:
-      file: file
-      action: string
-      
-  - name: data_transformer
-    description: Transform data
-    parameters:
-      data: object
-      transformation: string
-```
-
-### Custom Tools
-
-User-defined tools for specific use cases:
+Create tools from Python functions using the `@function_tool` decorator:
 
 ```python
-# custom_tool.py
-from kubiya import Tool
+from kubiya_workflow_sdk.tools import function_tool
 
-class CustomTool(Tool):
-    name = "custom_processor"
-    description = "Process custom data"
+# Simple function tool
+@function_tool(
+    description="Calculate mathematical operations",
+    requirements=["numpy"]
+)
+def calculate(operation: "str", x: "float", y: "float") -> "float":
+    """Perform mathematical calculations."""
+    import numpy as np
     
-    def execute(self, data: dict) -> dict:
-        # Custom processing logic
-        result = process_data(data)
-        return {"result": result}
+    if operation == "add":
+        return x + y
+    elif operation == "multiply":
+        return x * y
+    elif operation == "power":
+        return np.power(x, y)
+    else:
+        raise ValueError(f"Unknown operation: {operation}")
+
+# Advanced function tool with environment variables
+@function_tool(
+    description="Process CSV data and return statistics",
+    requirements=["pandas>=1.3.0", "numpy"],
+    env=["DATA_PATH"],
+    secrets=["api_key"]
+)
+def process_csv(file_path: "str", delimiter: "str" = ",") -> "dict":
+    """Process a CSV file and return basic statistics."""
+    import pandas as pd
+    import os
+    
+    # Use environment variables
+    base_path = os.environ.get("DATA_PATH", "/tmp")
+    full_path = os.path.join(base_path, file_path)
+    
+    df = pd.read_csv(full_path, delimiter=delimiter)
+    return {
+        "rows": len(df),
+        "columns": len(df.columns),
+        "memory_usage": df.memory_usage(deep=True).sum(),
+        "file_processed": full_path
+    }
 ```
 
-### Integration Tools
+### Docker Tools
 
-Tools that connect to external services:
-
-```yaml
-tools:
-  - name: github_client
-    description: GitHub API client
-    parameters:
-      repo: string
-      action: string
-      token: string
-      
-  - name: slack_messenger
-    description: Send Slack messages
-    parameters:
-      channel: string
-      message: string
-      webhook_url: string
-```
-
-## Tool Discovery
-
-### List Available Tools
-
-```bash
-# CLI
-kubiya tools list
-
-# API
-curl -H "Authorization: Bearer $API_KEY" \
-  https://api.kubiya.ai/v1/tools
-```
-
-### Tool Details
-
-```bash
-# Get tool information
-kubiya tools describe http_request
-
-# Test tool
-kubiya tools test http_request --params '{"url": "https://api.example.com"}'
-```
-
-## Tool Execution
-
-### Direct Execution
+Create containerized tools that run in Docker with full system access:
 
 ```python
-from kubiya import KubiyaClient
+from kubiya_workflow_sdk.tools import Tool, Arg
 
-client = KubiyaClient(api_key="your-api-key")
+# Basic Docker tool
+kubectl_tool = Tool(
+    name="kubectl_manager",
+    type="docker",
+    image="bitnami/kubectl:latest",
+    description="Kubernetes cluster management tool",
+    args=[
+        Arg(
+            name="command",
+            description="Kubectl command to execute",
+            required=True
+        ),
+        Arg(
+            name="namespace",
+            description="Kubernetes namespace",
+            default="default"
+        )
+    ],
+    env=["KUBECONFIG"],
+    secrets=["k8s_token"],
+    content="""
+#!/bin/bash
+kubectl --namespace={{ .namespace }} {{ .command }}
+    """
+)
 
-# Execute tool
-result = client.tools.execute("http_request", {
-    "url": "https://api.example.com/data",
-    "method": "GET"
-})
+# Import Volume and FileSpec for the example
+from kubiya_workflow_sdk.tools import Volume, FileSpec
 
-print(result)
+# Advanced Docker tool with file mounts and services
+database_tool = Tool(
+    name="postgres_backup",
+    type="docker",
+    image="postgres:13",
+    description="Create and manage database backups",
+    args=[
+        Arg(name="action", description="Action: backup, restore, list", required=True),
+        Arg(name="database", description="Database name", required=True),
+        Arg(name="backup_name", description="Backup file name", default="")
+    ],
+    env=["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST"],
+    with_volumes=[
+        Volume(name="/host/backups", path="/backups")
+    ],
+    with_files=[
+        FileSpec(
+            destination="/backup-script.sh",
+            content="""#!/bin/bash
+case $1 in
+  backup)
+    pg_dump -h $POSTGRES_HOST -U $POSTGRES_USER $2 > /backups/$3.sql
+    gzip /backups/$3.sql
+    ;;
+  restore)
+    gunzip -c /backups/$3.sql.gz | psql -h $POSTGRES_HOST -U $POSTGRES_USER $2
+    ;;
+  list)
+    ls -la /backups/
+    ;;
+esac
+            """
+        )
+    ],
+    content="""
+chmod +x /backup-script.sh
+/backup-script.sh {{ .action }} {{ .database }} {{ .backup_name }}
+    """
+)
 ```
 
-### Workflow Integration
+### Python Tools
 
-```yaml
-# workflow.yaml
-name: data_processing_workflow
-steps:
-  - name: fetch_data
-    tool: http_request
-    parameters:
-      url: "https://api.example.com/data"
-      method: GET
-      
-  - name: process_data
-    tool: data_transformer
-    parameters:
-      data: "{{ steps.fetch_data.result }}"
-      transformation: "json_to_csv"
-      
-  - name: save_result
-    tool: file_processor
-    parameters:
-      file: "{{ steps.process_data.result }}"
-      action: "save"
-```
-
-## Tool Parameters
-
-### Parameter Types
-
-```yaml
-parameters:
-  string_param:
-    type: string
-    description: "A string parameter"
-    required: true
-    
-  number_param:
-    type: number
-    description: "A numeric parameter"
-    default: 10
-    
-  boolean_param:
-    type: boolean
-    description: "A boolean parameter"
-    default: false
-    
-  object_param:
-    type: object
-    description: "An object parameter"
-    properties:
-      name: string
-      value: number
-      
-  array_param:
-    type: array
-    description: "An array parameter"
-    items:
-      type: string
-```
-
-### Parameter Validation
+Create native Python tools using the `Tool` class directly:
 
 ```python
-from kubiya import Tool, Parameter
+from kubiya_workflow_sdk.tools import Tool, Arg, FunctionTool, Source
 
-class ValidatedTool(Tool):
-    name = "validated_tool"
+# Using FunctionTool class
+def data_processor(input_data: str, format_type: str = "json") -> dict:
+    """Process input data and return formatted output.
     
-    parameters = [
-        Parameter("email", type="string", pattern=r"^[^@]+@[^@]+\.[^@]+$"),
-        Parameter("age", type="number", minimum=0, maximum=150),
-        Parameter("tags", type="array", items={"type": "string"})
-    ]
+    Args:
+        input_data: JSON string containing the data to process
+        format_type: Output format type
+    """
+    import json
     
-    def execute(self, email: str, age: int, tags: list) -> dict:
-        # Tool logic here
-        return {"status": "success"}
-```
-
-## Tool Development
-
-### Creating Custom Tools
-
-```python
-# my_custom_tool.py
-from kubiya import Tool
-import requests
-
-class WeatherTool(Tool):
-    name = "weather_checker"
-    description = "Check weather for a location"
+    # Parse the JSON string to get the dictionary
+    data_dict = json.loads(input_data)
     
-    def execute(self, location: str, api_key: str) -> dict:
-        url = f"https://api.openweathermap.org/data/2.5/weather"
-        params = {
-            "q": location,
-            "appid": api_key,
-            "units": "metric"
-        }
-        
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        
-        data = response.json()
-        return {
-            "location": location,
-            "temperature": data["main"]["temp"],
-            "description": data["weather"][0]["description"],
-            "humidity": data["main"]["humidity"]
-        }
-```
+    processed = {
+        "original_keys": list(data_dict.keys()),
+        "processed_at": "2024-01-01T00:00:00Z",
+        "format": format_type,
+        "item_count": len(data_dict)
+    }
+    return processed
 
-### Tool Registration
-
-```python
-# register_tool.py
-from kubiya import register_tool
-from my_custom_tool import WeatherTool
+# Create tool from function with explicit args
+processor_tool = Tool(
+    name="data_processor",
+    description="Process and format data",
+    type="python",
+    args=[
+        Arg(name="input_data", type="str", description="JSON string containing the data to process", required=True),
+        Arg(name="format_type", type="str", description="Output format type", required=False, default="json")
+    ],
+    source=Source(id="local"),
+    function=data_processor
+)
 
 # Register the tool
-register_tool(WeatherTool)
+from kubiya_workflow_sdk.tools import tool_registry
+tool_registry.register(processor_tool)
 ```
 
-### Tool Testing
+## Tool Registration & Discovery
+
+Tools are automatically registered when using decorators, or can be registered manually:
 
 ```python
-# test_tool.py
-import unittest
-from my_custom_tool import WeatherTool
+from kubiya_workflow_sdk.tools import tool_registry, function_tool, Tool, Arg
 
-class TestWeatherTool(unittest.TestCase):
-    def setUp(self):
-        self.tool = WeatherTool()
-    
-    def test_weather_check(self):
-        result = self.tool.execute(
-            location="London",
-            api_key="test-api-key"
+# Automatic registration with decorators
+@function_tool(description="Auto-registered tool")
+def my_function(x: "int") -> "int":
+    return x * 2
+
+# Manual registration
+manual_tool = Tool(
+    name="manual_tool",
+    type="docker",
+    image="alpine:latest",
+    description="Manually registered tool",
+    args=[Arg(name="message", description="Message to echo")],
+    content="echo '{{ .message }}'"
+)
+tool_registry.register(manual_tool)
+
+# Discovery
+tools = tool_registry.list_tools("default")
+print(f"Available tools: {[tool.name for tool in tools]}")
+
+# Get specific tool
+my_tool = tool_registry.get_tool("default", "my_function")
+if my_tool:
+    print(f"Found tool: {my_tool.description}")
+```
+
+## Tool Arguments & Validation
+
+Define typed arguments with validation for your tools:
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+# Tool with comprehensive argument definitions
+advanced_tool = Tool(
+    name="data_analyzer",
+    type="docker",
+    image="python:3.11-slim",
+    description="Analyze data with configurable parameters",
+    args=[
+        Arg(
+            name="input_file",
+            description="Path to input file",
+            required=True
+        ),
+        Arg(
+            name="threshold",
+            type="float",
+            description="Analysis threshold",
+            default=0.5,
+            required=False
+        ),
+        Arg(
+            name="filters",
+            type="array",
+            description="List of filters to apply",
+            default=[]
+        ),
+        Arg(
+            name="enable_debug",
+            type="bool",
+            description="Enable debug mode",
+            default=True,
+            required=False
+        ),
+        Arg(
+            name="max_records",
+            type="int",
+            description="Maximum records to process",
+            default=1000
         )
+    ],
+    content="""
+python -c "
+import json
+import sys
+
+# Access arguments
+input_file = '{{ .input_file }}'
+threshold = {{ .threshold }}
+filters = {{ .filters | toJson }}
+debug = {{ .enable_debug }}
+max_records = {{ .max_records }}
+
+print(f'Processing {input_file} with threshold {threshold}')
+if debug:
+    print(f'Debug mode enabled, filters: {filters}')
+    print(f'Max records: {max_records}')
+"
+    """
+)
+
+# Validate inputs before execution
+inputs = {
+    "input_file": "data.csv",
+    "threshold": 0.8,
+    "enable_debug": True
+}
+
+validated_inputs = advanced_tool.validate_inputs(inputs)
+print(f"Validated inputs: {validated_inputs}")
+```
+
+## Environment Configuration
+
+### Environment Variables & Secrets
+
+Tools can access environment variables and secrets for configuration:
+
+```python
+# Function tool with environment access
+from kubiya_workflow_sdk.tools import function_tool, Tool, Arg
+
+@function_tool(
+    description="GitHub API client",
+    env=["GITHUB_TOKEN", "GITHUB_ORG"],
+    secrets=["github_webhook_secret"],
+    requirements=["requests"]
+)
+def create_github_issue(title: "str", body: "str", repo: "str") -> "dict":
+    """Create a GitHub issue using API."""
+    import os
+    import requests
+    
+    token = os.environ["GITHUB_TOKEN"]
+    org = os.environ["GITHUB_ORG"]
+    
+    response = requests.post(
+        f"https://api.github.com/repos/{org}/{repo}/issues",
+        headers={"Authorization": f"token {token}"},
+        json={"title": title, "body": body}
+    )
+    
+    return response.json()
+
+# Docker tool with environment configuration
+api_tool = Tool(
+    name="api_client",
+    type="docker",
+    image="curlimages/curl:latest",
+    description="Make API calls with authentication",
+    args=[
+        Arg(name="endpoint", description="API endpoint", required=True),
+        Arg(name="method", description="HTTP method", default="GET")
+    ],
+    env=["API_TOKEN", "API_BASE_URL"],
+    secrets=["api_secret"],
+    content="""
+curl -X {{ .method }} \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  "$API_BASE_URL/{{ .endpoint }}"
+    """
+)
+```
+
+
+
+## Working with Tool Registry
+
+The tool registry manages all tools in your application:
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry, function_tool, Tool, Arg
+
+# Check registered tools
+print("Available tools:")
+for tool in tool_registry.list_tools("default"):
+    print(f"- {tool.name}: {tool.description}")
+
+# Get specific tool
+my_tool = tool_registry.get_tool("default", "greet")
+if my_tool:
+    print(f"Tool found: {my_tool.name}")
+    print(f"Arguments: {[arg.name for arg in my_tool.args]}")
+
+# Register tool manually
+custom_tool = Tool(
+    name="echo_tool",
+    type="docker",
+    image="alpine:latest",
+    description="Echo a message",
+    args=[Arg(name="message", description="Message to echo")],
+    content="echo '{{ .message }}'"
+)
+tool_registry.register(custom_tool)
+```
+
+## Type System & Validation
+
+Supported argument types and validation:
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+tool = Tool(
+    name="type_demo",
+    description="Demonstrates all supported types",
+    args=[
+        # String type
+        Arg(name="name", description="User name", required=True),
         
-        self.assertIn("temperature", result)
-        self.assertIn("description", result)
-        self.assertEqual(result["location"], "London")
+        # Numeric types
+        Arg(name="age", type="int", description="Age in years", default=0),
+        Arg(name="score", type="float", description="Score percentage", default=0.0),
+        
+        # Boolean type
+        Arg(name="active", type="bool", description="Is active", default=True),
+        
+        # Array type
+        Arg(name="tags", type="array", description="List of tags", default=[]),
+        
+        # Optional with choices
+        Arg(name="level", description="Difficulty level", 
+            default="medium", options=["easy", "medium", "hard"])
+    ]
+)
 
-if __name__ == "__main__":
-    unittest.main()
-```
+# Validate inputs
+inputs = {
+    "name": "John",
+    "age": 25,
+    "score": 95.5,
+    "active": True,
+    "tags": ["python", "tools"],
+    "level": "hard"
+}
 
-## Tool Configuration
-
-### Environment Variables
-
-```env
-# Tool-specific configuration
-WEATHER_API_KEY=your_weather_api_key
-SLACK_WEBHOOK_URL=your_slack_webhook_url
-GITHUB_TOKEN=your_github_token
-
-# Global tool settings
-KUBIYA_TOOL_TIMEOUT=30
-KUBIYA_TOOL_RETRY_COUNT=3
-```
-
-### Configuration Files
-
-```yaml
-# tools.yaml
-tools:
-  weather_checker:
-    api_key: "${WEATHER_API_KEY}"
-    timeout: 10
-    retry_count: 3
-    
-  slack_messenger:
-    webhook_url: "${SLACK_WEBHOOK_URL}"
-    default_channel: "#general"
-    
-  github_client:
-    token: "${GITHUB_TOKEN}"
-    base_url: "https://api.github.com"
-```
-
-## Error Handling
-
-### Tool Errors
-
-```python
-from kubiya import Tool, ToolError
-
-class RobustTool(Tool):
-    name = "robust_tool"
-    
-    def execute(self, data: dict) -> dict:
-        try:
-            # Tool logic
-            result = process_data(data)
-            return {"success": True, "result": result}
-        except ValueError as e:
-            raise ToolError(f"Invalid data: {e}")
-        except Exception as e:
-            raise ToolError(f"Unexpected error: {e}")
-```
-
-### Retry Logic
-
-```python
-from kubiya import Tool
-import time
-
-class RetryableTool(Tool):
-    name = "retryable_tool"
-    
-    def execute(self, data: dict, max_retries: int = 3) -> dict:
-        for attempt in range(max_retries):
-            try:
-                result = external_api_call(data)
-                return {"success": True, "result": result}
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)  # Exponential backoff
-                    continue
-                raise ToolError(f"Failed after {max_retries} attempts: {e}")
+validated = tool.validate_inputs(inputs)
+print(f"Validation passed: {validated}")
 ```
 
 ## Best Practices
 
 ### Tool Design
 
-1. **Single Responsibility**: Each tool should do one thing well
-2. **Clear Documentation**: Provide clear descriptions and examples
-3. **Error Handling**: Handle errors gracefully
-4. **Parameter Validation**: Validate inputs before processing
-5. **Logging**: Log important events and errors
+1. **Single Purpose**: Each tool should do one thing well
+2. **Clear Documentation**: Provide descriptive names and documentation
+3. **Type Safety**: Use proper argument types and validation
+4. **Error Handling**: Handle errors gracefully with clear messages
+5. **Resource Management**: Clean up resources properly
 
-### Performance
+### Performance Tips
 
-1. **Caching**: Cache results when appropriate
-2. **Async Operations**: Use async for I/O operations
-3. **Resource Management**: Clean up resources properly
-4. **Timeouts**: Set appropriate timeouts for operations
+1. **Efficient Images**: Use minimal Docker base images
+2. **Layer Caching**: Structure Dockerfiles for optimal caching
+3. **Resource Limits**: Set appropriate CPU and memory limits
+4. **Stateless Design**: Keep tools stateless for better scalability
 
-### Security
+### Security Guidelines
 
-1. **Input Sanitization**: Sanitize all inputs
-2. **Secrets Management**: Use secure secret storage
-3. **Access Control**: Implement proper access controls
-4. **Audit Logging**: Log sensitive operations
+1. **Secrets Management**: Use the secrets parameter for sensitive data
+2. **Input Validation**: Always validate and sanitize inputs
+3. **Least Privilege**: Run with minimal required permissions
+4. **Network Isolation**: Restrict network access when possible
+
+## Common Patterns
+
+### Data Processing Tool
+
+```python
+from kubiya_workflow_sdk.tools import function_tool
+
+@function_tool(
+    description="Process data files",
+    requirements=["pandas", "numpy"],
+    env=["DATA_DIR"]
+)
+def process_data(file_path: "str", output_format: "str" = "csv") -> "dict":
+    """Process data and return summary statistics."""
+    import pandas as pd
+    import os
+    
+    full_path = os.path.join(os.environ.get("DATA_DIR", "."), file_path)
+    df = pd.read_csv(full_path)
+    
+    # Process data
+    summary = {
+        "rows": len(df),
+        "columns": len(df.columns),
+        "output_file": f"processed_{file_path}"
+    }
+    
+    # Save processed data
+    if output_format == "csv":
+        df.to_csv(summary["output_file"], index=False)
+    elif output_format == "json":
+        df.to_json(summary["output_file"], orient="records")
+    
+    return summary
+```
+
+### API Integration Tool
+
+```python
+from kubiya_workflow_sdk.tools import function_tool
+
+@function_tool(
+    description="Slack notification sender",
+    requirements=["requests"],
+    secrets=["slack_webhook"]
+)
+def send_slack_message(channel: "str", message: "str", username: "str" = "Bot") -> "dict":
+    """Send message to Slack channel."""
+    import requests
+    import os
+    
+    webhook_url = os.environ["SLACK_WEBHOOK"]
+    
+    payload = {
+        "channel": channel,
+        "username": username,
+        "text": message
+    }
+    
+    response = requests.post(webhook_url, json=payload)
+    
+    return {
+        "status": "sent" if response.ok else "failed",
+        "status_code": response.status_code,
+        "message": message
+    }
+```
 
 ## Related Documentation
 
+- [Installation Guide](./installation)
+- [Function Tools](./function-tools)
+- [Docker Tools](./docker-tools) 
+- [Advanced Examples](./advanced-examples)
+- [API Reference](./api-reference)
 - [Workflow Examples](/workflows/examples)
 - [Tool Development Guide](/mcpserver/tools-reference)
 - [API Reference](/api-reference/platform/overview)

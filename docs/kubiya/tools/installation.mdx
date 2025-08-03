@@ -1,0 +1,336 @@
+---
+title: "Tools Installation"
+description: "How to install and configure Kubiya tools functionality"
+---
+
+# Tools Installation
+
+This guide covers installing the Kubiya Workflow SDK with tools functionality and setting up your development environment.
+
+## Package Installation
+
+### Minimal Installation
+
+Install the SDK with tools support using pip:
+
+```bash
+# Install with tools functionality
+pip install kubiya-workflow-sdk[tools]
+```
+
+### Complete Installation (Recommended)
+
+For the full feature set including MCP server, authentication, and monitoring:
+
+```bash
+# Install all features
+pip install kubiya-workflow-sdk[all]
+```
+
+### Enable Monitoring
+
+Install tools with Sentry enabled for the better visibility
+
+```bash
+# Install all features
+pip install kubiya-workflow-sdk[tools,sentry]
+```
+See enable Sentry documentioan for more
+
+### Development Installation
+
+For development with testing and linting tools:
+
+```bash
+# Development setup
+pip install kubiya-workflow-sdk[dev,tools]
+```
+
+### Specific Features
+
+Install only the features you need:
+
+```bash
+# MCP (Model Context Protocol) support
+pip install kubiya-workflow-sdk[mcp]
+
+# Authentication features
+pip install kubiya-workflow-sdk[auth]
+
+# Sentry monitoring
+pip install kubiya-workflow-sdk[sentry]
+
+# Tools functionality only
+pip install kubiya-workflow-sdk[tools]
+
+# Multiple features
+pip install kubiya-workflow-sdk[tools,mcp,auth]
+```
+
+## Installation Options
+
+### Option 1: PyPI (Recommended)
+
+```bash
+# Latest stable release
+pip install kubiya-workflow-sdk[all]
+
+# Specific version
+pip install kubiya-workflow-sdk[all]==0.1.1
+```
+
+### Option 2: Using Poetry
+
+```bash
+# Add to your project
+poetry add kubiya-workflow-sdk[all]
+
+# Or for development
+poetry add --group dev kubiya-workflow-sdk[dev,tools]
+```
+
+### Option 3: Using Conda
+
+```bash
+# Install pip first, then use pip to install
+conda install pip
+pip install kubiya-workflow-sdk[all]
+```
+
+## Dependencies
+
+The tools functionality requires these core dependencies:
+
+### Core Dependencies
+- `pydantic>=2.0.0` - Data validation and serialization
+- `httpx>=0.24.0` - HTTP client for API calls
+- `aiohttp>=3.8.0` - Async HTTP support
+- `click>=8.0.0` - CLI framework
+- `rich>=13.0.0` - Rich terminal output
+- `PyYAML>=6.0` - YAML parsing
+- `requests>=2.25.0` - HTTP requests
+
+### Tools-Specific Dependencies
+- `multipledispatch>=1.0.0` - Function overloading support
+
+#### Monitoring
+```bash
+pip install kubiya-workflow-sdk[sentry]
+```
+- `sentry-sdk>=2.0.0` - Error tracking
+
+## Environment Setup
+
+### Python Version
+
+Kubiya Workflow SDK requires Python 3.10 or higher:
+
+```bash
+# Check your Python version
+python --version
+
+# Should output: Python 3.10.x or higher
+```
+
+### Virtual Environment (Recommended)
+
+Set up a virtual environment to avoid dependency conflicts:
+
+```bash
+# Using venv
+python -m venv kubiya-env
+source kubiya-env/bin/activate  # On Windows: kubiya-env\Scripts\activate
+
+# Using conda
+conda create -n kubiya-env python=3.11
+conda activate kubiya-env
+
+# Using poetry
+poetry init
+poetry shell
+```
+
+### Docker Requirements
+
+For Docker-based tools, ensure Docker is installed and running:
+
+```bash
+# Check Docker installation
+docker --version
+docker-compose --version
+
+# Test Docker access
+docker run hello-world
+```
+
+## Configuration
+
+### Environment Variables
+
+Set up required environment variables:
+
+```bash
+# Core configuration
+export KUBIYA_API_KEY="your-api-key"
+export KUBIYA_BASE_URL="https://api.kubiya.ai"
+
+# Docker configuration
+export DOCKER_HOST="unix:///var/run/docker.sock"
+
+# Tool-specific variables
+export KUBIYA_TOOL_TIMEOUT=300
+export KUBIYA_TOOL_RETRY_COUNT=3
+```
+
+## Verification
+
+### Test Installation
+
+Verify your installation works correctly:
+
+```python
+# test_installation.py
+from kubiya_workflow_sdk import __version__
+from kubiya_workflow_sdk.tools import Tool, function_tool
+
+print(f"Kubiya SDK version: {__version__}")
+
+# Test function tool creation
+@function_tool(
+    description="Test tool",
+    requirements=[]
+)
+def test_tool(message: "str" = "Hello, World!") -> "str":
+    return f"Test successful: {message}"
+
+# Test tool registry
+try:
+    from kubiya_workflow_sdk.tools import tool_registry
+    tool = tool_registry.get_tool("default", "test_tool")
+    if tool:
+        print("✅ Tools functionality working correctly")
+        print(f"Tool found: {tool.name} - {tool.description}")
+        # Test input validation
+        validated = tool.validate_inputs({"message": "Installation verified!"})
+        print(f"Input validation: {validated}")
+    else:
+        print("❌ Tool not found in registry")
+except Exception as e:
+    print(f"❌ Installation issue: {e}")
+```
+
+Run the test:
+
+```bash
+python test_installation.py
+```
+
+**Note**: The `@function_tool` decorator must be defined at module level (not indented) due to source code parsing requirements.
+
+
+### Docker Verification
+
+Test Docker integration:
+
+```python
+# test_docker.py
+from kubiya_workflow_sdk.tools import Tool
+
+# Create a simple Docker tool
+docker_tool = Tool(
+    name="test_docker",
+    type="docker",
+    image="alpine:latest",
+    description="Test Docker integration",
+    content="echo 'Docker integration working!'"
+)
+
+print("✅ Docker tool created successfully")
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Installation Errors
+
+**Problem**: `pip install` fails with dependency conflicts
+```bash
+# Solution: Use a fresh virtual environment
+python -m venv fresh-env
+source fresh-env/bin/activate
+pip install --upgrade pip
+pip install kubiya-workflow-sdk[all]
+```
+
+**Problem**: Missing system dependencies on Linux
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install python3-dev build-essential
+
+# CentOS/RHEL
+sudo yum install python3-devel gcc
+```
+
+#### Docker Issues
+
+**Problem**: Docker permission denied
+```bash
+# Add user to docker group (requires logout/login)
+sudo usermod -aG docker $USER
+
+# Or use sudo for testing
+sudo docker run hello-world
+```
+
+**Problem**: Docker not found
+```bash
+# Install Docker on Ubuntu
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Install Docker Compose
+sudo apt-get install docker-compose-plugin
+```
+
+#### Import Errors
+
+**Problem**: Module not found errors
+```python
+# Check if all dependencies are installed
+import sys
+print(sys.path)
+
+# Reinstall with all dependencies
+pip install --force-reinstall kubiya-workflow-sdk[all]
+```
+
+### Getting Help
+
+If you encounter issues:
+
+1. **Check the logs**: Enable debug logging
+2. **GitHub Issues**: Report bugs at https://github.com/kubiyabot/workflow_sdk/issues
+3. **Documentation**: Visit https://docs.kubiya.ai
+
+## Next Steps
+
+After successful installation:
+
+1. **[Quick Start Guide](./quickstart)** - Create your first tool
+2. **[Function Tools](./function-tools)** - Learn about Python function tools
+3. **[Docker Tools](./docker-tools)** - Build containerized tools
+4. **[Examples](./examples)** - Explore real-world examples
+
+## Upgrade Guide
+
+### Upgrading from Previous Versions
+
+```bash
+# Check current version
+pip show kubiya-workflow-sdk
+
+# Upgrade to latest
+pip install --upgrade kubiya-workflow-sdk[all]
+```
