@@ -3,6 +3,7 @@ Webhook service for managing webhooks
 """
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, Union, List
 from .base import BaseService
 from ..constants import Endpoints
@@ -283,7 +284,7 @@ class WebhookService(BaseService):
             if not test_data:
                 test_data = {
                     "test": True,
-                    "timestamp": "2024-01-01T00:00:00Z",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "message": "Test webhook from Kubiya Python SDK"
                 }
 
@@ -342,18 +343,6 @@ class WebhookService(BaseService):
             webhook_data.pop("updated_at", None)
             webhook_data.pop("webhook_url", None)
 
-            webhook_data = {
-              "name": "GitHub PR Webhook",
-              "source": "github",
-              "agent_id": "abc-123-def-456",
-              "filter": "event.action == 'opened'",
-              "prompt": "New PR opened:\n- Title: {{.event.pull_request.title}}\n- Author: {{.event.pull_request.user.login}}\n- Repository: {{.event.repository.name}}",
-              "hide_webhook_headers": False,
-              "communication": {
-                "method": "Slack",
-                "destination": "#dev-notifications"
-              }
-            }
             webhook_data.update(**webhook_data.pop("communication", {}) or {})
 
             return self.create(**webhook_data,)
@@ -481,12 +470,12 @@ class WebhookService(BaseService):
         if not test_data:
             test_data = {
                 "test": True,
-                "timestamp": "2024-01-01T00:00:00Z",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "message": "Auto-generated test webhook data"
             }
         else:
             test_data["_test"] = {
-                "timestamp": "2024-01-01T00:00:00Z",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "message": "Auto-generated test webhook data"
             }
 
