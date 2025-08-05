@@ -19,7 +19,7 @@ from kubiya_workflow_sdk import (
 
 # Import sync components
 from kubiya_workflow_sdk.client import KubiyaClient
-from kubiya_workflow_sdk.tools.executor import ToolExecutor, execute_tool
+from kubiya_workflow_sdk.tool_templates.executor import ToolExecutor, execute_tool
 from kubiya_workflow_sdk.execution import execute_workflow_with_validation
 
 

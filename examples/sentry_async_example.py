@@ -20,7 +20,7 @@ from kubiya_workflow_sdk import (
 
 # Import async components
 from kubiya_workflow_sdk.client import StreamingKubiyaClient
-from kubiya_workflow_sdk.tools.executor import AsyncToolExecutor, execute_tool_async
+from kubiya_workflow_sdk.tool_templates.executor import AsyncToolExecutor, execute_tool_async
 from kubiya_workflow_sdk.execution import execute_workflow_with_validation
 
 
