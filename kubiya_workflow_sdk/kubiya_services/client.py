@@ -132,7 +132,6 @@ class KubiyaClient:
             headers["Accept"] = "text/event-stream"
 
         try:
-            print(data)
             response = self.session.request(
                 method=method,
                 url=url,
