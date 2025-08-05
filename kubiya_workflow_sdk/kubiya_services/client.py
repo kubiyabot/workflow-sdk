@@ -90,7 +90,7 @@ class KubiyaClient:
         })
         
         # Initialize all services
-        from .services import (
+        from kubiya_workflow_sdk.kubiya_services.services import (
             WorkflowService,
             WebhookService
         )

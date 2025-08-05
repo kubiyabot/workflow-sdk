@@ -4,10 +4,10 @@ Base service class for all Kubiya SDK services
 
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from ..exceptions import KubiyaAPIError, ValidationError
+from kubiya_workflow_sdk.kubiya_services.exceptions import KubiyaAPIError, ValidationError
 
 if TYPE_CHECKING:
-    from ..client import KubiyaClient
+    from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
 
 
 class BaseService(ABC):

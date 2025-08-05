@@ -5,11 +5,11 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, Union, List
-from .base import BaseService
-from ..constants import Endpoints
-from ..exceptions import WebhookError, ValidationError
+from kubiya_workflow_sdk.kubiya_services.services.base import BaseService
+from kubiya_workflow_sdk.kubiya_services.constants import Endpoints
+from kubiya_workflow_sdk.kubiya_services.exceptions import WebhookError, ValidationError
 
-from ... import capture_exception
+from kubiya_workflow_sdk import capture_exception
 
 logger = logging.getLogger(__name__)
 

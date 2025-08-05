@@ -4,11 +4,11 @@ Workflow service for managing workflows
 import json
 import logging
 from typing import Optional, Dict, Any, Union, Generator
-from .base import BaseService
-from ..constants import Endpoints
-from ..exceptions import WorkflowExecutionError
+from kubiya_workflow_sdk.kubiya_services.services.base import BaseService
+from kubiya_workflow_sdk.kubiya_services.constants import Endpoints
+from kubiya_workflow_sdk.kubiya_services.exceptions import WorkflowExecutionError
 
-from ... import capture_exception
+from kubiya_workflow_sdk import capture_exception
 
 logger = logging.getLogger(__name__)
 
