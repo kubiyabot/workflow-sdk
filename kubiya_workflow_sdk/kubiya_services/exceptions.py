@@ -88,3 +88,11 @@ class KubiyaAPIError(KubiyaSDKError):
         if self.response:
             parts.append(f"Response: {self.response}")
         return " | ".join(parts)
+
+
+class WebhookError(KubiyaSDKError):
+    """Exception for webhook-related errors"""
+
+    def __init__(self, message: str, webhook_id: Optional[str] = None):
+        details = {"webhook_id": webhook_id} if webhook_id else None
+        super().__init__(message, details)

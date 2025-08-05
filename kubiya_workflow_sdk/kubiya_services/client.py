@@ -92,9 +92,11 @@ class KubiyaClient:
         # Initialize all services
         from .services import (
             WorkflowService,
+            WebhookService
         )
 
         self.workflows = WorkflowService(self)
+        self.webhooks = WebhookService(self)
 
     def make_request(
         self,
@@ -130,6 +132,7 @@ class KubiyaClient:
             headers["Accept"] = "text/event-stream"
 
         try:
+            print(data)
             response = self.session.request(
                 method=method,
                 url=url,
