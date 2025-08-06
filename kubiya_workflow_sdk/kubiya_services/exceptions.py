@@ -96,3 +96,21 @@ class WebhookError(KubiyaSDKError):
     def __init__(self, message: str, webhook_id: Optional[str] = None):
         details = {"webhook_id": webhook_id} if webhook_id else None
         super().__init__(message, details)
+
+
+# User service exceptions
+class UserError(Exception):
+    """Base exception for user service operations"""
+    pass
+
+class UserNotFoundError(UserError):
+    """Exception raised when a user is not found"""
+    pass
+
+class GroupError(Exception):
+    """Base exception for group service operations"""
+    pass
+
+class GroupNotFoundError(GroupError):
+    """Exception raised when a group is not found"""
+    pass

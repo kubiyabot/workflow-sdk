@@ -14,7 +14,8 @@ class Endpoints:
     WEBHOOK_DELETE = "/api/v1/event/{webhook_id}"
     WEBHOOK_TEST = "/api/v1/webhook/test"
 
+    # Users endpoints
+    USER_LIST = "/api/v2/users"
 
-# Pagination Constants
-DEFAULT_PAGE_SIZE = 20
-MAX_PAGE_SIZE = 100
+    # Groups endpoints
+    GROUP_LIST = "/api/v1/manage/groups"
