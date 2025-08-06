@@ -114,3 +114,17 @@ class GroupError(Exception):
 class GroupNotFoundError(GroupError):
     """Exception raised when a group is not found"""
     pass
+
+
+# Trigger service exceptions
+class TriggerError(Exception):
+    """Trigger-related error"""
+    pass
+
+class TriggerValidationError(Exception):
+    """Trigger validation error"""
+    pass
+
+class ProviderError(Exception):
+    """Provider-specific error"""
+    pass

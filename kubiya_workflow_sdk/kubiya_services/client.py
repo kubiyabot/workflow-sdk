@@ -93,12 +93,14 @@ class KubiyaClient:
         from kubiya_workflow_sdk.kubiya_services.services import (
             WorkflowService,
             WebhookService,
-            UserService
+            UserService,
+            TriggerService
         )
 
         self.workflows = WorkflowService(self)
         self.webhooks = WebhookService(self)
         self.users = UserService(self)
+        self.triggers = TriggerService(self)
 
     def make_request(
         self,
