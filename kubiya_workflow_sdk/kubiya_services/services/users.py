@@ -7,9 +7,7 @@ from typing import Optional, Dict, Any, List, Union
 from kubiya_workflow_sdk import capture_exception
 from kubiya_workflow_sdk.kubiya_services.services.base import BaseService
 from kubiya_workflow_sdk.kubiya_services.constants import Endpoints
-from kubiya_workflow_sdk.kubiya_services.exceptions import UserError
-
-
+from kubiya_workflow_sdk.kubiya_services.exceptions import UserError, GroupError
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +95,7 @@ class UserService(BaseService):
                 return groups
 
         except Exception as e:
-            error = UserError(f"Failed to list groups: {str(e)}")
+            error = GroupError(f"Failed to list groups: {str(e)}")
             capture_exception(error)
             raise error
 
