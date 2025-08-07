@@ -19,3 +19,26 @@ class Endpoints:
 
     # Groups endpoints
     GROUP_LIST = "/api/v1/manage/groups"
+
+    # Tool endpoints
+    TOOL_EXECUTE = "/api/v1/tools/exec?runner={runner}"
+    TOOL_GENERATE = "/api/v2/tools/generate"
+    TOOL_LIST = "/tools"
+    TOOL_DESCRIBE = "/tools/{tool_name}"
+    TOOL_SEARCH = "/tools/search"
+
+    # Source endpoints - for listing tools from sources
+    SOURCES_LIST = "/api/v1/sources"
+    SOURCE_GET = "/api/v1/sources/{source_uuid}"
+    SOURCE_METADATA = "/api/v1/sources/{source_uuid}/metadata"
+    SOURCE_DELETE = "/api/v1/sources/{source_uuid}"
+    SOURCE_LOAD = "/api/v1/sources/load"
+    SOURCE_ZIP = "/api/v1/sources/zip"
+    SOURCE_ZIP_LOAD = "/api/v1/sources/zip/load"
+
+    # Runner endpoints - for tool execution
+    RUNNERS_LIST = "/api/v3/runners"
+    RUNNER_GET = "/api/v3/runners/{runner_name}"
+    RUNNER_HELM_CHART = "/api/v3/runners/helmchart/{runner_name}"
+    RUNNER_MANIFEST = "/api/v3/runners/{runner_name}"
+    RUNNER_HEALTH = "/api/v3/runners/{runner_name}/health"

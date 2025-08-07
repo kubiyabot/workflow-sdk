@@ -128,3 +128,24 @@ class TriggerValidationError(Exception):
 class ProviderError(Exception):
     """Provider-specific error"""
     pass
+
+
+# Tool service exceptions
+class ToolError(Exception):
+    """Base exception for tool service operations"""
+    pass
+
+
+class ToolNotFoundError(ToolError):
+    """Exception raised when a tool is not found"""
+    pass
+
+
+class ToolExecutionError(ToolError):
+    """Exception raised when tool execution fails"""
+    pass
+
+
+class IntegrationNotFoundError(ToolError):
+    """Exception raised when an integration template is not found"""
+    pass
