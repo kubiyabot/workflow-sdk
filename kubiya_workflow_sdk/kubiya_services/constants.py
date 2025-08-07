@@ -19,3 +19,8 @@ class Endpoints:
 
     # Groups endpoints
     GROUP_LIST = "/api/v1/manage/groups"
+
+    # Stacks endpoints
+    STACKS_PLAN = "api/v1/tasks/inline/plan"
+    STACKS_APPLY = "/api/v1/tasks/inline"
+    STACKS_STREAM = "/api/v1/tasks/stream/logs/{stack_id}"
