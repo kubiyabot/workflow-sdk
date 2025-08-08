@@ -95,7 +95,8 @@ class KubiyaClient:
             WebhookService,
             UserService,
             TriggerService,
-            ToolService
+            ToolService,
+            SourceService
         )
 
         self.workflows = WorkflowService(self)
@@ -103,6 +104,7 @@ class KubiyaClient:
         self.users = UserService(self)
         self.triggers = TriggerService(self)
         self.tools = ToolService(self)
+        self.sources = SourceService(self)
 
     def make_request(
         self,

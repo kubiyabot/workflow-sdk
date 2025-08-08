@@ -35,6 +35,7 @@ class Endpoints:
     SOURCE_LOAD = "/api/v1/sources/load"
     SOURCE_ZIP = "/api/v1/sources/zip"
     SOURCE_ZIP_LOAD = "/api/v1/sources/zip/load"
+    SOURCE_SYNC = "/api/v1/sources/{source_uuid}/sync"
 
     # Runner endpoints - for tool execution
     RUNNERS_LIST = "/api/v3/runners"

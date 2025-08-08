@@ -149,3 +149,23 @@ class ToolExecutionError(ToolError):
 class IntegrationNotFoundError(ToolError):
     """Exception raised when an integration template is not found"""
     pass
+
+
+class SourceError(KubiyaSDKError):
+    """Exception for source-related errors"""
+
+    def __init__(self, message: str, source_id: Optional[str] = None, source_type: Optional[str] = None):
+        details = {}
+        if source_id:
+            details["source_id"] = source_id
+        if source_type:
+            details["source_type"] = source_type
+        super().__init__(message, details)
+
+class SourceNotFoundError(SourceError):
+    """Exception raised when a source is not found"""
+    pass
+
+class SourceValidationError(SourceError):
+    """Exception raised when source validation fails"""
+    pass
