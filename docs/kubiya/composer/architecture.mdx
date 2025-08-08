@@ -1,0 +1,61 @@
+---
+title: "Composer architecture"
+description: "Detailed architecture of Kubiya’s agentic UI, agent servers and runners"
+icon: "layers"
+---
+
+# Composer architecture
+
+The Kubiya Composer is more than a chat interface.  It connects several subsystems to turn unstructured tasks into deterministic, containerized workflows.  This page explains the major components and how they interact.
+
+## High‑level flow
+
+### 1 . User input
+
+You describe a task in natural language through the Composer UI.  The UI is built with **Next.js 14**, **shadcn/ui** and **Tailwind CSS** and supports streaming updates to provide instant feedback【951522503852125†L0-L7】.
+
+### 2 . Agent server
+
+The Composer forwards the task to a **Kubiya Agent Server**, an OpenAI‑compatible API endpoint that orchestrates multiple models and tools.  The agent server uses:
+
+* **Large‑language models (LLMs)** – Models from providers such as OpenAI, Anthropic, Groq, Mistral, Fireworks, Google AI and Together AI generate the workflow DSL【951522503852125†L15-L23】.  You can configure which provider and model to use per request.
+* **MCP tools** – Kubiya’s Model Control Plane (MCP) analyses the task, plans the sequence of operations and produces a deterministic workflow DSL.  MCP may call specific “tools” (plugins) to perform code generation, data retrieval or analysis.
+
+The agent server returns a workflow definition in Kubiya’s DSL.  The DSL resembles Python with decorators (`@workflow` and `@step`) and is compiled into a directed acyclic graph (DAG) for execution.
+
+### 3 . DSL compiler and visualizer
+
+Within the Composer, the DSL is parsed and converted to an intermediate graph.  Dependencies between steps are inferred based on `.depends()` calls in the DSL.  The Composer renders both the raw DSL and a **visual DAG** side by side【777760711526177†L232-L289】.  You can edit the DSL manually; changes are reflected in the DAG instantly.  During execution, node colors indicate status (queued, running, succeeded, failed) and edges represent dependencies.
+
+### 4 . Runners
+
+A Kubiya **runner** is a server that executes workflow steps.  Runners pull container images from public or private registries and run commands inside isolated containers.  The Composer supports:
+
+* **Hosted runners** – Managed by Kubiya; require no setup.  They scale on demand and are suitable for quick starts【777760711526177†L382-L419】.
+* **Self‑hosted runners** – Deployed on your own infrastructure (Kubernetes or Docker).  They can access private resources (databases, internal APIs) and enforce custom security policies.  You can register self‑hosted runners via the **Runners** settings page.
+
+Each step runs independently, so failures don’t propagate.  The Composer streams logs and artifacts from the runner back to the UI.【777760711526177†L92-L116】
+
+### 5 . E2B sandboxes
+
+When a step contains AI‑generated code (e.g. Python or JavaScript fragments), the Composer uses the **E2B SDK** to create secure sandboxes.  E2B isolates dependencies, allows dynamic installation of packages from npm or pip and captures output including images and PDFs【951522503852125†L4-L8】.  This mechanism powers the “Code Interpreter” capability and eliminates the need for dedicated infrastructure.
+
+### 6 . Telemetry and monitoring
+
+Errors, performance metrics and LLM token usage are instrumented via **Sentry**.  The Composer’s `lib/sentry.ts` module exports helper functions such as `trackLLMOperation` and `recordTokenUsage`【951522503852125†L130-L153】.  You can use these utilities in custom integrations to maintain observability across both the frontend and backend.
+
+## Collaboration subsystem
+
+Collaboration is implemented via **Supabase Realtime**.  When collaboration is enabled on a workflow, the Composer opens a `workflow:<id>` channel.  The channel supports:
+
+* **Presence broadcasts** – Each client periodically broadcasts cursor positions and selected nodes.  Other clients see the collaborators’ cursors move in real time【860359785325647†L47-L107】.
+* **Workflow operations** – Node additions, updates and deletions are sent through the channel so all clients update the DAG consistently【860359785325647†L110-L160】.
+* **Comments** – Comments are stored in Supabase and synced via the channel.  The comments sidebar groups comments by the node or text selection and supports replies, resolution and deletion【679700562295946†L67-L183】.
+
+## Hosted vs. self‑hosted deployment
+
+While the public beta of the Composer is hosted by Kubiya, you can run the UI yourself.  Clone the `composer-ui` repository, install dependencies (`npm i`), set your environment variables (API keys, Supabase credentials, Sentry DSN, etc.) and run `npm run dev`【951522503852125†L38-L125】.  For production, build and deploy the app using `npm run build`.  Self‑hosting gives you full control over the user interface and allows integration with on‑premise agent servers and runners.
+
+## Summary
+
+Kubiya Composer orchestrates a complex pipeline—from LLM‑driven planning to deterministic execution—within an intuitive UI.  Understanding the architecture helps you debug workflows, configure custom agents and runners, and extend the system with your own integrations.
