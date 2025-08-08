@@ -207,6 +207,22 @@
           }
         ]
       }
+          , {
+      "tab": "Composer UI",
+      "groups": [
+        {
+          "group": "Composer UI",
+          "pages": [
+            "composer/overview",
+            "composer/getting-started",
+            "composer/architecture",
+            "composer/examples",
+            "composer/collaboration"
+          ]
+        }
+      ]
+    }
+
     ]
   },
   "footerSocials": {
