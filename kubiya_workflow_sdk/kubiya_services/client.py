@@ -96,7 +96,8 @@ class KubiyaClient:
             UserService,
             TriggerService,
             ToolService,
-            SourceService
+            SourceService,
+            SecretService,
         )
 
         self.workflows = WorkflowService(self)
@@ -105,6 +106,7 @@ class KubiyaClient:
         self.triggers = TriggerService(self)
         self.tools = ToolService(self)
         self.sources = SourceService(self)
+        self.secrets = SecretService(self)
 
     def make_request(
         self,

@@ -43,3 +43,11 @@ class Endpoints:
     RUNNER_HELM_CHART = "/api/v3/runners/helmchart/{runner_name}"
     RUNNER_MANIFEST = "/api/v3/runners/{runner_name}"
     RUNNER_HEALTH = "/api/v3/runners/{runner_name}/health"
+
+    # Secrets endpoints
+    SECRETS_CREATE = "/api/v1/secrets"
+    SECRETS_LIST = "/api/v1/secrets"
+    SECRETS_GET = "/api/v1/secrets/{secret_name}"
+    SECRETS_GET_VALUE = "/api/v1/secrets/get_value/{secret_name}"
+    SECRETS_UPDATE = "/api/v1/secrets/{secret_name}"
+    SECRETS_DELETE = "/api/v1/secrets/{secret_name}"

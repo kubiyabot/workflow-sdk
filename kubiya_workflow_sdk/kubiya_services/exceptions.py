@@ -169,3 +169,16 @@ class SourceNotFoundError(SourceError):
 class SourceValidationError(SourceError):
     """Exception raised when source validation fails"""
     pass
+
+
+class SecretError(KubiyaSDKError):
+    """Exception for secret-related errors"""
+
+    def __init__(self, message: str, secret_name: Optional[str] = None):
+        details = {"secret_name": secret_name} if secret_name else None
+        super().__init__(message, details)
+
+
+class SecretValidationError(SecretError):
+    """Exception raised when secret validation fails"""
+    pass

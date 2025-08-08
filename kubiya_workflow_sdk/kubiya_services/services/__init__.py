@@ -8,6 +8,7 @@ from kubiya_workflow_sdk.kubiya_services.services.users import UserService
 from kubiya_workflow_sdk.kubiya_services.services.triggers import TriggerService
 from kubiya_workflow_sdk.kubiya_services.services.tools import ToolService
 from kubiya_workflow_sdk.kubiya_services.services.source import SourceService
+from kubiya_workflow_sdk.kubiya_services.services.secrets import SecretService
 
 __all__ = [
     "WorkflowService",
@@ -15,5 +16,6 @@ __all__ = [
     "UserService",
     "TriggerService",
     "ToolService",
-    "SourceService"
+    "SourceService",
+    "SecretService",
 ]
