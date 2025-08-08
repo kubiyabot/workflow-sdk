@@ -1,0 +1,145 @@
+---
+title: "Composer examples"
+description: "Sample prompts and DSL snippets for common workflows"
+icon: "code-branch"
+---
+
+# Composer examples
+
+This page provides examples of tasks you can build using the Composer.  Each example includes a **natural‑language prompt**, the generated **DSL** and a **visual description** of the workflow.  You can copy these prompts into the Composer to try them yourself or adapt them for your own use cases.
+
+## Web service: build and test an API
+
+**Prompt**
+
+```
+Create a simple web app: use node:18‑alpine to create an Express server with a `/health` endpoint, then use alpine/curl to test it, and finally package it with node:18‑alpine for production
+```
+
+**Generated DSL**
+
+```python
+@workflow
+def create_and_test_api():
+    # Create the server
+    step("create-api").docker(
+        image="node:18-alpine",
+        command="mkdir -p app && cd app && node -e \"const express = require('express'); const app = express(); app.get('/health', (_, res) => res.send('OK')); app.listen(3000);\"",
+    )
+    # Test the endpoint
+    step("test-api").docker(
+        image="alpine/curl",
+        command="curl -s http://create-api:3000/health",
+    ).depends("create-api")
+    # Package for production
+    step("package").docker(
+        image="node:18-alpine",
+        command="npm pack ./app",
+    ).depends("test-api")
+```
+
+The graph contains three nodes: **create-api**, **test-api** and **package**, with dependencies from left to right.  Each step runs in a separate container; logs and artifacts stream back to the UI in real time.
+
+## Intelligent incident response
+
+**Prompt**
+
+```
+Handle production incident: use datadog/agent:latest to detect anomalies, langchain/langchain:latest to analyze logs and suggest fixes, kubectl:latest to apply the AI‑recommended remediation, and alpine/curl to verify system health after fix
+```
+
+**Generated DSL (simplified)**
+
+```python
+@workflow
+def intelligent_incident_response():
+    step("detect").docker(
+        image="datadog/agent:latest",
+        command="datadog-agent status",
+    )
+    step("analyze").docker(
+        image="langchain/langchain:latest",
+        command="python -c \"from langchain import load_agent; print(load_agent().analyze_logs())\"",
+    ).depends("detect")
+    step("remediate").docker(
+        image="kubectl:latest",
+        command="kubectl apply -f fix.yaml",
+    ).depends("analyze")
+    step("verify").docker(
+        image="alpine/curl",
+        command="curl -s https://myservice.example.com/health",
+    ).depends("remediate")
+```
+
+Use this template when creating AI‑assisted DevOps runbooks.  You can replace `datadog/agent`, `langchain/langchain` and `kubectl` with your own monitoring, analysis and deployment tools.
+
+## Data processing pipeline
+
+**Prompt**
+
+```
+Process CSV data: use python:3.11‑alpine to read `data.csv` and convert it to JSON, then use jq in alpine:latest to validate the JSON structure, finally use python:3.11‑alpine to generate a summary report
+```
+
+**Generated DSL**
+
+```python
+@workflow
+def process_csv():
+    step("convert-to-json").docker(
+        image="python:3.11-alpine",
+        command="python -c \"import pandas as pd; df = pd.read_csv('data.csv'); df.to_json('data.json', orient='records')\"",
+    )
+    step("validate-json").docker(
+        image="alpine:latest",
+        command="jq empty data.json",
+    ).depends("convert-to-json")
+    step("summarize").docker(
+        image="python:3.11-alpine",
+        command="python -c \"import json; data = json.load(open('data.json')); print('Rows:', len(data))\"",
+    ).depends("validate-json")
+```
+
+This example shows how to chain multiple languages and tools together.  Each step reads outputs from the previous one via shared files; in practice the Composer automatically mounts the working directory between containers.
+
+## Multi‑language code formatter
+
+**Prompt**
+
+```
+Format source code: use node:alpine with prettier to format all .js and .json files, use python:3‑alpine with black to format all .py files, and use golang:alpine with gofmt to format all .go files – create a summary of changes
+```
+
+**Generated DSL**
+
+```python
+@workflow
+def multi_language_formatter():
+    step("format-js").docker(
+        image="node:alpine",
+        command="npm exec prettier --write '**/*.{js,json}'",
+    )
+    step("format-py").docker(
+        image="python:3-alpine",
+        command="pip install black && black .",
+    ).depends("format-js")
+    step("format-go").docker(
+        image="golang:alpine",
+        command="find . -name '*.go' -print0 | xargs -0 gofmt -s -w",
+    ).depends("format-py")
+    step("summarize").docker(
+        image="node:alpine",
+        command="echo 'Formatting complete' > report.txt",
+    ).depends("format-go")
+```
+
+This workflow demonstrates multi‑language tooling.  You could extend the final step to parse diff statistics and upload the report as an artifact.
+
+## Best practices
+
+* Start with a clear high‑level description.  The agent server performs better when given enough context and constraints.
+* Use specific container tags (e.g. `python:3.11-alpine` instead of `python:latest`) to avoid unexpected version differences.
+* Add `.depends()` calls in the DSL to define dependencies explicitly when the AI’s generated ordering doesn’t match your needs.
+* Package custom agents or code into Docker images and reference them in your prompts (e.g. `your‑org/feature‑agent:latest`).
+
+These examples only scratch the surface.  Kubiya Composer supports loops, conditional execution and subworkflows.  Consult the [workflow DSL reference](/workflows/dsl-reference) for advanced syntax.
