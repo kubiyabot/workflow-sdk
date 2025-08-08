@@ -1,0 +1,42 @@
+---
+title: "Collaboration in the Composer"
+description: "Working together on workflows with real‑time presence and comments"
+icon: "users"
+---
+
+# Collaboration in the Composer
+
+Kubiya Composer enables teams to design and iterate on workflows together.  With real‑time presence, collaborative editing and rich commenting, you can build complex automations without waiting on asynchronous hand‑offs.
+
+## Real‑time presence and editing
+
+When collaboration is enabled on a workflow, each participant joins a **Supabase Realtime** channel keyed by the workflow ID.  The channel broadcasts:
+
+* **Presence updates** – Each client sends periodic heartbeat messages containing cursor coordinates and the currently selected node.  Other collaborators see colored cursors with the user’s initials as they move around the canvas【860359785325647†L47-L107】.
+* **Workflow operations** – Actions such as adding, updating or deleting nodes and edges are sent through the channel so all clients maintain the same graph【860359785325647†L110-L160】.  Conflicts are resolved on the server to ensure deterministic ordering.
+
+Joining or leaving a collaboration session is handled by the Composer automatically, but you can also join or leave via the `/api/workflows/<id>/collaborate` endpoint in the backend if you’re integrating with other tools【860359785325647†L64-L107】.
+
+## Comments and discussions
+
+The **Comments** sidebar allows you to annotate workflows or individual chat messages.  Features include:
+
+* **Threaded comments** – Start a new comment thread or reply to an existing one.  Replies are indented for context.
+* **Selections** – Highlight a region of a conversation or select a node in the DAG to attach a comment.  The sidebar groups comments by selection【679700562295946†L67-L183】.
+* **Resolution state** – Mark a comment as resolved once addressed.  You can toggle between showing unresolved and all comments.
+* **Mentions** – Use `@name` to mention teammates (coming soon).  Mentions will send email notifications.
+
+Only collaborators with access to the workflow can see comments.  Comments are stored in your Supabase project, so they persist across sessions.
+
+## Hand‑over and audit trail
+
+The collaboration subsystem records all operations and comments.  You can export a **workflow history** to see who made which changes and when.  This audit trail is essential for regulated environments and debugging.
+
+## Tips for effective collaboration
+
+* Enable collaboration only when you’re ready to work with others.  Real‑time editing can be distracting if you’re still experimenting.
+* Use comments to ask questions or flag issues instead of modifying the DSL directly.  This makes it easier to track decisions.
+* Resolve comments when completed to keep the sidebar tidy.
+* Combine collaboration with version control by exporting workflows and committing them to your Git repository.
+
+With these tools, teams can rapidly co‑design workflows and ensure that everyone understands the automation before it runs.
