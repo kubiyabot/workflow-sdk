@@ -182,3 +182,15 @@ class SecretError(KubiyaSDKError):
 class SecretValidationError(SecretError):
     """Exception raised when secret validation fails"""
     pass
+
+class RunnerError(KubiyaSDKError):
+    """Runner-related errors"""
+    pass
+
+class RunnerNotFoundError(RunnerError):
+    """Runner not found errors"""
+    pass
+
+class RunnerHealthError(RunnerError):
+    """Runner health check errors"""
+    pass

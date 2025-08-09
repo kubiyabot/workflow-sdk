@@ -39,6 +39,7 @@ class Endpoints:
 
     # Runner endpoints - for tool execution
     RUNNERS_LIST = "/api/v3/runners"
+    RUNNERS_DESCRIBE = "/api/v1/runners/{runner_name}/describe"
     RUNNER_GET = "/api/v3/runners/{runner_name}"
     RUNNER_HELM_CHART = "/api/v3/runners/helmchart/{runner_name}"
     RUNNER_MANIFEST = "/api/v3/runners/{runner_name}"
