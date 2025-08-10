@@ -1,634 +1,98 @@
 ---
-title: "Settings & Configuration"
-description: "Complete guide to configuring Composer settings, preferences, and system options"
+title: "Settings"
+description: "Configure Composer for your team - users, permissions, integrations, and preferences"
 icon: "gear"
 ---
 
-# Settings & Configuration
+Configure Composer to work the way your team needs it.
 
-The Settings interface in Composer provides comprehensive control over your environment, from basic preferences to advanced system configurations. This guide covers all available settings and their purposes.
+## User management
 
-## Settings Overview
+**Add team members:**
+1. Go to Settings → Users
+2. Click "Invite User"
+3. Enter email address and select role
+4. Send invitation
 
-### Accessing Settings
-Navigate to **Settings** through:
-- **Profile Menu**: Click your profile icon → **Settings**
-- **Quick Access**: Use keyboard shortcut `Ctrl/Cmd + ,`
-- **URL Direct**: Navigate to `/settings` in your browser
+**User roles:**
+- **Admin** - Full access to all features and settings
+- **User** - Can create tasks, workflows, and use integrations
+- **Viewer** - Read-only access to workflows and results
 
-### Settings Organization
-Settings are organized into logical tabs for easy navigation:
+**Managing access:**
+- Remove users who no longer need access
+- Change roles as team responsibilities evolve
+- Audit user activity in the logs section
 
-<CardGroup cols={2}>
-  <Card title="General" icon="sliders">
-    Basic preferences and profile settings
-  </Card>
-  <Card title="Integrations" icon="plug">
-    Connected services and authentication
-  </Card>
-  <Card title="Agents" icon="robot">
-    AI agent configuration and management
-  </Card>
-  <Card title="Security" icon="shield">
-    Security policies and access controls
-  </Card>
-</CardGroup>
+## Integration settings
 
-## General Settings
+**Connected services:**
+View and manage all your tool integrations in one place.
 
-### Profile Information
-Configure your basic profile details:
+**API credentials:**
+Store and rotate API keys, tokens, and other secrets securely.
 
-```yaml
-User Profile:
-  Display Name: "John Doe"
-  Email: "john.doe@company.com"
-  Avatar: "Profile picture upload"
-  Timezone: "America/New_York"
-  Language: "English (US)"
-  Date Format: "MM/DD/YYYY"
-  Time Format: "12-hour"
-```
+**Permission scopes:**
+Control what each integration can access in your systems.
 
-### Interface Preferences
+**Health monitoring:**
+Get notified when integrations go offline or fail authentication.
 
-#### Theme and Appearance
-```yaml
-Visual Settings:
-  Theme: 
-    - Light Mode: Clean, bright interface
-    - Dark Mode: Reduced eye strain
-    - System: Match OS preference
-    - High Contrast: Enhanced accessibility
-  
-  Layout:
-    - Sidebar: Auto-hide, always visible, or compact
-    - Navigation: Top bar or side navigation
-    - Density: Comfortable, compact, or spacious
-  
-  Typography:
-    - Font Size: Small, medium, large, extra large
-    - Font Family: System default or custom fonts
-    - Line Height: Optimized for readability
-```
+## Organization preferences
 
-#### Dashboard Customization
-```yaml
-Dashboard Layout:
-  Default View:
-    - Quick Actions: Show/hide panel
-    - Activity Feed: Show/hide and position
-    - Stats Grid: Visible metrics selection
-    - Resources: Display format and grouping
-  
-  Widget Configuration:
-    - Enabled Widgets: Select active dashboard widgets
-    - Widget Order: Drag-and-drop organization
-    - Refresh Intervals: Update frequency settings
-    - Data Sources: Which integrations to display
-```
+**Default settings:**
+- New workflow timeout limits
+- Default agent selection
+- Notification preferences
+- Data retention policies
 
-### Notification Preferences
+**Security settings:**
+- Require two-factor authentication
+- IP allowlist for access
+- Session timeout duration
+- Audit log retention
 
-#### Notification Categories
-Configure alerts for different event types:
+**Billing and usage:**
+- View current plan limits
+- Track API usage and costs
+- Upgrade or downgrade plans
+- Download usage reports
 
-<Tabs>
-  <Tab title="Task Notifications">
-    ```yaml
-    Task Events:
-      - Task Completion: ✅ Enabled
-      - Task Failure: ✅ Enabled
-      - Long Running Tasks: ✅ Enabled (>5 minutes)
-      - Task Approval Required: ✅ Enabled
-    
-    Delivery Methods:
-      - In-App: ✅ Enabled
-      - Email: ✅ Enabled
-      - Push Notifications: ❌ Disabled
-    ```
-  </Tab>
-  
-  <Tab title="System Notifications">
-    ```yaml
-    System Events:
-      - Integration Health: ✅ Enabled
-      - Security Alerts: ✅ Enabled
-      - System Maintenance: ✅ Enabled
-      - Feature Updates: ❌ Disabled
-    
-    Urgency Levels:
-      - Critical: Immediate notification
-      - Warning: Hourly digest
-      - Info: Daily digest
-    ```
-  </Tab>
-  
-  <Tab title="Collaboration">
-    ```yaml
-    Team Events:
-      - Mentions: ✅ Enabled
-      - Shared Tasks: ✅ Enabled
-      - Workflow Updates: ✅ Enabled
-      - Comments: ✅ Enabled
-    
-    Quiet Hours:
-      - Enabled: ✅ 10 PM - 7 AM
-      - Weekend Override: ❌ Disabled
-    ```
-  </Tab>
-</Tabs>
+## Workflow settings
 
-## Integration Settings
+**Execution limits:**
+Set maximum runtime and resource usage for workflows.
 
-### Connected Services Management
-View and manage all your connected integrations:
+**Approval workflows:**
+Require approval for workflows that affect production systems.
 
-#### Integration Status Dashboard
-```yaml
-Integration Overview:
-  AWS:
-    Status: 🟢 Connected
-    Last Used: 2 hours ago
-    Health: Excellent
-    Actions: [Test, Reconfigure, Disconnect]
-  
-  GitHub:
-    Status: 🟡 Token Expiring
-    Last Used: 1 day ago
-    Health: Good
-    Actions: [Refresh Token, Reconfigure]
-  
-  Slack:
-    Status: 🔴 Connection Error
-    Last Used: 3 days ago
-    Health: Poor
-    Actions: [Reconnect, Troubleshoot]
-```
+**Scheduling:**
+Configure timezone and business hours for scheduled workflows.
 
-#### Integration Configuration
-For each connected service:
+**Notifications:**
+Set up alerts for workflow failures, completions, and other events.
 
-##### Connection Details
-- **Authentication Status**: Current auth state and token expiry
-- **Permissions**: Granted scopes and access levels  
-- **Usage Statistics**: API calls, rate limits, costs
-- **Error History**: Recent failures and resolution status
+## Advanced configuration
 
-##### Advanced Settings
-```yaml
-Per-Integration Options:
-  Polling Frequency:
-    - Real-time: WebSocket connections where available
-    - Fast: 30-second polling
-    - Standard: 5-minute polling
-    - Slow: Hourly polling
-  
-  Rate Limiting:
-    - Conservative: 50% of API limits
-    - Balanced: 80% of API limits
-    - Aggressive: 95% of API limits
-  
-  Retry Behavior:
-    - Immediate: Retry immediately on failure
-    - Exponential: Exponential backoff
-    - Linear: Fixed interval retries
-```
+**Custom domains:**
+Set up your own domain for Composer access.
 
-### API Keys and Secrets Management
+**SSO integration:**
+Connect with your identity provider (SAML, OAuth, etc.).
 
-#### Secrets Vault Interface
-Secure storage for sensitive credentials:
+**Webhook endpoints:**
+Configure external systems to trigger workflows.
 
-```yaml
-Secrets Organization:
-  Categories:
-    - API Keys: External service authentication
-    - Database Credentials: Connection strings and passwords
-    - Certificates: SSL/TLS certificates and keys
-    - Tokens: OAuth tokens and refresh tokens
-    - Custom: Organization-specific secrets
+**Export and backup:**
+Download your workflows and configurations for backup.
 
-  Security Features:
-    - Encryption: AES-256 encryption at rest
-    - Access Control: Role-based secret access
-    - Audit Logging: Complete access history
-    - Rotation: Automatic credential rotation
-    - Expiry Alerts: Proactive expiration warnings
-```
+## Need help?
 
-#### Secret Management Operations
-- **Add Secret**: Store new credentials with metadata
-- **Update Secret**: Rotate or modify existing credentials
-- **Share Secret**: Grant access to team members or agents
-- **Revoke Access**: Remove secret access permissions
-- **Audit Trail**: View complete usage history
-
-## Agent Configuration
-
-### Default Agent Settings
-Configure system-wide agent behavior:
-
-#### Communication Preferences
-```yaml
-Agent Behavior:
-  Response Style:
-    - Verbosity: Concise, Balanced, Detailed
-    - Tone: Professional, Friendly, Technical
-    - Explanations: Always, On Request, Never
-  
-  Confirmation Requirements:
-    - Production Operations: Always confirm
-    - Data Modifications: Confirm destructive actions
-    - Resource Creation: Confirm expensive resources
-    - Security Changes: Always confirm
-  
-  Error Handling:
-    - Auto Retry: Enable intelligent retry logic
-    - Escalation: When to involve human operators
-    - Fallback: Alternative approaches on failure
-```
-
-#### Safety and Security Settings
-```yaml
-Safety Controls:
-  Operation Restrictions:
-    - Production Access: Require explicit approval
-    - Destructive Operations: Multiple confirmations
-    - Budget Limits: Maximum spend per operation
-    - Time Windows: Restrict operations to business hours
-  
-  Compliance Mode:
-    - SOX Compliance: Extra audit requirements
-    - HIPAA Mode: Healthcare data protection
-    - GDPR Mode: EU data protection compliance
-    - Custom Policies: Organization-specific rules
-```
-
-### Custom Agent Configuration
-Settings for organization-specific agents:
-
-#### Agent Templates
-```yaml
-Template Management:
-  DevOps Assistant:
-    - Base Model: GPT-4 Turbo
-    - Tools: Infrastructure, monitoring, deployment
-    - Personality: Professional, proactive
-    - Restrictions: Production approval required
-  
-  Data Analyst:
-    - Base Model: GPT-4 with Code Interpreter
-    - Tools: SQL, Python, visualization
-    - Personality: Analytical, thorough
-    - Restrictions: PII data protection
-```
-
-## Security Settings
-
-### Access Control and Permissions
-
-#### Role-Based Access Control (RBAC)
-```yaml
-Role Definitions:
-  Administrator:
-    - Full system access
-    - User management
-    - Integration configuration
-    - Security policy management
-  
-  Power User:
-    - Advanced features access
-    - Workflow creation
-    - Integration usage
-    - Limited user management
-  
-  Standard User:
-    - Basic task execution
-    - Read-only integrations
-    - Personal settings only
-    - No administrative access
-  
-  Viewer:
-    - Read-only access
-    - View dashboards and reports
-    - No execution permissions
-    - No configuration access
-```
-
-#### Resource-Level Permissions
-Fine-grained access control for specific resources:
-
-```yaml
-Permission Matrix:
-  AWS Production Account:
-    - Administrators: Full access
-    - DevOps Team: Read/write (non-destructive)
-    - Developers: Read-only
-    - Others: No access
-  
-  GitHub Repositories:
-    - Repository Owners: Full access
-    - Team Members: Read/write to team repos
-    - Contractors: Limited access
-    - Others: No access
-```
-
-### Authentication Settings
-
-#### Multi-Factor Authentication (MFA)
-```yaml
-MFA Configuration:
-  Requirements:
-    - Administrators: Required
-    - Power Users: Required
-    - Standard Users: Optional
-    - API Access: Required for sensitive operations
-  
-  Methods:
-    - TOTP Apps: Google Authenticator, Authy
-    - SMS: Phone number verification
-    - Hardware Keys: FIDO2/WebAuthn devices
-    - Push Notifications: Mobile app push
-  
-  Policies:
-    - Session Duration: 8 hours for standard, 24 hours for trusted devices
-    - Step-up Authentication: Re-auth for sensitive operations
-    - Device Trust: Remember trusted devices for 30 days
-```
-
-#### Single Sign-On (SSO) Integration
-```yaml
-SSO Providers:
-  Azure Active Directory:
-    - Status: ✅ Configured
-    - Users: 1,247 active
-    - Groups: Engineering, Marketing, Sales
-    - Last Sync: 2 minutes ago
-  
-  Okta:
-    - Status: ❌ Not configured
-    - Setup: Available for configuration
-  
-  Google Workspace:
-    - Status: ⚪ Available
-    - Setup: Click to configure
-```
-
-### Audit and Compliance
-
-#### Audit Logging Configuration
-```yaml
-Audit Settings:
-  Log Retention:
-    - Security Events: 7 years
-    - User Actions: 3 years
-    - System Events: 1 year
-    - Integration Calls: 6 months
-  
-  Log Destinations:
-    - Internal Storage: ✅ Enabled
-    - External SIEM: ✅ Configured (Splunk)
-    - Cloud Storage: ✅ Enabled (S3 bucket)
-    - Compliance Archive: ✅ Enabled
-  
-  Alert Thresholds:
-    - Failed Logins: >5 in 15 minutes
-    - Privilege Escalation: Any occurrence
-    - Data Export: >100MB in 1 hour
-    - API Rate Limits: >90% of limit
-```
-
-## Organization Settings
-
-### Team Management
-Configure organization-wide settings:
-
-#### Organization Information
-```yaml
-Organization Details:
-  Name: "Acme Corporation"
-  Domain: "acme.com"
-  Plan: "Enterprise"
-  Users: 1,247 active
-  Created: "January 15, 2023"
-  Last Updated: "Today"
-```
-
-#### Team Structure
-```yaml
-Team Organization:
-  Engineering:
-    - Members: 45
-    - Roles: Admin (3), Power User (15), User (27)
-    - Access: Full development stack
-  
-  Operations:
-    - Members: 12
-    - Roles: Admin (2), Power User (10)
-    - Access: Production systems
-  
-  Marketing:
-    - Members: 28
-    - Roles: User (25), Viewer (3)
-    - Access: Analytics and reporting tools
-```
-
-### Billing and Usage
-
-#### Subscription Management
-```yaml
-Current Plan:
-  Plan Type: "Enterprise"
-  Monthly Cost: "$2,499/month"
-  Included Users: 100
-  Additional Users: 47 × $15 = $705
-  Total Monthly: "$3,204"
-  
-Usage Tracking:
-  API Calls: 1.2M / 5M monthly limit
-  Storage: 45GB / 1TB limit
-  Compute Hours: 234 / 1000 monthly limit
-  Integrations: 23 / unlimited
-```
-
-#### Cost Controls
-```yaml
-Budget Controls:
-  Monthly Budget: $5,000
-  Alert Thresholds:
-    - 50% of budget: Email notification
-    - 80% of budget: Slack alert + email
-    - 95% of budget: Approval required for new operations
-  
-  Resource Limits:
-    - Max Concurrent Tasks: 50
-    - Max Workflow Executions: 1000/day
-    - Storage Quota: 1TB
-    - API Rate Limit: 10,000/hour per user
-```
-
-## Advanced Configuration
-
-### System Performance Settings
-
-#### Resource Allocation
-```yaml
-Performance Tuning:
-  Agent Response Time:
-    - Target: <2 seconds average
-    - Timeout: 30 seconds maximum
-    - Parallel Processing: Up to 5 concurrent requests
-  
-  Workflow Execution:
-    - Max Duration: 4 hours
-    - Parallel Workflows: 10 concurrent
-    - Resource Limits: 4 CPU, 8GB RAM per workflow
-  
-  Dashboard Refresh:
-    - Real-time Updates: WebSocket enabled
-    - Polling Fallback: 30 seconds
-    - Cache Duration: 5 minutes
-```
-
-#### Database and Storage
-```yaml
-Storage Configuration:
-  Data Retention:
-    - Task History: 1 year
-    - Conversation Logs: 6 months
-    - Audit Logs: 7 years
-    - Temporary Files: 7 days
-  
-  Backup Settings:
-    - Frequency: Daily incremental, weekly full
-    - Retention: 30 daily, 12 weekly, 7 yearly
-    - Location: Multi-region cloud storage
-    - Encryption: AES-256, customer-managed keys
-```
-
-### Integration Development
-
-#### Custom Integration Settings
-```yaml
-Development Environment:
-  API Endpoints:
-    - Development: dev-api.company.com
-    - Staging: staging-api.company.com
-    - Production: api.company.com
-  
-  Testing Configuration:
-    - Sandbox Mode: Enabled for testing
-    - Rate Limiting: Relaxed for development
-    - Debug Logging: Verbose logging enabled
-  
-  Deployment Pipeline:
-    - Auto Deploy: Development environment
-    - Manual Approval: Staging and production
-    - Rollback: One-click rollback capability
-```
-
-## Settings Import/Export
-
-### Configuration Backup
-Backup and restore your settings:
-
-```yaml
-Export Options:
-  Full Configuration:
-    - All settings and preferences
-    - Integration configurations (without secrets)
-    - Agent templates and customizations
-    - Team roles and permissions
-  
-  Selective Export:
-    - Choose specific settings categories
-    - Include/exclude sensitive information
-    - Export format: JSON, YAML, or encrypted archive
-```
-
-### Settings Migration
-Transfer settings between environments:
-
-<Steps>
-  <Step title="Export Settings">
-    Create backup of current configuration
-  </Step>
-  
-  <Step title="Prepare Target Environment">
-    Ensure target environment is ready
-  </Step>
-  
-  <Step title="Import Configuration">
-    Upload and apply settings backup
-  </Step>
-  
-  <Step title="Validate Configuration">
-    Test all settings and integrations
-  </Step>
-  
-  <Step title="Update Secrets">
-    Re-configure sensitive credentials
-  </Step>
-</Steps>
-
-## Troubleshooting Settings
-
-### Common Configuration Issues
-
-#### Settings Not Saving
-```yaml
-Troubleshooting Steps:
-  1. Check network connectivity
-  2. Verify user permissions
-  3. Review browser console for errors
-  4. Clear browser cache and cookies
-  5. Try incognito/private mode
-  
-Resolution Actions:
-  - Refresh authentication token
-  - Check for browser extension conflicts
-  - Verify sufficient storage quota
-  - Contact support if persistent
-```
-
-#### Integration Configuration Problems
-```yaml
-Common Issues:
-  Authentication Failures:
-    - Expired tokens or credentials
-    - Insufficient permissions
-    - Changed API endpoints
-  
-  Connection Timeouts:
-    - Network connectivity issues
-    - Firewall blocking requests
-    - Service unavailability
-  
-  Permission Errors:
-    - Insufficient user permissions
-    - Missing integration scopes
-    - Organization policy restrictions
-```
-
-### Settings Validation
-Ensure your configuration is optimal:
-
-```yaml
-Configuration Health Check:
-  Security Validation:
-    - MFA enabled for all admin users
-    - Strong password policies enforced
-    - Regular access reviews completed
-    - Audit logging properly configured
-  
-  Performance Optimization:
-    - Resource limits appropriately set
-    - Caching strategies enabled
-    - Monitoring and alerting configured
-    - Regular maintenance scheduled
-```
+- **Can't find a setting?** Use the search bar at the top of settings
+- **Integration not working?** Check the connection status and test it
+- **Need admin access?** Contact your organization owner
+- **Want to change plans?** Go to Billing in the left sidebar
 
 ---
 
-*Proper settings configuration is crucial for a secure, efficient, and personalized Composer experience. Take time to review and optimize your settings regularly to ensure optimal performance and security.*
+**Pro tip:** Start with connecting one integration and inviting one teammate. You can always expand from there.

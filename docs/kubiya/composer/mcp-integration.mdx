@@ -1,638 +1,84 @@
 ---
 title: "MCP Integration"
-description: "Complete guide to Model Context Protocol (MCP) integration in Composer for connecting external AI tools and services"
+description: "Connect external AI tools and services through the Model Context Protocol"
 icon: "plug"
 ---
 
-# MCP Integration
+Connect external AI tools, services, and data sources to your Composer workflows through MCP (Model Context Protocol).
 
-Model Context Protocol (MCP) integration in Composer enables seamless connection with external AI tools, services, and capabilities. This guide covers setting up, configuring, and managing MCP servers to extend your AI automation capabilities.
+## What is MCP?
 
-## Understanding MCP
+MCP lets you extend Composer with:
+- **External AI services** like Claude, ChatGPT, or custom models
+- **Third-party tools** that aren't built into Composer
+- **Internal services** and APIs from your organization
+- **Data sources** like databases, file systems, or knowledge bases
 
-### What is Model Context Protocol?
-MCP is an open standard that enables AI applications to securely connect with external data sources and tools. In Composer, MCP integration allows:
+## Quick setup
 
-- **Tool Extensions**: Add custom AI tools and capabilities
-- **Data Source Integration**: Connect to external databases and APIs
-- **Service Orchestration**: Coordinate between multiple AI services
-- **Context Sharing**: Share context across different AI systems
+1. **Go to Settings** → **Integrations** → **MCP Servers**
+2. **Add a new server** with the connection details
+3. **Test the connection** to make sure it works
+4. **Grant permissions** for what the server can access
+5. **Use in workflows** - agents can now call these tools
 
-### MCP Architecture in Composer
-```yaml
-MCP Components:
-  MCP Client: Built into Composer agents
-  MCP Server: External service providing tools/data
-  Transport Layer: Secure communication channel
-  Protocol Handlers: Message format management
-  Security Layer: Authentication and authorization
-```
+## Common MCP integrations
 
-## MCP Server Management
+**AI models:**
+- Connect custom LLMs or specialized AI services
+- Use domain-specific models (legal, medical, financial)
+- Integrate proprietary AI tools your company has built
 
-### MCP Servers Dashboard
-Access MCP management through **Integrations** → **MCP Servers**:
+**Data sources:**
+- Connect internal databases and knowledge bases
+- Access file systems, document repositories
+- Integrate with CRM, ERP, or other business systems
 
-#### Server Overview
-```yaml
-Server Status Display:
-  Active Servers:
-    - Server Name: Human-readable identifier
-    - Status: Online/Offline/Error
-    - Version: MCP protocol version
-    - Tools: Number of available tools
-    - Last Heartbeat: Connection health check
-    - Response Time: Average latency
-  
-  Health Indicators:
-    - 🟢 Healthy: All systems operational
-    - 🟡 Warning: Minor issues or degraded performance
-    - 🔴 Error: Service unavailable or misconfigured
-    - ⚪ Unknown: Status not available
-```
+**Development tools:**
+- Custom CI/CD systems not in the built-in catalog  
+- Internal code analysis or security scanning tools
+- Proprietary deployment or monitoring systems
 
-### Adding MCP Servers
+## Using MCP in workflows
 
-#### Server Registration Process
-<Steps>
-  <Step title="Access MCP Management">
-    Navigate to **Integrations** → **MCP Servers** → **Add Server**
-  </Step>
-  
-  <Step title="Choose Connection Method">
-    Select server type: HTTP, WebSocket, or Local Process
-  </Step>
-  
-  <Step title="Configure Connection">
-    Provide server details and authentication
-  </Step>
-  
-  <Step title="Test Connection">
-    Validate connectivity and available capabilities
-  </Step>
-  
-  <Step title="Save Configuration">
-    Register server for use by agents
-  </Step>
-</Steps>
+Once connected, MCP tools work like any other tool:
 
-#### Connection Types
+**In chat:** *"Use our custom security scanner to check the main branch"*
 
-<Tabs>
-  <Tab title="HTTP/HTTPS Server">
-    ```yaml
-    HTTP Server Configuration:
-      URL: "https://mcp-server.example.com"
-      Authentication:
-        - Type: Bearer Token, API Key, or OAuth
-        - Credentials: Secure credential storage
-      
-      Advanced Settings:
-        - Timeout: Request timeout in seconds
-        - Retry Policy: Failure handling strategy
-        - Rate Limiting: Request rate controls
-        - Headers: Custom HTTP headers
-    ```
-  </Tab>
-  
-  <Tab title="WebSocket Server">
-    ```yaml
-    WebSocket Configuration:
-      URL: "wss://ws-mcp.example.com/mcp"
-      Authentication:
-        - Type: Token-based or certificate
-        - Credentials: WebSocket-specific auth
-      
-      Connection Settings:
-        - Heartbeat Interval: Keep-alive frequency
-        - Reconnection: Auto-reconnect on disconnect
-        - Buffer Size: Message buffer configuration
-        - Compression: Enable/disable compression
-    ```
-  </Tab>
-  
-  <Tab title="Local Process">
-    ```yaml
-    Local Process Configuration:
-      Executable: "/path/to/mcp-server"
-      Arguments: ["--config", "config.json"]
-      Working Directory: "/opt/mcp-server"
-      
-      Process Management:
-        - Auto Restart: Restart on failure
-        - Resource Limits: CPU and memory limits
-        - Environment Variables: Runtime configuration
-        - Log Capture: Capture stdout/stderr
-    ```
-  </Tab>
-</Tabs>
+**In workflows:** Add MCP tools as workflow steps alongside built-in tools.
 
-## MCP Tool Discovery
+**For agents:** Agents automatically know about MCP tools and can use them.
 
-### Available Tools Catalog
-Once connected, MCP servers expose their available tools:
+## Security and permissions
 
-#### Tool Categories
-```yaml
-Tool Organization:
-  Data Access:
-    - Database queries
-    - File system operations
-    - API data retrieval
-    - Search capabilities
-  
-  AI Services:
-    - Language model inference
-    - Image analysis
-    - Speech processing
-    - Specialized AI models
-  
-  Business Logic:
-    - Custom algorithms
-    - Workflow orchestration
-    - Integration adapters
-    - Domain-specific operations
-```
+**Network isolation:** MCP servers run in isolated environments.
 
-#### Tool Metadata
-Each MCP tool provides comprehensive information:
-```yaml
-Tool Information:
-  Basic Details:
-    - Name: Unique tool identifier
-    - Description: Functionality explanation
-    - Version: Tool version information
-    - Author: Tool creator/maintainer
-  
-  Technical Specs:
-    - Input Schema: Required parameters
-    - Output Schema: Response format
-    - Error Codes: Possible error conditions
-    - Performance: Expected execution time
-  
-  Usage Information:
-    - Examples: Sample usage scenarios
-    - Best Practices: Optimization tips
-    - Limitations: Known constraints
-    - Dependencies: Required resources
-```
+**Permission scoping:** Control what each MCP server can access.
 
-## Using MCP Tools in Workflows
+**Audit logging:** All MCP tool usage is logged and trackable.
 
-### Agent Integration
-MCP tools are seamlessly integrated into agent capabilities:
+**Credential management:** API keys and secrets are stored securely.
 
-#### Tool Selection
-Agents automatically discover and can use MCP tools:
-```yaml
-Agent Tool Access:
-  Discovery: Automatic tool discovery from MCP servers
-  Selection: AI-driven tool selection for tasks
-  Execution: Secure tool execution with result handling
-  Error Handling: Graceful failure management
-```
+## Troubleshooting
 
-#### Example Usage
-```
-User: "Analyze the customer satisfaction data from our CRM system"
+**Connection issues:** Check network access and firewall settings.
 
-Agent: "I'll use the MCP CRM connector to retrieve and analyze the data."
-       🔧 Using tool: crm-data-query
-       📊 Analyzing 1,247 customer responses
-       📈 Generating satisfaction trends report
-       ✅ Analysis complete
-```
+**Authentication failures:** Verify API keys and credentials are current.
 
-### Workflow Designer Integration
+**Performance problems:** Monitor resource usage and optimize queries.
 
-#### MCP Tool Nodes
-In the Workflow Designer, MCP tools appear as specialized nodes:
+**Tool not appearing:** Check server registration and permission settings.
 
-```yaml
-MCP Tool Node Features:
-  Visual Identification:
-    - Distinct MCP icon/color
-    - Server source indicator
-    - Tool category badge
-  
-  Configuration:
-    - Parameter mapping
-    - Error handling options
-    - Timeout settings
-    - Retry configuration
-```
+## Advanced configuration
 
-#### Dynamic Tool Loading
-```yaml
-Runtime Behavior:
-  Tool Discovery: Available tools refresh automatically
-  Version Management: Handle tool updates gracefully
-  Fallback Handling: Alternative tools for failures
-  Performance Monitoring: Track tool execution metrics
-```
+**Custom protocols:** Extend MCP with your own communication protocols.
 
-## MCP Server Development
+**Load balancing:** Distribute requests across multiple server instances.
 
-### Creating Custom MCP Servers
-Build specialized MCP servers for your organization:
+**Caching:** Improve performance with response caching.
 
-#### Server Implementation
-
-<Tabs>
-  <Tab title="Python MCP Server">
-    ```python
-    from mcp import MCPServer, Tool, Result
-    import asyncio
-    
-    class CustomMCPServer(MCPServer):
-        def __init__(self):
-            super().__init__("custom-server", "1.0.0")
-            
-        async def register_tools(self):
-            @self.tool("analyze-data")
-            async def analyze_data(data: dict) -> Result:
-                """Analyze business data"""
-                # Custom analysis logic
-                analysis = perform_analysis(data)
-                return Result.success(analysis)
-            
-            @self.tool("generate-report") 
-            async def generate_report(template: str, data: dict) -> Result:
-                """Generate formatted report"""
-                report = create_report(template, data)
-                return Result.success({"report": report})
-    
-    # Server startup
-    server = CustomMCPServer()
-    asyncio.run(server.start())
-    ```
-  </Tab>
-  
-  <Tab title="Node.js MCP Server">
-    ```javascript
-    const { MCPServer, Tool, Result } = require('@kubiya/mcp-sdk');
-    
-    class CustomMCPServer extends MCPServer {
-        constructor() {
-            super('custom-server', '1.0.0');
-        }
-        
-        async registerTools() {
-            this.addTool(new Tool({
-                name: 'process-orders',
-                description: 'Process customer orders',
-                parameters: {
-                    orders: { type: 'array', required: true }
-                },
-                handler: async (params) => {
-                    const processed = await this.processOrders(params.orders);
-                    return Result.success(processed);
-                }
-            }));
-        }
-        
-        async processOrders(orders) {
-            // Custom order processing logic
-            return orders.map(order => ({
-                ...order,
-                status: 'processed',
-                timestamp: new Date().toISOString()
-            }));
-        }
-    }
-    
-    const server = new CustomMCPServer();
-    server.start();
-    ```
-  </Tab>
-</Tabs>
-
-#### Server Capabilities
-```yaml
-MCP Server Features:
-  Tool Registration:
-    - Define available tools
-    - Specify input/output schemas
-    - Implement tool handlers
-    - Provide metadata and documentation
-  
-  Context Management:
-    - Maintain conversation context
-    - Share state between tool calls
-    - Handle long-running operations
-    - Manage resource lifecycles
-  
-  Security:
-    - Authentication and authorization
-    - Input validation and sanitization
-    - Output filtering and masking
-    - Audit logging and monitoring
-```
-
-### Server Deployment
-
-#### Deployment Options
-```yaml
-Hosting Strategies:
-  Cloud Deployment:
-    - Containerized deployment (Docker/Kubernetes)
-    - Serverless functions (AWS Lambda, Azure Functions)
-    - Cloud platforms (Google Cloud Run, Heroku)
-  
-  On-Premises:
-    - Virtual machine deployment
-    - Physical server installation
-    - Container orchestration platforms
-  
-  Hybrid:
-    - Edge computing deployment
-    - Multi-cloud strategies
-    - Federated MCP networks
-```
-
-#### Configuration Management
-```yaml
-Server Configuration:
-  Runtime Settings:
-    - Port and binding configuration
-    - SSL/TLS certificate management
-    - Logging levels and destinations
-    - Performance tuning parameters
-  
-  Tool Configuration:
-    - Tool-specific settings
-    - Resource allocation
-    - Access control policies
-    - Rate limiting rules
-  
-  Integration Settings:
-    - Database connections
-    - External API credentials
-    - Message queue configurations
-    - Monitoring and metrics endpoints
-```
-
-## Security and Authentication
-
-### MCP Security Model
-
-#### Authentication Methods
-```yaml
-Authentication Options:
-  API Key Authentication:
-    - Simple key-based access
-    - Key rotation support
-    - Scoped permissions
-    - Usage tracking
-  
-  OAuth 2.0:
-    - Standards-based authentication
-    - Token refresh mechanisms
-    - Fine-grained scopes
-    - Third-party integration
-  
-  Certificate-Based:
-    - Mutual TLS authentication
-    - Certificate validation
-    - PKI infrastructure
-    - High-security environments
-  
-  Custom Authentication:
-    - Organization-specific methods
-    - Integration with existing systems
-    - Multi-factor authentication
-    - Single sign-on (SSO) integration
-```
-
-#### Authorization and Access Control
-```yaml
-Access Control Features:
-  Role-Based Access:
-    - Define user roles and permissions
-    - Tool-level access control
-    - Context-based restrictions
-    - Time-based access windows
-  
-  Resource-Level Security:
-    - Data access controls
-    - Parameter filtering
-    - Output masking
-    - Audit trail requirements
-  
-  Network Security:
-    - IP whitelisting
-    - VPN requirements
-    - Network segmentation
-    - Firewall integration
-```
-
-### Data Protection
-
-#### Encryption and Privacy
-```yaml
-Data Security:
-  In Transit:
-    - TLS 1.3 for all communications
-    - Certificate pinning
-    - Perfect forward secrecy
-    - Protocol-level encryption
-  
-  At Rest:
-    - AES-256 encryption
-    - Key management systems
-    - Encrypted backups
-    - Secure key storage
-  
-  Processing:
-    - Memory encryption
-    - Secure enclaves
-    - Temporary data handling
-    - Secure data deletion
-```
-
-## Monitoring and Observability
-
-### MCP Performance Monitoring
-
-#### Key Metrics
-```yaml
-Performance Indicators:
-  Server Health:
-    - Uptime and availability
-    - Response time percentiles
-    - Error rates and types
-    - Resource utilization
-  
-  Tool Usage:
-    - Call frequency per tool
-    - Execution time statistics
-    - Success/failure rates
-    - Parameter usage patterns
-  
-  Network Performance:
-    - Connection latency
-    - Throughput measurements
-    - Packet loss rates
-    - Protocol efficiency
-```
-
-#### Monitoring Dashboard
-```yaml
-Dashboard Components:
-  Real-Time Status:
-    - Live server status indicators
-    - Current active connections
-    - Tool execution queue
-    - Alert notifications
-  
-  Historical Analytics:
-    - Usage trends over time
-    - Performance degradation tracking
-    - Capacity planning data
-    - Cost analysis reports
-  
-  Alerting System:
-    - Threshold-based alerts
-    - Anomaly detection
-    - Escalation procedures
-    - Integration with incident management
-```
-
-### Logging and Audit
-
-#### Comprehensive Logging
-```yaml
-Log Categories:
-  Access Logs:
-    - Authentication attempts
-    - Tool access patterns
-    - Permission grants/denials
-    - Session information
-  
-  Performance Logs:
-    - Request/response times
-    - Resource consumption
-    - Error conditions
-    - Optimization opportunities
-  
-  Security Logs:
-    - Security events
-    - Compliance violations
-    - Threat detection
-    - Audit trail information
-```
-
-## Troubleshooting MCP Integration
-
-### Common Issues and Solutions
-
-#### Connection Problems
-```yaml
-Connectivity Issues:
-  Server Unreachable:
-    - Check network connectivity
-    - Verify firewall rules
-    - Validate DNS resolution
-    - Test port accessibility
-  
-  Authentication Failures:
-    - Verify credentials
-    - Check token expiration
-    - Review permission settings
-    - Test authentication flow
-  
-  Protocol Errors:
-    - Validate MCP version compatibility
-    - Check message format
-    - Review protocol implementation
-    - Update client/server versions
-```
-
-#### Performance Issues
-```yaml
-Performance Problems:
-  Slow Response Times:
-    - Optimize tool implementations
-    - Increase server resources
-    - Implement caching strategies
-    - Review network latency
-  
-  High Error Rates:
-    - Analyze error patterns
-    - Improve error handling
-    - Implement circuit breakers
-    - Add retry mechanisms
-  
-  Resource Constraints:
-    - Monitor resource usage
-    - Scale server infrastructure
-    - Optimize memory usage
-    - Implement resource pooling
-```
-
-### Diagnostic Tools
-
-#### Built-in Diagnostics
-```yaml
-Diagnostic Features:
-  Connection Testing:
-    - Server reachability tests
-    - Authentication validation
-    - Tool availability checks
-    - Performance benchmarks
-  
-  Debug Mode:
-    - Verbose logging
-    - Message tracing
-    - State inspection
-    - Error stack traces
-  
-  Health Checks:
-    - Automated health monitoring
-    - Dependency checking
-    - Resource validation
-    - Configuration verification
-```
-
-## Best Practices
-
-### MCP Integration Guidelines
-
-#### Design Principles
-```yaml
-Best Practices:
-  Server Design:
-    - Single responsibility principle
-    - Clear API contracts
-    - Comprehensive error handling
-    - Performance optimization
-  
-  Security:
-    - Principle of least privilege
-    - Defense in depth
-    - Regular security audits
-    - Compliance adherence
-  
-  Monitoring:
-    - Proactive monitoring
-    - Comprehensive alerting
-    - Performance tracking
-    - Capacity planning
-  
-  Documentation:
-    - Clear API documentation
-    - Usage examples
-    - Troubleshooting guides
-    - Best practice recommendations
-```
-
-### Operational Excellence
-- **Regular Updates**: Keep MCP servers and tools updated
-- **Performance Monitoring**: Continuously monitor and optimize
-- **Security Reviews**: Regular security assessments
-- **Disaster Recovery**: Backup and recovery procedures
-- **Team Training**: Ensure team understands MCP concepts
+**Monitoring:** Set up alerts for server health and performance.
 
 ---
 
-*MCP integration extends Composer's capabilities by connecting to external AI services and tools. Proper implementation and management of MCP servers enables powerful, flexible AI automation ecosystems that can adapt and grow with your organization's needs.*
+**New to MCP?** Start with a read-only integration like a database or file system to get familiar with how it works.

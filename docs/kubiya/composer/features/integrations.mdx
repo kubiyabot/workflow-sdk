@@ -1,499 +1,79 @@
 ---
-title: "Integrations & Tools Management"
-description: "Complete guide to managing integrations, tools, and external services in Composer"
+title: "Integrations"
+description: "Connect your tools and services to unlock AI automation"
 icon: "plug"
 ---
 
-# Integrations & Tools Management
-
-The Integrations section of Composer is your centralized hub for connecting external services, managing authentication, and discovering new tools to enhance your AI automation capabilities.
-
-## Integrations Overview
-
-### What Are Integrations?
-Integrations are pre-built connections to external services and tools that your AI agents can use to perform tasks. They handle authentication, API communication, and provide a standardized interface for various services.
-
-### Integration Categories
-
-<CardGroup cols={2}>
-  <Card title="Cloud Platforms" icon="cloud">
-    AWS, Azure, GCP, DigitalOcean
-  </Card>
-  <Card title="Development Tools" icon="code">
-    GitHub, GitLab, Docker, CI/CD
-  </Card>
-  <Card title="Communication" icon="comments">
-    Slack, Teams, Email, Discord
-  </Card>
-  <Card title="Monitoring" icon="chart-line">
-    Datadog, Prometheus, Grafana
-  </Card>
-</CardGroup>
-
-## Integration Management Interface
-
-### Main Integration Dashboard
-When you navigate to **Integrations**, you'll see:
-
-#### Available Integrations Grid
-```yaml
-Status Indicators:
-  🟢 Connected: Integration is active and healthy
-  🟡 Warning: Requires attention (expired tokens, etc.)
-  🔴 Error: Connection failed or misconfigured
-  ⚪ Not Connected: Available but not yet set up
-```
-
-#### Search and Filtering
-- **Search Bar**: Find integrations by name or keyword
-- **Category Filter**: Show only specific types (Cloud, DevOps, etc.)
-- **Status Filter**: Display by connection status
-- **Recently Used**: Show your most active integrations
-
-### Individual Integration Cards
-
-Each integration displays:
-```yaml
-Integration Card Layout:
-  - Service Logo: Visual identification
-  - Service Name: Clear service identification
-  - Connection Status: Current health indicator
-  - Quick Actions: Connect, configure, test
-  - Usage Stats: Recent activity metrics
-  - Last Updated: When configuration was modified
-```
-
-## Setting Up Integrations
-
-### OAuth-Based Integrations (GitHub, Google, etc.)
-
-<Steps>
-  <Step title="Find Integration">
-    Search for or browse to the desired integration
-  </Step>
-  
-  <Step title="Initiate Connection">
-    Click **"Connect"** button on the integration card
-  </Step>
-  
-  <Step title="OAuth Authorization">
-    Complete OAuth flow in popup window:
-    - Authorize Kubiya application
-    - Grant requested permissions
-    - Return to Composer with success confirmation
-  </Step>
-  
-  <Step title="Test Connection">
-    Use built-in testing to verify integration works
-  </Step>
-</Steps>
-
-### API Key-Based Integrations (AWS, Datadog, etc.)
-
-<Steps>
-  <Step title="Select Integration">
-    Click **"Configure"** on the desired service
-  </Step>
-  
-  <Step title="Enter Credentials">
-    Provide required authentication information:
-    - API Keys
-    - Service Account Credentials
-    - Connection Endpoints
-    - Region/Instance Information
-  </Step>
-  
-  <Step title="Configure Permissions">
-    Set up access scopes and restrictions:
-    - Resource access levels
-    - Rate limiting preferences
-    - Security policies
-  </Step>
-  
-  <Step title="Validate Setup">
-    Run connectivity tests and verify functionality
-  </Step>
-</Steps>
-
-## Available Integration Types
-
-### Cloud Platform Integrations
-
-#### Amazon Web Services (AWS)
-```yaml
-Setup Requirements:
-  - AWS Access Key ID
-  - AWS Secret Access Key
-  - Default Region
-  - Optional: IAM Role ARN
-
-Available Tools:
-  - EC2 Management
-  - S3 Operations
-  - Lambda Functions
-  - CloudFormation
-  - RDS Management
-  - Security Group Management
-
-Common Use Cases:
-  - Infrastructure provisioning
-  - Resource monitoring
-  - Cost optimization
-  - Security auditing
-```
-
-#### Microsoft Azure
-```yaml
-Setup Requirements:
-  - Tenant ID
-  - Client ID
-  - Client Secret
-  - Subscription ID
-
-Available Tools:
-  - Virtual Machine Management
-  - Azure Storage
-  - App Services
-  - Key Vault Operations
-  - Resource Group Management
-
-Common Use Cases:
-  - Application deployment
-  - Resource lifecycle management
-  - Security compliance
-  - Cost monitoring
-```
-
-#### Google Cloud Platform (GCP)
-```yaml
-Setup Requirements:
-  - Service Account JSON Key
-  - Project ID
-  - Default Region/Zone
-
-Available Tools:
-  - Compute Engine
-  - Cloud Storage
-  - BigQuery
-  - Cloud Functions
-  - Kubernetes Engine (GKE)
-
-Common Use Cases:
-  - Data pipeline automation
-  - Container orchestration
-  - ML model deployment
-  - Analytics operations
-```
-
-### Development & DevOps Integrations
-
-#### GitHub
-```yaml
-Authentication: OAuth 2.0
-Required Permissions:
-  - Repository access (read/write)
-  - Issues and pull requests
-  - Actions (for CI/CD)
-  - Webhooks (for automation)
-
-Available Operations:
-  - Repository management
-  - Branch operations
-  - Pull request automation
-  - Issue tracking
-  - Release management
-  - CI/CD pipeline integration
-
-Example Usage:
-  "Create a pull request from my feature branch with automated testing"
-```
-
-#### Docker Hub
-```yaml
-Authentication: Username/Password or Token
-Capabilities:
-  - Image repository management
-  - Build automation
-  - Registry operations
-  - Tag management
-
-Integration Benefits:
-  - Automated image builds
-  - Container deployment workflows
-  - Registry maintenance
-  - Security scanning integration
-```
-
-### Communication Integrations
-
-#### Slack
-```yaml
-Setup Method: OAuth App Installation
-Required Scopes:
-  - channels:read
-  - channels:write
-  - chat:write
-  - files:write
-  - users:read
-
-Notification Capabilities:
-  - Task completion alerts
-  - Workflow status updates
-  - Error notifications
-  - Interactive message buttons
-
-Channel Integration:
-  - Dedicated bot channels
-  - DM notifications
-  - Thread-based responses
-  - Emoji reactions
-```
-
-#### Email (SMTP)
-```yaml
-Configuration Required:
-  - SMTP Server Host
-  - Port (587, 465, or 25)
-  - Authentication Credentials
-  - TLS/SSL Settings
-
-Notification Types:
-  - Task completion reports
-  - Error alerts
-  - Weekly summaries
-  - Custom report delivery
-
-Template Support:
-  - HTML email templates
-  - Plain text fallbacks
-  - Dynamic content insertion
-  - Attachment support
-```
-
-## Custom Integrations
-
-### Creating Custom Integrations
-For services not in the standard catalog:
-
-#### REST API Integration
-```yaml
-Configuration Steps:
-  1. Define API endpoint base URL
-  2. Set authentication method
-  3. Map request/response formats
-  4. Configure error handling
-  5. Test endpoint connectivity
-
-Supported Auth Methods:
-  - Bearer Token
-  - Basic Authentication  
-  - API Key (Header/Query)
-  - OAuth 2.0
-  - Custom Headers
-```
-
-#### Webhook-Based Integration
-```yaml
-Setup Process:
-  1. Generate webhook URL in Composer
-  2. Configure external service to send webhooks
-  3. Define payload parsing rules
-  4. Set up response handling
-  5. Test webhook delivery
-
-Use Cases:
-  - Event-driven automation
-  - Real-time notifications
-  - External system triggers
-  - Monitoring alerts
-```
-
-### Integration Development Kit
-For advanced custom integrations:
-
-```javascript
-// Example custom integration structure
-const customIntegration = {
-  name: "MyCustomService",
-  version: "1.0.0",
-  authentication: {
-    type: "oauth2",
-    authUrl: "https://service.com/oauth/authorize",
-    tokenUrl: "https://service.com/oauth/token",
-    scopes: ["read", "write"]
-  },
-  endpoints: [
-    {
-      name: "listUsers",
-      method: "GET",
-      url: "/api/users",
-      responseType: "json"
-    }
-  ],
-  tools: [
-    {
-      name: "create_user",
-      description: "Create a new user account",
-      parameters: {
-        username: { type: "string", required: true },
-        email: { type: "string", required: true }
-      }
-    }
-  ]
-};
-```
-
-## Integration Security
-
-### Authentication Management
-All integration credentials are:
-- **Encrypted at Rest**: Using enterprise-grade encryption
-- **Encrypted in Transit**: TLS 1.3 for all communications
-- **Regularly Rotated**: Automatic token refresh where supported
-- **Audited**: Full audit trail of credential usage
-
-### Permission Management
-Control integration access with:
-
-#### Role-Based Access Control (RBAC)
-```yaml
-Admin Role:
-  - Create/delete integrations
-  - Modify all settings
-  - View all usage statistics
-  - Manage team permissions
-
-User Role:
-  - Use existing integrations
-  - View personal usage stats
-  - Create tasks using available tools
-  - Limited configuration access
-
-Viewer Role:
-  - View available integrations
-  - Read-only access to configurations
-  - No execution permissions
-```
-
-#### Integration-Level Permissions
-- **Read-Only**: Query data but cannot make changes
-- **Read-Write**: Full operational access
-- **Admin**: Integration management capabilities
-- **Custom**: Granular permission sets
-
-### Security Best Practices
-
-<Tabs>
-  <Tab title="Credential Management">
-    - Use service accounts instead of personal credentials
-    - Implement least-privilege access principles
-    - Regularly audit and rotate credentials
-    - Monitor for unusual access patterns
-  </Tab>
-  
-  <Tab title="Network Security">
-    - Whitelist Composer IP addresses
-    - Use private endpoints when available
-    - Implement rate limiting
-    - Enable audit logging
-  </Tab>
-  
-  <Tab title="Compliance">
-    - Regular security assessments
-    - SOC 2 compliance validation
-    - GDPR/CCPA data protection
-    - Industry-specific requirements
-  </Tab>
-</Tabs>
-
-## Integration Monitoring
-
-### Health Monitoring Dashboard
-Monitor all integration health from a centralized dashboard:
-
-#### Real-Time Status Indicators
-- **🟢 Operational**: All systems functional
-- **🟡 Degraded**: Some functionality affected
-- **🔴 Outage**: Service unavailable
-- **🔄 Maintenance**: Planned maintenance window
-
-#### Performance Metrics
-```yaml
-Key Metrics:
-  Response Time: Average API response latency
-  Success Rate: Percentage of successful requests
-  Error Rate: Failed requests per hour
-  Throughput: Requests processed per minute
-  Uptime: Service availability percentage
-```
-
-### Usage Analytics
-Track integration usage patterns:
-
-#### Usage Statistics
-- **API Calls**: Total requests by integration
-- **Data Transfer**: Bandwidth consumption
-- **Active Users**: Who is using each integration
-- **Popular Tools**: Most frequently used capabilities
-- **Error Patterns**: Common failure scenarios
-
-#### Cost Tracking
-For integrations with usage-based billing:
-- **API Call Costs**: Track billable requests
-- **Resource Usage**: Monitor consumption limits
-- **Budget Alerts**: Notifications for cost thresholds
-- **Optimization Suggestions**: Reduce unnecessary usage
-
-## Troubleshooting Integrations
-
-### Common Issues and Solutions
-
-#### Authentication Failures
-```yaml
-OAuth Token Expired:
-  Solution: Refresh tokens automatically or manually reconnect
-  Prevention: Enable automatic token refresh
-
-API Key Invalid:
-  Solution: Verify key in source system and update in Composer
-  Prevention: Set up key rotation reminders
-
-Permission Denied:
-  Solution: Review and expand granted permissions
-  Prevention: Request appropriate scopes during setup
-```
-
-#### Connection Problems
-```yaml
-Network Timeout:
-  Solution: Check firewall rules and network connectivity
-  Prevention: Implement retry logic and health checks
-
-Rate Limiting:
-  Solution: Implement exponential backoff and request queuing
-  Prevention: Monitor usage patterns and optimize requests
-
-Service Unavailable:
-  Solution: Check service status and implement fallback options
-  Prevention: Set up monitoring and alerting
-```
-
-### Diagnostic Tools
-
-#### Connection Tester
-Built-in tools for troubleshooting:
-- **Connectivity Check**: Verify network reachability
-- **Authentication Test**: Validate credentials
-- **Permission Audit**: Check granted vs. required permissions
-- **Latency Test**: Measure response times
-
-#### Integration Logs
-Detailed logging for debugging:
-- **Request/Response Logs**: Full API communication details
-- **Error Logs**: Detailed error messages and stack traces
-- **Performance Logs**: Timing and resource usage data
-- **Audit Logs**: User actions and configuration changes
+Connect all your infrastructure tools in one place so AI agents can work across your entire stack.
+
+## Popular integrations
+
+**Cloud platforms:**
+- AWS, Azure, Google Cloud - manage resources, deployments, monitoring
+- Terraform - infrastructure as code automation
+- Kubernetes - container orchestration and management
+
+**Development:**
+- GitHub, GitLab - code management, PR automation, CI/CD
+- Docker - container building and registry management
+- Jenkins - build automation and deployment pipelines
+
+**Communication:**
+- Slack, Microsoft Teams - notifications, ChatOps commands
+- Email - automated alerts and reports
+- PagerDuty - incident management and escalation
+
+**Monitoring:**
+- Prometheus, Grafana - metrics collection and visualization
+- Datadog, New Relic - APM and infrastructure monitoring
+- Splunk - log analysis and search
+
+## How to connect
+
+1. **Click "Resources"** in the left sidebar
+2. **Select "New Stack"** to browse integrations
+3. **Choose your service** from the catalog
+4. **Authenticate** - usually OAuth or API key
+5. **Test the connection** to ensure it works
+6. **Start using** - agents can now access this tool
+
+## Managing integrations
+
+**View status:** See which integrations are healthy, need attention, or are offline.
+
+**Update credentials:** Rotate API keys and refresh OAuth tokens easily.
+
+**Set permissions:** Control what each integration can access in your systems.
+
+**Monitor usage:** Track how often each integration is used by agents and workflows.
+
+## Integration security
+
+**Least privilege:** Each integration only gets the minimum permissions needed.
+
+**Credential encryption:** All API keys and secrets are encrypted at rest.
+
+**Audit logs:** Every integration usage is logged with full details.
+
+**Network isolation:** Integrations run in secure, isolated environments.
+
+## Troubleshooting
+
+**Connection failing?** 
+- Check if API keys are still valid
+- Verify network connectivity
+- Ensure service isn't under maintenance
+
+**Missing permissions?**
+- Review OAuth scopes granted
+- Check if user has admin access
+- Verify service-specific permission settings
+
+**Poor performance?**
+- Check API rate limits
+- Monitor network latency
+- Consider caching frequently accessed data
 
 ---
 
-*Effective integration management is crucial for building robust AI automation workflows. Take time to properly configure and monitor your integrations to ensure reliable operation and optimal performance.*
+**Start simple:** Connect one tool you use every day, like GitHub or AWS. Once you see how it works, add more integrations.
