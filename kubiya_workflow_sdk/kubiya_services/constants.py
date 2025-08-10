@@ -52,3 +52,17 @@ class Endpoints:
     SECRETS_GET_VALUE = "/api/v1/secrets/get_value/{secret_name}"
     SECRETS_UPDATE = "/api/v1/secrets/{secret_name}"
     SECRETS_DELETE = "/api/v1/secrets/{secret_name}"
+
+    # Project endpoints (tasks and usecases)
+    PROJECT_LIST = "/api/v1/usecases"
+    PROJECT_GET = "/api/v1/tasks/{project_id}"
+    PROJECT_CREATE = "/api/v1/tasks"
+    PROJECT_UPDATE = "/api/v1/tasks/{project_id}"
+    PROJECT_DELETE = "/api/v1/tasks/{project_id}"
+    PROJECT_TEMPLATES_LIST = "/api/v1/usecases"
+    PROJECT_TEMPLATE_GET = "/api/v1/usecases/{template_id}"
+    PROJECT_PLAN_CREATE = "/api/v1/tasks/plan/{project_id}"
+    PROJECT_PLAN_GET = "/api/v1/tasks/plan/{plan_id}"
+    PROJECT_PLAN_APPROVE = "/api/v1/tasks/{plan_id}"
+    PROJECT_EXECUTION_GET = "/api/v1/tasks/{execution_id}"
+    PROJECT_EXECUTION_LOGS = "/api/v1/tasks/logs/{execution_id}"

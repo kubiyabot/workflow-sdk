@@ -194,3 +194,7 @@ class RunnerNotFoundError(RunnerError):
 class RunnerHealthError(RunnerError):
     """Runner health check errors"""
     pass
+
+class ProjectExecutionError(KubiyaSDKError):
+    """Project execution errors"""
+    pass
