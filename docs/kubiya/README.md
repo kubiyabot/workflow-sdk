@@ -91,4 +91,4 @@ Mintlify provides many built-in components:
 - [Mintlify Documentation](https://mintlify.com/docs)
 - [Mintlify Dashboard](https://dash.mintlify.com)
 - [Component Library](https://mintlify.com/docs/components)
-- [Kubiya Platform](https://app.kubiya.ai)
+- [Kubiya Platform](https://compose.kubiya.ai)

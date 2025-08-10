@@ -16,7 +16,7 @@ This guide will help you get up and running with the Kubiya Workflow SDK, includ
 ## Prerequisites
 
 - Python 3.9 or higher
-- Kubiya API key ([Get one here](https://app.kubiya.ai))
+- Kubiya API key ([Get one here](https://compose.kubiya.ai))
 - (Optional) Together AI API key for ADK provider
 
 ## Installation
