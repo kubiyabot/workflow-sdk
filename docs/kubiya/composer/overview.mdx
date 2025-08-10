@@ -1,107 +1,75 @@
 ---
-title: "Composer Web Interface Overview"
-description: "Complete guide to Kubiya's Composer - the powerful web interface for building, managing, and executing AI-powered workflows"
+title: "Composer Web Interface"
+description: "The visual command center for AI-powered automation - chat with agents, build workflows, and manage integrations"
 icon: "desktop"
 ---
 
 # Composer Web Interface
 
-Composer is Kubiya's comprehensive web interface that provides a visual, intuitive way to interact with AI agents, build workflows, manage tools, and orchestrate complex automations. It serves as your central command center for all AI-powered operations.
+Composer is your central hub for AI automation. Chat with intelligent agents, build visual workflows, and connect your tools - all through an intuitive web interface designed for both technical and non-technical users.
 
-## Key Features
+![Task Creation Interface](/assets/screenshots/composer/task-chat/task-creation-interface.png)
 
-<CardGroup cols={2}>
-  <Card title="Agent Chat & Tasks" icon="comments" href="/composer/task-chat">
-    Interactive chat interface for communicating with AI agents, executing tasks, and monitoring real-time progress
-  </Card>
-  <Card title="Workflow Designer" icon="diagram-project" href="/composer/workflow-designer">
-    Visual drag-and-drop workflow builder with advanced node editing and collaborative features
-  </Card>
-  <Card title="Context Graph" icon="project-diagram" href="/composer/context-graph">
-    Intelligent resource discovery and relationship mapping across your entire infrastructure
-  </Card>
-  <Card title="Tools & Integrations" icon="wrench" href="/composer/tools">
-    Comprehensive tool management, package discovery, and custom integration creation
-  </Card>
-</CardGroup>
+## What can you do?
 
-## What Makes Composer Unique
+**For immediate tasks:**
+- **[Start a conversation →](/composer/task-chat)** Chat with AI agents to execute tasks in natural language
+- **[Browse workflows →](/composer/workflow-designer)** Run existing automations with one click
 
-### 🎨 **Visual-First Design**
-Built with modern React components and intuitive UX patterns, Composer makes complex AI operations accessible through clean, professional interfaces.
+**For building automation:**
+- **[Design workflows →](/composer/workflow-designer)** Drag-and-drop visual workflow builder
+- **[Connect tools →](/composer/tools)** Integrate with GitHub, AWS, Kubernetes, and more
+- **[Explore resources →](/composer/context-graph)** Discover connections across your infrastructure
 
-### 🔄 **Real-Time Collaboration** 
-Multiple team members can collaborate on workflows, chat with agents, and monitor task execution simultaneously with live updates.
+**For team management:**
+- **[Configure settings →](/composer/settings)** Manage users, permissions, and integrations
+- **[Monitor activity →](/composer/features/dashboard)** Track execution history and performance
 
-### 🧠 **Intelligent Assistance**
-AI-powered suggestions, auto-completion, and smart recommendations help you build better workflows faster.
+## How it works
 
-### 🔧 **Extensible Architecture**
-Plugin-based architecture supports custom tools, integrations, and UI components to fit your specific needs.
+1. **Describe what you need** - Use natural language to tell an AI agent what you want to accomplish
+2. **Watch it happen** - The agent selects appropriate tools and executes your request step-by-step  
+3. **Build workflows** - Turn successful tasks into reusable visual workflows
+4. **Scale across your team** - Share workflows and collaborate on complex automations
 
-## Core Components
+![Workflow Designer](/assets/screenshots/composer/workflow-designer/workflows-overview.png)
+*Visual workflow management with clear status indicators and easy organization*
 
-### Dashboard & Navigation
-- **Activity Feed**: Real-time updates on task execution, workflow runs, and system events
-- **Quick Actions**: One-click access to common operations like creating agents, starting tasks, or designing workflows
-- **Resource Browser**: Searchable catalog of available tools, agents, and integrations
+## Key capabilities
 
-### Agent Management
-- **Agent Browser**: Discover and configure available AI agents
-- **Custom Agent Creation**: Build specialized agents with custom prompts, tools, and capabilities
-- **Agent Testing**: Built-in testing environment for validating agent behavior
+**AI Conversations**  
+Chat with specialized agents that understand your infrastructure and can execute complex tasks across multiple tools and systems.
 
-### Task Execution
-- **Interactive Chat**: Natural language interface for task creation and monitoring
-- **Execution Logs**: Detailed step-by-step execution history with debugging information
-- **Artifact Management**: Handle files, outputs, and results generated during task execution
+**Visual Workflow Builder**  
+Design automation workflows using drag-and-drop components. No coding required - just connect nodes to define your process.
 
-### Workflow Design
-- **Visual Editor**: Drag-and-drop interface for building complex automation workflows
-- **Node Templates**: Pre-built components for common operations and integrations
-- **Testing Suite**: Comprehensive testing tools for validating workflow logic
+![Visual Workflow Editor](/assets/screenshots/composer/workflow-designer/visual-workflow-editor.png)
+*Drag-and-drop workflow builder with extensive tool library*
 
-## Getting Started
+**Smart Resource Discovery**  
+Composer automatically maps connections between your tools and resources, helping you understand dependencies and optimize workflows.
 
-<Steps>
-  <Step title="Access the Interface">
-    Navigate to your Composer instance at `https://app.kubiya.ai` or your custom domain
-  </Step>
-  <Step title="Authentication">
-    Log in using your organization credentials or SSO provider
-  </Step>
-  <Step title="Explore the Dashboard">
-    Familiarize yourself with the main navigation and available features
-  </Step>
-  <Step title="Create Your First Task">
-    Use the chat interface to interact with an AI agent and execute your first automation
-  </Step>
-</Steps>
+![Context Network](/assets/screenshots/composer/context-graph/context-network-view.png)
+*Interactive visualization of your infrastructure relationships*
 
-## Architecture Overview
+**Integrated Tool Ecosystem**  
+Connect with 100+ tools including AWS, Kubernetes, GitHub, Slack, and more. Everything works together seamlessly.
 
-Composer is built on a modern technology stack optimized for performance and scalability:
+![IAC Stacks Overview](/assets/screenshots/composer/integrations/iac-stacks-overview.png)
+*Manage infrastructure stacks and deployments from one interface*
 
-- **Frontend**: Next.js 14 with React Server Components
-- **Real-time Communication**: WebSocket connections for live updates
-- **State Management**: Zustand for client-side state
-- **UI Components**: Custom design system built on Tailwind CSS
-- **Authentication**: Auth0 integration with enterprise SSO support
+## Get started in 2 minutes
 
-## Next Steps
+**Try it now:**
+1. Open Composer at `https://app.kubiya.ai`
+2. Click "Create Task" and type: *"List my running pods in production"*
+3. Watch the AI agent connect to your cluster and return live results
 
-<CardGroup cols={3}>
-  <Card title="Getting Started Guide" icon="rocket" href="/composer/getting-started">
-    Complete setup walkthrough
-  </Card>
-  <Card title="Feature Documentation" icon="book" href="/composer/features/dashboard">
-    Detailed feature guides
-  </Card>
-  <Card title="Integration Setup" icon="plug" href="/composer/integrations">
-    Connect your tools and services
-  </Card>
-</CardGroup>
+**Next steps:**
+- **[Complete setup guide →](/composer/getting-started)** - Connect your tools and configure integrations
+- **[Browse examples →](/composer/workflow-designer)** - See real workflow templates you can use immediately
+- **[Join community →](#)** - Get help and share experiences with other users
 
 ---
 
-*Ready to get started? Check out our [Getting Started Guide](/composer/getting-started) for a complete walkthrough of setting up and using Composer.*
+*Questions? Check our [troubleshooting guide](/troubleshooting) or [contact support](#).*

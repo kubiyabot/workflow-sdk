@@ -70,22 +70,20 @@ Each action button shows contextual information:
 The activity feed displays live updates including:
 
 #### Task Executions
-```yaml
-Task: "Deploy to Staging Environment"
-Status: ✅ Completed
-Duration: 2m 34s
-Agent: DevOps Assistant
-Timestamp: 2 minutes ago
-```
+Each task execution shows in the feed with clear status indicators:
+- **Task Name**: "Deploy to Staging Environment"
+- **Status**: ✅ Completed (with color-coded indicators)
+- **Duration**: 2m 34s execution time
+- **Agent**: DevOps Assistant (which agent handled the task)
+- **Timestamp**: 2 minutes ago (relative time display)
 
 #### Workflow Runs
-```yaml
-Workflow: "CI/CD Pipeline"
-Trigger: GitHub Push Event
-Status: 🔄 Running (Step 3/5)
-Branch: feature/user-auth
-Timestamp: 5 minutes ago
-```
+Workflow executions display comprehensive progress information:
+- **Workflow Name**: "CI/CD Pipeline"
+- **Trigger**: GitHub Push Event (what initiated the run)
+- **Status**: 🔄 Running (Step 3/5) with progress indicator
+- **Branch**: feature/user-auth (source context)
+- **Timestamp**: 5 minutes ago (when it started)
 
 #### System Events
 - Integration health checks
@@ -145,22 +143,22 @@ Visual representation of your integration ecosystem:
 - **⚪ Unknown**: Status not available
 
 #### Service Categories
-```yaml
-Cloud Platforms:
-  - AWS (🟢 Healthy)
-  - Azure (🟢 Healthy)
-  - GCP (🟡 Maintenance)
+Your connected services are organized by category with real-time status:
 
-Development:
-  - GitHub (🟢 Healthy)
-  - GitLab (🟢 Healthy)
-  - Docker Hub (🟢 Healthy)
+**Cloud Platforms:**
+- AWS (🟢 Healthy)
+- Azure (🟢 Healthy)  
+- GCP (🟡 Maintenance)
 
-Communication:
-  - Slack (🟢 Healthy)
-  - Microsoft Teams (🔴 Error)
-  - Email SMTP (🟢 Healthy)
-```
+**Development:**
+- GitHub (🟢 Healthy)
+- GitLab (🟢 Healthy)
+- Docker Hub (🟢 Healthy)
+
+**Communication:**
+- Slack (🟢 Healthy)
+- Microsoft Teams (🔴 Error)
+- Email SMTP (🟢 Healthy)
 
 ### Agent Status
 Overview of available AI agents:

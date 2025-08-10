@@ -1,292 +1,129 @@
 ---
-title: "Getting Started with Composer"
-description: "Complete end-to-end guide to setting up and using Kubiya's Composer web interface"
+title: "Getting Started"
+description: "Get up and running with Composer in minutes - from first login to your first automation"
 icon: "rocket"
 ---
 
 # Getting Started with Composer
 
-This comprehensive guide walks you through everything you need to know to start using Kubiya's Composer web interface effectively.
+Complete this 5-minute setup to start automating with AI agents.
 
-## Prerequisites
+## Before you start
 
-Before you begin, ensure you have:
+You'll need:
+- Access to your Kubiya organization 
+- Admin permissions (to connect integrations)
+- Your infrastructure tools ready (AWS, GitHub, Kubernetes, etc.)
 
-- Access to a Kubiya organization
-- Valid user credentials or SSO setup
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Basic understanding of automation concepts
+## Step 1: Log in and explore
 
-## Step 1: Accessing Composer
+1. **Go to** `https://app.kubiya.ai` 
+2. **Sign in** with your organization credentials
+3. **Select your organization** if you have multiple
 
-### Web Access
-Navigate to your Composer instance:
-- **Production**: `https://app.kubiya.ai`
-- **Custom Domain**: Your organization's custom URL
+You'll see the main interface with:
+- **Left sidebar** - Navigation to Tasks, Workflows, Context Graph, etc.
+- **Main area** - Task creation and activity feed  
+- **Quick actions** - Create Task, Browse Workflows, etc.
 
-### First-Time Login
-1. Click **"Sign In"** on the homepage
-2. Choose your authentication method:
-   - **Email/Password**: Enter your credentials
-   - **Single Sign-On (SSO)**: Select your provider
-   - **Enterprise Login**: Use your organization's authentication
+![Task Creation Interface](/assets/screenshots/composer/task-chat/task-creation-interface.png)
+*Main Composer interface - ready to create your first task*
 
-### Organization Selection
-If you belong to multiple organizations:
-1. Select your target organization from the dropdown
-2. Confirm your role and permissions
-3. Click **"Continue to Dashboard"**
+## Step 2: Try your first task
 
-## Step 2: Dashboard Overview
+1. **Click "Create Task"** in the main interface
+2. **Type this example request:**
 
-Upon successful login, you'll see the main dashboard with:
+> "Show me what Kubernetes clusters I have access to and list the pods in the default namespace"
 
-### Navigation Bar
-- **Home**: Return to dashboard
-- **Tasks**: View and manage task execution
-- **Workflows**: Access workflow designer and templates
-- **Integrations**: Manage tools and connections
-- **Settings**: Configuration and preferences
+3. **Press Enter** and watch the AI agent:
+   - Connect to your Kubernetes tools
+   - Execute the commands safely
+   - Return live results with explanations
 
-### Quick Actions Panel
-- **Start New Task**: Launch an AI-powered automation
-- **Create Workflow**: Open the visual workflow designer
-- **Browse Agents**: Explore available AI agents
-- **View Activity**: See recent task executions and updates
+The agent will guide you through any missing permissions or connection issues.
 
-### Activity Feed
-Real-time updates showing:
-- Recent task completions
-- Workflow executions
-- System notifications
-- Team activity
+## Step 3: Connect your tools
 
-## Step 3: Your First Agent Interaction
+To unlock Composer's full power, connect your infrastructure tools:
 
-Let's start with a simple task to get familiar with the interface.
+1. **Go to the Resources tab** in the left sidebar
+2. **Click "New Stack"** to add integrations
+3. **Choose your platform:**
+   - **AWS** - Connect your cloud resources
+   - **GitHub** - Integrate repositories and CI/CD
+   - **Kubernetes** - Manage clusters and workloads  
+   - **Slack** - Enable notifications and collaboration
 
-### Starting a Chat Session
-1. Click **"Start New Task"** from the dashboard
-2. The task chat interface opens with an AI agent ready to help
-3. You'll see:
-   - **Chat Input**: Type your requests here
-   - **Agent Info**: Current agent capabilities and status
-   - **Task History**: Previous interactions in this session
+![IAC Stacks Overview](/assets/screenshots/composer/integrations/iac-stacks-overview.png)
+*Manage all your infrastructure connections in one place*
 
-### Example First Task
-Try this simple automation:
+**Pro tip:** Start with one tool you use daily. You can add more later.
 
-```
-Hello! Can you help me list all the files in my current directory and show me what tools are available?
-```
+## Step 4: Build your first workflow
 
-The agent will:
-1. Execute the file listing command
-2. Show available tools and integrations
-3. Provide suggestions for next steps
+Turn your successful task into a reusable workflow:
 
-### Understanding Agent Responses
-Agent responses include:
-- **Text Messages**: Natural language explanations
-- **Tool Executions**: Command outputs and results
-- **Artifacts**: Files, reports, or data generated
-- **Status Updates**: Progress indicators and completion states
+1. **Go to Workflows** → **Create New Workflow**
+2. **Drag components** from the left panel to the canvas
+3. **Connect them** to define your automation flow
+4. **Test it** with the "Execute Workflow" button
 
-## Step 4: Exploring Tools and Integrations
+![Visual Workflow Editor](/assets/screenshots/composer/workflow-designer/visual-workflow-editor.png)
+*Drag-and-drop workflow builder - no coding required*
 
-### Accessing the Tools Catalog
-1. Navigate to **"Integrations"** in the main menu
-2. Browse available categories:
-   - **DevOps Tools**: Docker, Kubernetes, Terraform
-   - **Cloud Platforms**: AWS, Azure, GCP
-   - **Communication**: Slack, Teams, Email
-   - **Development**: GitHub, GitLab, CI/CD
-   - **Monitoring**: Prometheus, Grafana, Datadog
+**Example workflow:** "Deploy on GitHub push"
+- Trigger: GitHub webhook  
+- Action 1: Build Docker image
+- Action 2: Deploy to Kubernetes
+- Action 3: Send Slack notification
 
-### Installing Your First Integration
-Let's set up a GitHub integration:
+![Complex Workflow Execution](/assets/screenshots/composer/workflow-designer/complex-workflow-execution.png)
+*Watch your workflow execute in real-time with detailed progress tracking*
 
-<Steps>
-  <Step title="Select GitHub Integration">
-    Find "GitHub" in the integrations catalog and click **"Install"**
-  </Step>
-  
-  <Step title="OAuth Authentication">
-    Click **"Connect to GitHub"** and authorize Kubiya in the popup window
-  </Step>
-  
-  <Step title="Configure Permissions">
-    Select repositories and permissions you want to grant
-  </Step>
-  
-  <Step title="Test Connection">
-    Use the built-in test feature to verify the integration works
-  </Step>
-</Steps>
+## Step 5: Explore your infrastructure
 
-### Using Integrated Tools
-Once installed, you can use GitHub tools in chat:
+Use the Context Graph to understand your connected systems:
 
-```
-Can you create a new pull request for my feature branch in the "my-project" repository?
-```
+1. **Click "Context Browser"** in the left sidebar
+2. **Watch Composer discover** your infrastructure automatically
+3. **Explore the network view** to see how everything connects
 
-## Step 5: Creating Your First Workflow
+![Context Network](/assets/screenshots/composer/context-graph/context-network-view.png)
+*Interactive map showing relationships between all your connected resources*
 
-### Opening the Workflow Designer
-1. Click **"Workflows"** → **"Create New Workflow"**
-2. The visual designer opens with:
-   - **Node Palette**: Available workflow components
-   - **Canvas**: Drag-and-drop design area
-   - **Property Panel**: Configure selected nodes
-   - **Test Panel**: Execute and debug workflows
+This helps you:
+- **Understand dependencies** before making changes
+- **Find related resources** when building workflows
+- **Get AI suggestions** based on your actual infrastructure
 
-### Building a Simple Workflow
-Let's create an automated deployment workflow:
+## You're ready! 🎉
 
-<Steps>
-  <Step title="Add Trigger Node">
-    Drag a "Webhook Trigger" from the palette to the canvas
-  </Step>
-  
-  <Step title="Add GitHub Action">
-    Connect a "GitHub - Get Repository" node to fetch code
-  </Step>
-  
-  <Step title="Add Build Step">
-    Connect a "Docker - Build Image" node for containerization
-  </Step>
-  
-  <Step title="Add Deployment">
-    Connect a "Kubernetes - Deploy" node for final deployment
-  </Step>
-  
-  <Step title="Configure Properties">
-    Click each node and fill in required parameters
-  </Step>
-</Steps>
+That's it! You now know how to:
+- ✅ Chat with AI agents to execute tasks
+- ✅ Connect your infrastructure tools  
+- ✅ Build visual workflows
+- ✅ Explore your system relationships
 
-### Testing Your Workflow
-1. Click **"Test Workflow"** in the toolbar
-2. Provide sample input data
-3. Watch execution progress in real-time
-4. Review outputs and debug any issues
+## What's next?
 
-### Saving and Publishing
-1. Click **"Save Workflow"** and provide:
-   - **Name**: Descriptive workflow name
-   - **Description**: Purpose and usage notes
-   - **Tags**: Categorization labels
-2. Click **"Publish"** to make it available for execution
+**Start automating:** Try these common use cases:
+- *"Deploy my latest commit to staging"*
+- *"Scale up my production pods to 5 replicas"*  
+- *"Create a PR for the bug fix in feature-branch"*
+- *"Show me which services are using the most CPU"*
 
-## Step 6: Understanding the Context Graph
+**Explore more:**
+- **[Workflow examples →](/composer/workflow-designer)** - Copy proven automation patterns
+- **[Advanced features →](/composer/context-graph)** - Discover more powerful capabilities
+- **[Team setup →](/composer/settings)** - Configure permissions and collaboration
 
-The Context Graph helps you discover and understand relationships between your resources.
+## Need help?
 
-### Accessing Context Graph
-1. Navigate to **"Context Graph"** from the main menu
-2. You'll see a visual representation of:
-   - **Connected Services**: Your integrations and tools
-   - **Resource Relationships**: How components interact
-   - **Data Flow**: Information movement between systems
-
-### Using Context for Better Automation
-The Context Graph enables:
-- **Smart Suggestions**: AI recommends relevant tools and connections
-- **Impact Analysis**: Understand what changes might affect
-- **Resource Discovery**: Find available services and capabilities
-
-## Step 7: Managing Settings and Preferences
-
-### Accessing Settings
-1. Click your profile icon → **"Settings"**
-2. Available tabs include:
-   - **General**: Basic preferences and profile information
-   - **Integrations**: Manage connected services
-   - **API Keys**: Authentication tokens and secrets
-   - **Notifications**: Alert preferences and channels
-   - **Organization**: Team settings and permissions
-
-### Key Configuration Options
-
-#### API Keys Management
-- Store secrets securely for tool integrations
-- Set up service account credentials
-- Manage token rotation and expiration
-
-#### Notification Settings
-- Choose which events trigger notifications
-- Configure delivery channels (email, Slack, webhook)
-- Set quiet hours and escalation rules
-
-## Step 8: Best Practices and Tips
-
-### Chat Interface Tips
-- **Be Specific**: Provide clear, detailed requests
-- **Use Context**: Reference previous tasks and outputs
-- **Ask for Explanations**: Request step-by-step breakdowns
-- **Save Important Results**: Bookmark useful outputs
-
-### Workflow Design Best Practices
-- **Start Simple**: Begin with basic workflows and add complexity gradually
-- **Use Templates**: Leverage pre-built workflow templates
-- **Test Thoroughly**: Always test workflows before production use
-- **Document Well**: Add descriptions and comments
-
-### Integration Management
-- **Regular Maintenance**: Keep credentials updated and test connections
-- **Least Privilege**: Grant minimum necessary permissions
-- **Monitor Usage**: Track integration performance and costs
-- **Security First**: Regular security audits and access reviews
-
-## Troubleshooting Common Issues
-
-### Login Problems
-- **Clear Browser Cache**: Remove stored authentication data
-- **Check SSO Configuration**: Verify identity provider settings
-- **Contact Admin**: For organization-level access issues
-
-### Agent Not Responding
-- **Check Connection**: Verify network connectivity
-- **Refresh Session**: Reload the page or restart chat
-- **Review Logs**: Check execution logs for error details
-
-### Integration Failures
-- **Verify Credentials**: Check API keys and authentication
-- **Test Connections**: Use built-in connection testing
-- **Review Permissions**: Ensure adequate access rights
-
-## Next Steps
-
-Now that you're familiar with the basics, explore these advanced topics:
-
-<CardGroup cols={2}>
-  <Card title="Advanced Workflows" icon="diagram-project" href="/composer/workflow-designer">
-    Learn complex workflow patterns and advanced features
-  </Card>
-  
-  <Card title="Custom Agents" icon="robot" href="/composer/agents">
-    Create and configure specialized AI agents
-  </Card>
-  
-  <Card title="MCP Integration" icon="plug" href="/composer/mcp-integration">
-    Connect external AI tools and services
-  </Card>
-  
-  <Card title="API Usage" icon="code" href="/api-reference/platform/overview">
-    Programmatic access to Composer features
-  </Card>
-</CardGroup>
-
-## Getting Help
-
-Need assistance? Here are your options:
-
-- **Documentation**: Comprehensive guides and API references
-- **Community**: Connect with other users and share experiences
-- **Support**: Contact our support team for technical issues
-- **Training**: Schedule personalized training sessions
+- **Quick questions** - Use the in-app help chat  
+- **Complex issues** - Check our [troubleshooting guide](/troubleshooting)
+- **Feature requests** - Join our [community discussions](#)
 
 ---
 
-*Congratulations! You're now ready to harness the full power of Kubiya's Composer. Start building your first automation and experience the future of AI-powered operations.*
+*Ready to transform how your team handles infrastructure? Start with a simple task and see the magic happen.*
