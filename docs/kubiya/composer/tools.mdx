@@ -1,0 +1,489 @@
+---
+title: "Tools & Tool Sources"
+description: "Comprehensive guide to managing tools, tool sources, and packages in Composer"
+icon: "wrench"
+---
+
+# Tools & Tool Sources
+
+Tools are the building blocks of AI automation in Composer. They represent discrete capabilities that agents can use to interact with external systems, process data, and perform specific operations. This guide covers tool discovery, management, and creation.
+
+## Understanding Tools
+
+### What Are Tools?
+Tools are encapsulated functions that agents can call to perform specific actions:
+- **Infrastructure Tools**: Deploy containers, manage cloud resources
+- **Data Tools**: Query databases, process files, generate reports
+- **Communication Tools**: Send messages, create tickets, update systems
+- **Development Tools**: Git operations, CI/CD tasks, code analysis
+
+### Tool Architecture
+```yaml
+Tool Structure:
+  Name: "deploy-kubernetes-app"
+  Description: "Deploy application to Kubernetes cluster"
+  Category: "Infrastructure"
+  Parameters:
+    - image: string (required)
+    - namespace: string (default: "default")
+    - replicas: integer (default: 3)
+  Outputs:
+    - deployment_status: object
+    - pod_names: array
+    - service_url: string
+```
+
+## Tool Sources & Packages
+
+### Built-in Tool Sources
+Composer comes with several pre-configured tool sources:
+
+<CardGroup cols={2}>
+  <Card title="Kubiya Core Tools" icon="cube">
+    Essential system operations and utilities
+  </Card>
+  <Card title="Cloud Provider Tools" icon="cloud">
+    AWS, Azure, GCP, and multi-cloud operations
+  </Card>
+  <Card title="DevOps Tools" icon="tools">
+    Docker, Kubernetes, Terraform, Ansible
+  </Card>
+  <Card title="Communication Tools" icon="chat">
+    Slack, Teams, Email, notification systems
+  </Card>
+</CardGroup>
+
+### Package Management
+Tools are organized into packages for easier management:
+
+#### Core Packages
+```yaml
+kubiya/core:
+  tools: 45
+  categories: ["System", "Utilities", "File Operations"]
+  status: "Stable"
+  last_updated: "2024-01-15"
+
+kubiya/aws:
+  tools: 67
+  categories: ["EC2", "S3", "Lambda", "RDS"]
+  status: "Stable" 
+  last_updated: "2024-01-20"
+
+kubiya/kubernetes:
+  tools: 34
+  categories: ["Deployment", "Service", "Ingress"]
+  status: "Beta"
+  last_updated: "2024-01-18"
+```
+
+#### Third-Party Packages
+```yaml
+community/datadog:
+  tools: 23
+  categories: ["Monitoring", "Alerting", "Dashboards"]
+  maintainer: "Datadog Community"
+  status: "Community"
+
+enterprise/custom-tools:
+  tools: 12
+  categories: ["Custom", "Internal"]
+  maintainer: "Internal Team"
+  status: "Private"
+```
+
+## Tool Discovery Interface
+
+### Tool Catalog Browser
+Navigate to **Tools** → **Catalog** to explore available tools:
+
+#### Search and Filtering
+- **Search Bar**: Find tools by name, description, or functionality
+- **Category Filters**: Browse by tool categories
+- **Package Filters**: Show tools from specific packages
+- **Status Filters**: Active, deprecated, or beta tools
+
+#### Tool Cards Display
+Each tool shows:
+```yaml
+Tool Card Layout:
+  - Tool Name: Clear identification
+  - Package: Source package information
+  - Category: Functional classification
+  - Description: What the tool does
+  - Parameters: Required and optional inputs
+  - Usage Count: How often it's used
+  - Rating: Community or internal ratings
+  - Last Updated: When tool was modified
+```
+
+### Tool Details View
+Click any tool to see comprehensive information:
+
+#### Overview Tab
+- **Detailed Description**: Complete functionality explanation
+- **Use Cases**: Common scenarios and examples
+- **Prerequisites**: Required permissions or setup
+- **Dependencies**: Other tools or services needed
+
+#### Parameters Tab
+```yaml
+Parameter Documentation:
+  image:
+    type: string
+    required: true
+    description: "Container image to deploy"
+    example: "nginx:1.21.0"
+    
+  namespace:
+    type: string
+    required: false
+    default: "default"
+    description: "Kubernetes namespace for deployment"
+    validation: "^[a-z0-9-]+$"
+```
+
+#### Examples Tab
+Working examples with different scenarios:
+```yaml
+Basic Usage:
+  description: "Deploy simple web application"
+  parameters:
+    image: "my-app:v1.0.0"
+    namespace: "production"
+    replicas: 3
+
+Advanced Usage:
+  description: "Deploy with custom configuration"
+  parameters:
+    image: "my-app:v1.0.0"
+    namespace: "staging"
+    replicas: 1
+    env_vars:
+      - name: "ENV"
+        value: "staging"
+```
+
+## Tool Management
+
+### Installing Tool Packages
+
+<Steps>
+  <Step title="Browse Package Catalog">
+    Navigate to **Tools** → **Package Manager**
+  </Step>
+  
+  <Step title="Select Package">
+    Choose the package you want to install
+  </Step>
+  
+  <Step title="Review Dependencies">
+    Check required integrations and permissions
+  </Step>
+  
+  <Step title="Install Package">
+    Click **"Install"** and confirm the installation
+  </Step>
+  
+  <Step title="Configure Integration">
+    Set up any required authentication or configuration
+  </Step>
+</Steps>
+
+### Package Updates
+Keep tools current with automatic updates:
+
+#### Update Notifications
+- **Available Updates**: Packages with newer versions
+- **Security Updates**: Critical security patches
+- **Feature Updates**: New functionality and improvements
+- **Breaking Changes**: Updates requiring configuration changes
+
+#### Update Process
+```yaml
+Update Workflow:
+  1. Review changelog and breaking changes
+  2. Test updates in staging environment
+  3. Schedule maintenance window
+  4. Apply updates to production
+  5. Verify functionality post-update
+```
+
+## Custom Tool Development
+
+### Creating Custom Tools
+Develop organization-specific tools:
+
+#### Tool Definition Structure
+```yaml
+# custom-tool.yaml
+name: "backup-database"
+description: "Create backup of production database"
+version: "1.0.0"
+category: "Database"
+parameters:
+  database_name:
+    type: string
+    required: true
+    description: "Name of database to backup"
+  backup_location:
+    type: string
+    required: false
+    default: "s3://backups/"
+    description: "Backup storage location"
+implementation:
+  type: "docker"
+  image: "my-org/db-backup:latest"
+  command: ["backup", "--db", "{{database_name}}", "--output", "{{backup_location}}"]
+```
+
+#### Implementation Methods
+
+<Tabs>
+  <Tab title="Docker Container">
+    Package tool logic in a Docker container
+    ```yaml
+    implementation:
+      type: "docker"
+      image: "my-tool:latest"
+      environment:
+        - DB_HOST: "{{db_host}}"
+        - API_KEY: "{{secrets.api_key}}"
+    ```
+  </Tab>
+  
+  <Tab title="Shell Script">
+    Simple shell script execution
+    ```yaml
+    implementation:
+      type: "shell"
+      script: |
+        #!/bin/bash
+        curl -X POST "{{webhook_url}}" \
+             -H "Content-Type: application/json" \
+             -d '{"message": "{{message}}"}'
+    ```
+  </Tab>
+  
+  <Tab title="Python Function">
+    Python-based tool implementation
+    ```yaml
+    implementation:
+      type: "python"
+      function: "main"
+      code: |
+        def main(parameters):
+            import requests
+            response = requests.post(
+                parameters['url'],
+                json={'data': parameters['data']}
+            )
+            return {'status': response.status_code}
+    ```
+  </Tab>
+</Tabs>
+
+### Tool Testing and Validation
+
+#### Local Testing
+Test tools before deployment:
+```bash
+# Test tool locally
+kubiya-cli tool test custom-tool.yaml \
+  --parameter database_name="test-db" \
+  --parameter backup_location="s3://test-backups/"
+
+# Validate tool definition
+kubiya-cli tool validate custom-tool.yaml
+```
+
+#### Integration Testing  
+Test within Composer environment:
+1. **Upload Tool**: Add to private package
+2. **Agent Testing**: Test with AI agents
+3. **Workflow Integration**: Use in workflows
+4. **Performance Testing**: Measure execution time and resource usage
+
+## Tool Security and Permissions
+
+### Security Model
+Tools operate within strict security boundaries:
+
+#### Permission System
+```yaml
+Tool Permissions:
+  network:
+    - outbound: "restricted"
+    - allowed_hosts: ["api.example.com"]
+  
+  filesystem:
+    - read: ["/tmp", "/data/readonly"]
+    - write: ["/tmp", "/output"]
+  
+  secrets:
+    - access: ["database.password", "api.keys.*"]
+  
+  system:
+    - privileged: false
+    - capabilities: ["NET_BIND_SERVICE"]
+```
+
+#### Secret Management
+Tools can securely access secrets:
+- **Environment Variables**: Injected at runtime
+- **File Mounts**: Secret files mounted securely  
+- **API Integration**: Retrieve from secret managers
+- **Encryption**: All secrets encrypted at rest and in transit
+
+### Audit and Compliance
+
+#### Usage Tracking
+All tool executions are logged:
+```yaml
+Audit Log Entry:
+  timestamp: "2024-01-20T10:30:00Z"
+  user: "john.doe@company.com"
+  agent: "devops-assistant"
+  tool: "deploy-kubernetes-app"
+  parameters: {redacted: true}
+  duration: "45.2s"
+  status: "success"
+  resources_accessed: ["k8s-cluster-prod"]
+```
+
+#### Compliance Features
+- **Data Classification**: Mark tools handling sensitive data
+- **Approval Workflows**: Require approval for high-risk operations
+- **Access Reviews**: Regular review of tool permissions
+- **Retention Policies**: Manage log and artifact retention
+
+## Tool Performance and Optimization
+
+### Performance Monitoring
+Track tool execution metrics:
+
+#### Key Performance Indicators
+```yaml
+Performance Metrics:
+  Execution Time:
+    average: "12.3s"
+    p95: "18.7s"
+    p99: "24.1s"
+  
+  Success Rate:
+    overall: "94.7%"
+    last_7_days: "96.2%"
+    
+  Resource Usage:
+    cpu_avg: "150m"
+    memory_avg: "256Mi"
+    network_io: "12.4MB"
+```
+
+#### Optimization Strategies
+- **Caching**: Cache frequently accessed data
+- **Parallelization**: Run operations concurrently where possible
+- **Resource Limits**: Set appropriate CPU and memory limits
+- **Cleanup**: Clean up temporary resources and data
+
+### Troubleshooting Tool Issues
+
+#### Common Problems
+
+<Tabs>
+  <Tab title="Execution Failures">
+    ```yaml
+    Timeout Issues:
+      - Increase timeout configuration
+      - Optimize tool implementation
+      - Check resource constraints
+      
+    Permission Errors:
+      - Verify required permissions
+      - Check secret access
+      - Review network policies
+      
+    Resource Limitations:
+      - Monitor CPU and memory usage
+      - Adjust resource limits
+      - Optimize data processing
+    ```
+  </Tab>
+  
+  <Tab title="Integration Problems">
+    ```yaml
+    API Connection Issues:
+      - Verify endpoint accessibility
+      - Check authentication credentials
+      - Review rate limiting
+      
+    Data Format Issues:
+      - Validate input parameters
+      - Check output format expectations
+      - Review schema definitions
+    ```
+  </Tab>
+  
+  <Tab title="Performance Issues">
+    ```yaml
+    Slow Execution:
+      - Profile tool execution
+      - Identify bottlenecks
+      - Implement caching
+      
+    High Resource Usage:
+      - Optimize algorithms
+      - Reduce memory footprint
+      - Implement streaming processing
+    ```
+  </Tab>
+</Tabs>
+
+## Tool Marketplace
+
+### Publishing Tools
+Share tools with the community:
+
+#### Publication Process
+<Steps>
+  <Step title="Prepare Tool Package">
+    Create complete tool definition with documentation
+  </Step>
+  
+  <Step title="Testing and Validation">
+    Thoroughly test tool in various scenarios
+  </Step>
+  
+  <Step title="Security Review">
+    Complete security assessment and validation
+  </Step>
+  
+  <Step title="Submit for Review">
+    Submit to marketplace review process
+  </Step>
+  
+  <Step title="Publication">
+    Tool becomes available in public catalog
+  </Step>
+</Steps>
+
+#### Marketplace Guidelines
+- **Documentation**: Complete and clear documentation
+- **Security**: Follow security best practices
+- **Testing**: Comprehensive test coverage
+- **Maintenance**: Commit to ongoing maintenance
+- **Licensing**: Clear licensing terms
+
+### Community Tools
+Leverage community-contributed tools:
+
+#### Quality Indicators
+- **⭐ Rating**: Community rating (1-5 stars)
+- **📈 Usage**: Download and usage statistics
+- **🔄 Maintenance**: Last update and maintenance status
+- **🛡️ Security**: Security assessment results
+- **📚 Documentation**: Documentation quality score
+
+---
+
+*Tools are the foundation of AI automation in Composer. Effective tool management enables powerful, flexible, and secure automation workflows. Invest time in understanding and organizing your tool ecosystem for maximum productivity.*
