@@ -183,3 +183,73 @@ class TriggerValidationError(Exception):
 class ProviderError(Exception):
     """Provider-specific error"""
     pass
+
+
+# Tool service exceptions
+class ToolError(Exception):
+    """Base exception for tool service operations"""
+    pass
+
+
+class ToolNotFoundError(ToolError):
+    """Exception raised when a tool is not found"""
+    pass
+
+
+class ToolExecutionError(ToolError):
+    """Exception raised when tool execution fails"""
+    pass
+
+
+class IntegrationNotFoundError(ToolError):
+    """Exception raised when an integration template is not found"""
+    pass
+
+
+class SourceError(KubiyaSDKError):
+    """Exception for source-related errors"""
+
+    def __init__(self, message: str, source_id: Optional[str] = None, source_type: Optional[str] = None):
+        details = {}
+        if source_id:
+            details["source_id"] = source_id
+        if source_type:
+            details["source_type"] = source_type
+        super().__init__(message, details)
+
+class SourceNotFoundError(SourceError):
+    """Exception raised when a source is not found"""
+    pass
+
+class SourceValidationError(SourceError):
+    """Exception raised when source validation fails"""
+    pass
+
+
+class SecretError(KubiyaSDKError):
+    """Exception for secret-related errors"""
+
+    def __init__(self, message: str, secret_name: Optional[str] = None):
+        details = {"secret_name": secret_name} if secret_name else None
+        super().__init__(message, details)
+
+
+class SecretValidationError(SecretError):
+    """Exception raised when secret validation fails"""
+    pass
+
+class RunnerError(KubiyaSDKError):
+    """Runner-related errors"""
+    pass
+
+class RunnerNotFoundError(RunnerError):
+    """Runner not found errors"""
+    pass
+
+class RunnerHealthError(RunnerError):
+    """Runner health check errors"""
+    pass
+
+class ProjectExecutionError(KubiyaSDKError):
+    """Project execution errors"""
+    pass

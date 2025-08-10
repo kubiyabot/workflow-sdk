@@ -95,13 +95,23 @@ class KubiyaClient:
             WebhookService,
             UserService,
             TriggerService,
-            StacksService
+            ToolService,
+            SourceService,
+            SecretService,
+            RunnerService,
+            ProjectService,
+            StacksService,
         )
 
         self.workflows = WorkflowService(self)
         self.webhooks = WebhookService(self)
         self.users = UserService(self)
         self.triggers = TriggerService(self)
+        self.tools = ToolService(self)
+        self.sources = SourceService(self)
+        self.secrets = SecretService(self)
+        self.runners = RunnerService(self)
+        self.projects = ProjectService(self)
         self.stacks = StacksService(self)
 
     def make_request(
@@ -165,7 +175,7 @@ class KubiyaClient:
                     except:
                         pass
                     error = KubiyaAPIError(
-                        f"API request failed: {str(e)}",
+                        f"API request failed: {e} {error_data}",
                         status_code=response.status_code,
                         response_body=json.dumps(error_data) if error_data else None,
                     )
