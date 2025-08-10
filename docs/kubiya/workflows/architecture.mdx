@@ -1,703 +1,98 @@
 ---
 title: "Workflow Architecture"
-description: "Deep dive into Kubiya's serverless, containerized workflow execution model"
+description: "How workflows execute in containers with coordination and state management"
 icon: "server"
 ---
 
-# Serverless Workflow Architecture
+Workflows run in containers orchestrated by Kubiya's coordination platform - keeping execution isolated and reliable.
 
-Kubiya implements a cutting-edge serverless architecture where every workflow and step runs as an independent Docker container. This design enables unprecedented flexibility, scalability, and software compatibility.
+## How it works
 
-## Core Principles
+**Container execution:** Each workflow step runs in its own Docker container with specific tools and dependencies.
 
-### 1. **Containerized Everything**
+**Coordination:** Kubiya's platform manages workflow scheduling, step dependencies, and data flow between steps.
 
-<Card title="🐳 Docker-Based Execution" icon="docker">
-  Every single step in your workflow runs in its own Docker container:
-  
-  - **Any Language**: Python, JavaScript, Go, Rust, Java, C++, Ruby, etc.
-  - **Any Tool**: Git, AWS CLI, Terraform, kubectl, npm, cargo, etc.
-  - **Any Library**: Install and use any package or dependency
-  - **Any Version**: Pin specific versions of languages and tools
-</Card>
+**State management:** Step outputs are captured and passed to dependent steps automatically.
 
-### 2. **True Statelessness**
+**Resource management:** Containers are created, executed, and cleaned up automatically.
 
-Each workflow execution is completely independent:
+## Key benefits
 
-```mermaid
-graph TD
-    subgraph "Execution 1"
-        A1[Fresh Container A]
-        B1[Fresh Container B]
-        A1 --> B1
-    end
-    
-    subgraph "Execution 2"
-        A2[Fresh Container A]
-        B2[Fresh Container B]
-        A2 --> B2
-    end
-    
-    subgraph "Execution N"
-        AN[Fresh Container A]
-        BN[Fresh Container B]
-        AN --> BN
-    end
-    
-    style A1 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style A2 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style AN fill:#4CAF50,stroke:#333,stroke-width:2px
-```
+**Isolation:** Each step runs independently - no conflicts or shared state issues.
+
+**Flexibility:** Use any Docker image, language, or tool you need.
+
+**Reliability:** Same inputs always produce same outputs.
+
+**Scalability:** System scales automatically based on workload.
+
+**Clean execution:** Fresh environment for every step prevents drift and issues.
+
+## Simple example
 
 ```python
-# This workflow runs in a fresh environment every time
-workflow = Workflow(
-    name="data-pipeline",
-    runner="kubiya-hosted"
-)
+from kubiya import workflow, step
 
-# Step 1 runs in container A
-workflow.add_step(
-    name="fetch-data",
-    image="python:3.11",
-    code="# This container is destroyed after execution"
-)
-
-# Step 2 runs in container B (completely separate)
-workflow.add_step(
-    name="process-data",
-    image="python:3.11",
-    code="# Fresh container, no state from Step 1"
-)
+@workflow
+def process_data():
+    # Step 1: Extract in Python container  
+    extract = step("extract").docker(
+        image="python:3.11",
+        script="fetch_data.py"
+    ).output("RAW_DATA")
+    
+    # Step 2: Transform in different container
+    transform = step("transform").docker(
+        image="apache/spark:latest", 
+        command="spark-submit transform.py"
+    ).depends("extract").output("CLEAN_DATA")
+    
+    # Step 3: Load using yet another container
+    step("load").docker(
+        image="postgres:15",
+        script="load_to_db.py"
+    ).depends("transform")
 ```
 
-### 3. **Infinite Scalability**
+## Execution flow
 
-The serverless model means:
-- No pre-provisioned resources
-- Automatic scaling based on demand
-- Pay only for actual execution time
-- Handle 1 or 1,000,000 workflows seamlessly
+1. **Submit workflow:** User submits workflow definition to Kubiya
+2. **Schedule steps:** Platform analyzes dependencies and schedules ready steps  
+3. **Create containers:** Runner creates Docker container for each step
+4. **Execute step:** Container runs with inputs and captures outputs
+5. **Clean up:** Container is destroyed after execution
+6. **Repeat:** Process continues for next ready steps
 
-## Architecture Diagram
+## Data flow
 
-```mermaid
-graph TB
-    subgraph "Workflow Definition"
-        W[Workflow YAML/Code]
-    end
-    
-    subgraph "ADK Orchestration Layer"
-        O[ADK Orchestrator]
-        Q[Execution Queue]
-        S[State Manager]
-    end
-    
-    subgraph "Serverless Execution Layer"
-        subgraph "Step 1"
-            C1[Docker Container 1]
-            R1[Resources]
-        end
-        
-        subgraph "Step 2"
-            C2[Docker Container 2]
-            R2[Resources]
-        end
-        
-        subgraph "Step N"
-            CN[Docker Container N]
-            RN[Resources]
-        end
-    end
-    
-    subgraph "Storage Layer"
-        A[Artifact Storage]
-        L[Logs]
-        M[Metrics]
-    end
-    
-    W --> O
-    O --> Q
-    Q --> C1
-    Q --> C2
-    Q --> CN
-    
-    C1 --> A
-    C2 --> A
-    CN --> A
-    
-    C1 --> L
-    C2 --> L
-    CN --> L
-    
-    O --> S
-    S --> M
-    
-    style O fill:#f9f,stroke:#333,stroke-width:4px
-    style C1 fill:#bbf,stroke:#333,stroke-width:2px
-    style C2 fill:#bbf,stroke:#333,stroke-width:2px
-    style CN fill:#bbf,stroke:#333,stroke-width:2px
-```
+**Step outputs:** Each step can produce outputs that become available to dependent steps.
 
-## Comparison with Other Orchestration Platforms
+**Environment variables:** Outputs are passed as environment variables to next steps.
 
-### Kubiya vs Traditional Orchestrators
+**File artifacts:** Steps can also share files through mounted volumes when needed.
 
-```mermaid
-graph TD
-    subgraph "Traditional Orchestrators"
-        subgraph "Airflow/Prefect/Dagster"
-            W1[Worker Node 1]
-            W2[Worker Node 2]
-            W3[Worker Node 3]
-            DB1[(Metadata DB)]
-            S1[Scheduler]
-            
-            S1 --> W1
-            S1 --> W2
-            S1 --> W3
-            W1 --> DB1
-            W2 --> DB1
-            W3 --> DB1
-        end
-    end
-    
-    subgraph "Kubiya"
-        subgraph "Serverless Containers"
-            C1[Container 1<br/>Any Language]
-            C2[Container 2<br/>Any Tool]
-            C3[Container N<br/>Any Version]
-            ADK[ADK Orchestrator]
-            
-            ADK --> C1
-            ADK --> C2
-            ADK --> C3
-        end
-    end
-    
-    subgraph "Key Differences"
-        D1[❌ Pre-provisioned Workers<br/>✅ On-demand Containers]
-        D2[❌ Limited Languages<br/>✅ Any Language/Tool]
-        D3[❌ Shared Dependencies<br/>✅ Isolated Environments]
-        D4[❌ Complex Setup<br/>✅ Zero Infrastructure]
-    end
-    
-    style W1 fill:#FFB74D,stroke:#333,stroke-width:2px
-    style W2 fill:#FFB74D,stroke:#333,stroke-width:2px
-    style W3 fill:#FFB74D,stroke:#333,stroke-width:2px
-    style DB1 fill:#FF7043,stroke:#333,stroke-width:2px
-    
-    style C1 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style C2 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style C3 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style ADK fill:#9C27B0,stroke:#333,stroke-width:3px,color:#fff
-```
+**No shared state:** Steps cannot interfere with each other's execution environment.
 
-### Execution Model Comparison
+## Error handling
 
-```mermaid
-graph LR
-    subgraph "Apache Airflow"
-        A1[Python Only]
-        A2[Shared Workers]
-        A3[pip dependencies]
-        A4[Version Conflicts]
-    end
-    
-    subgraph "GitHub Actions"
-        G1[YAML Config]
-        G2[Limited Runners]
-        G3[60min Timeout]
-        G4[GitHub Hosted]
-    end
-    
-    subgraph "AWS Step Functions"
-        S1[JSON Definition]
-        S2[Lambda Functions]
-        S3[15min Limit]
-        S4[AWS Lock-in]
-    end
-    
-    subgraph "Kubiya"
-        K1[Any Language]
-        K2[Infinite Scale]
-        K3[No Timeouts]
-        K4[Container Native]
-        K5[AI-Powered]
-    end
-    
-    style A1 fill:#FFB74D
-    style A4 fill:#FF5252
-    style G3 fill:#FF5252
-    style S3 fill:#FF5252
-    style S4 fill:#FF5252
-    
-    style K1 fill:#4CAF50
-    style K2 fill:#4CAF50
-    style K3 fill:#4CAF50
-    style K4 fill:#4CAF50
-    style K5 fill:#9C27B0,color:#fff
-```
+**Step failures:** Failed steps can be retried with configurable backoff strategies.
 
-### Resource Management
+**Partial execution:** Only affected steps need to re-run, not the entire workflow.
 
-```mermaid
-graph TD
-    subgraph "Traditional: Fixed Resources"
-        TR[Fixed Worker Pool]
-        TR --> TW1[Worker 1<br/>2 CPU, 4GB RAM]
-        TR --> TW2[Worker 2<br/>2 CPU, 4GB RAM]
-        TR --> TW3[Worker 3<br/>2 CPU, 4GB RAM]
-        
-        TW1 -.->|"Idle 70%"| X1[Wasted Resources]
-        TW2 -.->|"Idle 80%"| X2[Wasted Resources]
-        TW3 -.->|"Queue Full"| X3[Bottleneck]
-    end
-    
-    subgraph "Kubiya: Dynamic Resources"
-        KR[Dynamic Allocation]
-        KR --> KC1[Step 1<br/>1 CPU, 2GB]
-        KR --> KC2[Step 2<br/>8 CPU, 32GB]
-        KR --> KC3[Step 3<br/>GPU, 16GB]
-        
-        KC1 -.->|"Exact Fit"| Y1[100% Efficient]
-        KC2 -.->|"Scales Up"| Y2[As Needed]
-        KC3 -.->|"GPU When Required"| Y3[Specialized]
-    end
-    
-    style X1 fill:#FF5252,color:#fff
-    style X2 fill:#FF5252,color:#fff
-    style X3 fill:#FF5252,color:#fff
-    
-    style Y1 fill:#4CAF50,color:#fff
-    style Y2 fill:#4CAF50,color:#fff
-    style Y3 fill:#4CAF50,color:#fff
-```
+**Resource limits:** Steps have CPU, memory, and time limits to prevent runaway processes.
 
-## How It Works
+**Clean recovery:** Failed containers are removed and fresh ones created for retries.
 
-### 1. **Workflow Definition**
-You define workflows using Python SDK, YAML, or through AI generation:
+## Getting started
 
-```python
-from kubiya_workflow_sdk import Workflow, Step
+**Define steps:** Specify what containers and commands each step needs
 
-workflow = Workflow(
-    name="multi-tool-pipeline",
-    runner="kubiya-hosted"
-)
-```
+**Set dependencies:** Tell Kubiya which steps depend on others  
 
-### 2. **Container Specification**
-Each step specifies its container requirements:
+**Handle outputs:** Capture important data from steps for use in later steps
 
-```python
-# Use pre-built images
-workflow.add_step(Step(
-    name="python-analysis",
-    image="python:3.11-slim",
-    packages=["pandas", "numpy", "scikit-learn"],
-    code="..."
-))
+**Add error handling:** Configure retries and timeouts for robust execution
 
-# Or custom images
-workflow.add_step(Step(
-    name="custom-tool",
-    image="myregistry/my-tool:latest",
-    code="..."
-))
-```
+---
 
-### 3. **Execution Flow**
-
-```mermaid
-graph TD
-    A[Workflow Submitted] --> B{ADK Orchestrator}
-    B --> C[Parse Workflow]
-    C --> D[Queue Steps]
-    
-    D --> E1[Spin Up Container 1]
-    D --> E2[Spin Up Container 2]
-    D --> E3[Spin Up Container N]
-    
-    E1 --> F1[Execute Code]
-    E2 --> F2[Execute Code]
-    E3 --> F3[Execute Code]
-    
-    F1 --> G1[Save Artifacts]
-    F2 --> G2[Save Artifacts]
-    F3 --> G3[Save Artifacts]
-    
-    G1 --> H1[Destroy Container]
-    G2 --> H2[Destroy Container]
-    G3 --> H3[Destroy Container]
-    
-    H1 --> I[Workflow Complete]
-    H2 --> I
-    H3 --> I
-    
-    style B fill:#9C27B0,stroke:#333,stroke-width:3px,color:#fff
-    style E1 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style E2 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style E3 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style I fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-```
-
-### 4. **Data Flow**
-Steps communicate through artifacts:
-
-```mermaid
-graph LR
-    subgraph "Step 1: Generate"
-        G[Python Container]
-        G --> A1[dataset.csv]
-    end
-    
-    subgraph "Artifact Storage"
-        AS[(Cloud Storage)]
-        A1 --> AS
-        AS --> A2[dataset.csv]
-    end
-    
-    subgraph "Step 2: Process"
-        A2 --> P[Node.js Container]
-        P --> R[results.json]
-    end
-    
-    style G fill:#4CAF50,stroke:#333,stroke-width:2px
-    style P fill:#2196F3,stroke:#333,stroke-width:2px
-    style AS fill:#FF9800,stroke:#333,stroke-width:2px
-```
-
-```python
-# Step 1: Generate data
-workflow.add_step(Step(
-    name="generate",
-    code="""
-    data = create_dataset()
-    save_artifact('dataset.csv', data)
-    """
-))
-
-# Step 2: Process data
-workflow.add_step(Step(
-    name="process",
-    code="""
-    data = load_artifact('dataset.csv')
-    results = analyze(data)
-    save_artifact('results.json', results)
-    """
-))
-```
-
-## Real-World Examples
-
-### Multi-Language ETL Pipeline
-
-```mermaid
-graph TD
-    subgraph "Extract Phase"
-        E1["🐍 Python<br/>API Fetch"]
-        E2["🐍 Python<br/>S3 Download"]
-        E1 --> M1[Merge Data]
-        E2 --> M1
-    end
-    
-    subgraph "Transform Phase"
-        M1 --> T["🟨 Node.js<br/>Data Transform"]
-    end
-    
-    subgraph "Load Phase"
-        T --> L["🐹 Go<br/>Bulk Insert"]
-    end
-    
-    subgraph "Containers"
-        C1[python:3.11]
-        C2[node:20]
-        C3[golang:1.21]
-    end
-    
-    E1 -.->|runs in| C1
-    T -.->|runs in| C2
-    L -.->|runs in| C3
-    
-    style E1 fill:#3776AB,stroke:#333,stroke-width:2px,color:#fff
-    style E2 fill:#3776AB,stroke:#333,stroke-width:2px,color:#fff
-    style T fill:#F7DF1E,stroke:#333,stroke-width:2px
-    style L fill:#00ADD8,stroke:#333,stroke-width:2px,color:#fff
-```
-
-```python
-// ... existing code ...
-```
-
-### DevOps Automation
-
-```mermaid
-graph TD
-    subgraph "Infrastructure"
-        TF["🔧 Terraform<br/>Provision"]
-    end
-    
-    subgraph "Configuration"
-        TF --> AN["🤖 Ansible<br/>Configure"]
-    end
-    
-    subgraph "Deployment"
-        AN --> K8S["☸️ Kubernetes<br/>Deploy"]
-    end
-    
-    subgraph "Validation"
-        K8S --> TEST["🧪 Test<br/>Smoke Tests"]
-    end
-    
-    TF -.->|"outputs.json"| AN
-    AN -.->|"inventory"| K8S
-    K8S -.->|"endpoints"| TEST
-    
-    style TF fill:#5C4EE5,stroke:#333,stroke-width:2px,color:#fff
-    style AN fill:#EE0000,stroke:#333,stroke-width:2px,color:#fff
-    style K8S fill:#326CE5,stroke:#333,stroke-width:2px,color:#fff
-    style TEST fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
-```
-
-```python
-// ... existing code ...
-```
-
-## Advanced Features
-
-### Custom Base Images
-
-Create specialized images for your workflows:
-
-```dockerfile
-# Dockerfile
-FROM python:3.11
-RUN pip install pandas numpy scikit-learn tensorflow
-RUN apt-get update && apt-get install -y graphviz
-COPY models/ /opt/models/
-```
-
-```python
-workflow.add_step(Step(
-    name="ml-pipeline",
-    image="myregistry/ml-base:latest",
-    code="# Use pre-installed ML tools"
-))
-```
-
-### Resource Management
-
-Control container resources:
-
-```mermaid
-graph TD
-    subgraph "Resource Allocation"
-        S1["Step 1: Light Processing<br/>1 CPU, 2GB RAM"]
-        S2["Step 2: Heavy Compute<br/>8 CPU, 32GB RAM"]
-        S3["Step 3: ML Training<br/>4 GPU, 64GB RAM"]
-    end
-    
-    S1 -.->|"Dynamic<br/>Allocation"| R1[Minimal Cost]
-    S2 -.->|"Scales<br/>Up"| R2[As Needed]
-    S3 -.->|"GPU<br/>On-Demand"| R3[Only When Required]
-    
-    style S1 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style S2 fill:#FF9800,stroke:#333,stroke-width:2px
-    style S3 fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-```
-
-```python
-workflow.add_step(Step(
-    name="memory-intensive",
-    image="python:3.11",
-    resources={
-        "memory": "8Gi",
-        "cpu": "4",
-        "gpu": "1"  # For ML workloads
-    },
-    code="# Run memory-intensive operations"
-))
-```
-
-### Network Isolation
-
-Each container runs in isolation:
-
-```mermaid
-graph TD
-    subgraph "Network Namespaces"
-        subgraph "Container 1"
-            API[API Server<br/>Port 3000]
-        end
-        
-        subgraph "Container 2"
-            CLIENT[Client]
-        end
-        
-        subgraph "Container 3"
-            DB[Database<br/>Port 5432]
-        end
-    end
-    
-    API -.->|"❌ No Access"| CLIENT
-    CLIENT -.->|"❌ No Access"| DB
-    API -.->|"❌ No Access"| DB
-    
-    subgraph "Communication"
-        ART[Via Artifacts Only]
-    end
-    
-    API --> ART
-    CLIENT --> ART
-    DB --> ART
-    
-    style API fill:#FF5252,stroke:#333,stroke-width:2px
-    style CLIENT fill:#FF5252,stroke:#333,stroke-width:2px
-    style DB fill:#FF5252,stroke:#333,stroke-width:2px
-    style ART fill:#4CAF50,stroke:#333,stroke-width:2px
-```
-
-```python
-# Step 1: Start a service
-workflow.add_step(Step(
-    name="api-server",
-    image="node:20",
-    ports=[3000],
-    code="# Start API server"
-))
-
-# Step 2: Different network namespace
-workflow.add_step(Step(
-    name="client",
-    image="python:3.11",
-    code="# Cannot access Step 1's ports directly"
-))
-```
-
-## AI-Powered Generation
-
-<Note>
-  With ADK orchestration, you can generate these complex workflows using natural language:
-</Note>
-
-```mermaid
-graph TD
-    A[Natural Language Request] --> B[ADK AI Engine]
-    B --> C[Workflow Generation]
-    C --> D[Validation]
-    D --> E[Execution]
-    
-    subgraph "AI Understanding"
-        B1[Parse Intent]
-        B2[Identify Tools]
-        B3[Design DAG]
-        B4[Generate Code]
-        
-        B --> B1
-        B1 --> B2
-        B2 --> B3
-        B3 --> B4
-        B4 --> C
-    end
-    
-    style A fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-    style B fill:#9C27B0,stroke:#333,stroke-width:3px,color:#fff
-    style E fill:#4CAF50,stroke:#333,stroke-width:2px
-```
-
-```python
-from kubiya_workflow_sdk import KubiyaWorkflow
-
-# Generate entire workflow from description
-workflow = KubiyaWorkflow.from_prompt(
-    """
-    Create a data pipeline that:
-    1. Extracts data from PostgreSQL and MongoDB
-    2. Transforms using Python pandas
-    3. Runs ML predictions with TensorFlow
-    4. Stores results in S3 and sends Slack notification
-    """,
-    runner="kubiya-hosted"
-)
-
-# ADK generates the complete containerized workflow
-result = workflow.execute()
-```
-
-## Benefits Summary
-
-<CardGroup cols={2}>
-  <Card title="🚀 Any Software" icon="cube">
-    Run literally any software, tool, or language in your workflows
-  </Card>
-  
-  <Card title="📦 Zero Dependencies" icon="box">
-    No need to pre-install anything - containers have everything
-  </Card>
-  
-  <Card title="🔄 Perfect Isolation" icon="shield">
-    Each step runs in complete isolation with no side effects
-  </Card>
-  
-  <Card title="⚡ Instant Scale" icon="bolt">
-    From 1 to 1 million executions without infrastructure changes
-  </Card>
-</CardGroup>
-
-## Security & Compliance
-
-The containerized architecture provides:
-
-```mermaid
-graph TD
-    subgraph "Security Layers"
-        S1[Process Isolation]
-        S2[Resource Limits]
-        S3[Network Policies]
-        S4[Audit Trails]
-        S5[Secrets Management]
-    end
-    
-    subgraph "Each Container"
-        C1[Isolated Namespace]
-        C2[Limited Resources]
-        C3[No Network Access]
-        C4[Full Logging]
-        C5[Encrypted Secrets]
-    end
-    
-    S1 --> C1
-    S2 --> C2
-    S3 --> C3
-    S4 --> C4
-    S5 --> C5
-    
-    style S1 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style S2 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style S3 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style S4 fill:#4CAF50,stroke:#333,stroke-width:2px
-    style S5 fill:#4CAF50,stroke:#333,stroke-width:2px
-```
-
-- **Process Isolation**: Each step runs in its own namespace
-- **Resource Limits**: Prevent runaway processes
-- **Network Policies**: Control communication between steps
-- **Audit Trails**: Complete execution history
-- **Secrets Management**: Secure credential injection
-
-## What's Next?
-
-<Card title="Getting Started" href="/getting-started/quickstart" icon="rocket">
-  Create your first containerized workflow
-</Card>
-
-<Card title="ADK Provider" href="/providers/adk/getting-started" icon="robot">
-  Learn about AI-powered workflow generation
-</Card>
-
-<Card title="Examples" href="/workflows/examples" icon="code">
-  See real-world containerized workflows
-</Card> 
+**Next:** See practical [workflow examples](/workflows/examples) or learn the [DSL syntax](/workflows/dsl-reference)

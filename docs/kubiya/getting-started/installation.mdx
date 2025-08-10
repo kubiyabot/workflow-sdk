@@ -1,507 +1,58 @@
 ---
-title: "Installation"
-description: "Install and configure the Kubiya Workflow SDK"
-sidebarTitle: "Installation"
-icon: "download"
-tags: ["sdk"]
+title: "CLI Quickstart"
+description: "Get started with Kubiya CLI - the fastest way to try AI automation"
+sidebarTitle: "CLI Quickstart"
+icon: "terminal"
 ---
 
-# Installation
+**The fastest way to try Kubiya** - no programming required, just install and run.
 
-Get started with the Kubiya Workflow SDK in minutes. This guide covers installation, configuration, and basic usage.
+## Install the CLI
 
-## Requirements
-
-- Python 3.8 or higher
-- pip package manager
-- Kubiya API key (get one at [app.kubiya.ai](https://app.kubiya.ai))
-
-## Install via pip
-
-<Tabs>
-  <Tab title="Latest Stable">
-    ```bash
-    pip install kubiya-workflow-sdk
-    ```
-  </Tab>
-  
-  <Tab title="Development Version">
-    ```bash
-    pip install git+https://github.com/kubiyabot/workflow_sdk.git
-    ```
-  </Tab>
-  
-  <Tab title="Specific Version">
-    ```bash
-    pip install kubiya-workflow-sdk==0.0.5
-    ```
-  </Tab>
-</Tabs>
-
-## Verify Installation
-
+**Mac (Homebrew):**
 ```bash
-python -c "import kubiya_workflow_sdk; print(kubiya_workflow_sdk.__version__)"
+brew tap kubiyabot/kubiya
+brew install kubiya
 ```
 
-## Set up Authentication
-
-Set your API key as an environment variable:
-
+**Linux (Ubuntu/Debian):**
 ```bash
-export KUBIYA_API_KEY="your-api-key-here"
+curl -fsSL https://cli.kubiya.ai/install.sh | bash
 ```
 
-Or create a `.env` file in your project:
+**Other platforms:** [Download from releases](https://github.com/kubiyabot/cli/releases)
 
-```env
-KUBIYA_API_KEY=your-api-key-here
-KUBIYA_API_URL=https://api.kubiya.ai  # Optional, defaults to production
-```
-
-## Optional Dependencies
-
-### For AI Providers
-
-```bash
-# For ADK provider
-pip install kubiya-workflow-sdk[adk]
-
-# For FastMCP provider
-pip install kubiya-workflow-sdk[mcp]
-
-# All providers
-pip install kubiya-workflow-sdk[all]
-```
-
-### For Development
-
-```bash
-# Install with development dependencies
-pip install kubiya-workflow-sdk[dev]
-```
-
-## Docker Installation
-
-If you prefer using Docker:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install SDK
-RUN pip install kubiya-workflow-sdk
-
-# Copy your workflow files
-COPY . .
-
-# Run your workflow
-CMD ["python", "workflow.py"]
-```
-
-## SDK Capabilities
-
-The Kubiya SDK provides comprehensive tools for workflow automation:
-
-### Core Features
-
-<Steps>
-  <Step title="Workflow Definition">
-    Create workflows using Python DSL or YAML
-    ```python
-    from kubiya import workflow, step
-    
-    @workflow
-    def my_automation():
-        step.shell("echo 'Hello Kubiya!'")
-    ```
-  </Step>
-  
-  <Step title="AI Generation">
-    Generate workflows from natural language
-    ```python
-    from kubiya_workflow_sdk import KubiyaWorkflow
-    
-    workflow = KubiyaWorkflow.from_prompt(
-        "Deploy my Node.js app to Kubernetes"
-    )
-    ```
-  </Step>
-  
-  <Step title="Container Orchestration">
-    Run any Docker container as a workflow step
-    ```python
-    step.container(
-        image="tensorflow/tensorflow:latest",
-        command="python train_model.py"
-    )
-    ```
-  </Step>
-</Steps>
-
-## Client Configuration
-
-### Basic Setup
-
-```python
-from kubiya_workflow_sdk import Client
-
-# Initialize with API key
-client = Client(
-    api_key="your-api-key",
-    api_url="https://api.kubiya.ai"  # Optional, defaults to production
-)
-```
-
-### Advanced Configuration
-
-```python
-from kubiya_workflow_sdk import Client, Config
-
-# Detailed configuration
-config = Config(
-    api_key="your-api-key",
-    api_url="https://api.kubiya.ai",
-    timeout=30,  # Request timeout in seconds
-    retry_count=3,  # Number of retries
-    retry_delay=1.0,  # Delay between retries
-    verify_ssl=True,  # SSL verification
-    proxy=None,  # HTTP proxy if needed
-)
-
-client = Client(config=config)
-```
-
-### Environment Variables
-
-Set environment variables for automatic configuration:
+## Set your API key
 
 ```bash
 export KUBIYA_API_KEY="your-api-key"
-export KUBIYA_API_URL="https://api.kubiya.ai"
-export KUBIYA_TIMEOUT="30"
-export KUBIYA_RETRY_COUNT="3"
 ```
 
-Then initialize without parameters:
+Get your API key at [app.kubiya.ai](https://app.kubiya.ai)
 
-```python
-client = Client()  # Reads from environment
-```
+## Try it instantly
 
-## SDK Components
-
-### 1. **Workflow Management**
-
-```python
-from kubiya_workflow_sdk import Workflow, Step
-
-# Object-oriented approach
-workflow = Workflow(
-    name="data-pipeline",
-    description="Process daily data",
-    steps=[
-        Step(name="fetch", image="alpine", command="wget data.csv"),
-        Step(name="process", image="python:3.11", script="process.py")
-    ]
-)
-
-# Execute
-result = client.execute_workflow(workflow)
-```
-
-### 2. **DSL (Domain Specific Language)**
-
-```python
-from kubiya_workflow_sdk.dsl import workflow
-
-# Fluent interface
-wf = (
-    workflow("deployment-pipeline")
-    .description("Deploy application")
-    .step("test", "npm test", image="node:18")
-    .step("build", "npm run build")
-    .step("deploy", "kubectl apply -f k8s/")
-    .build()
-)
-```
-
-### 3. **AI Providers**
-
-```python
-from kubiya_workflow_sdk.providers import get_provider
-
-# ADK provider for AI generation
-adk = get_provider("adk", api_key="...")
-
-# Generate workflow
-result = await adk.compose(
-    task="Create a CI/CD pipeline for Python app",
-    mode="act"  # or "plan" for preview
-)
-```
-
-### 4. **Streaming Execution**
-
-```python
-# Real-time execution updates
-for event in client.execute_workflow(workflow, stream=True):
-    print(f"{event.type}: {event.data}")
-```
-
-### 5. **MCP Server**
-
-```python
-from kubiya_workflow_sdk.mcp import MCPServer
-
-# Create MCP-compatible server
-server = MCPServer(
-    name="my-workflows",
-    version="1.0.0"
-)
-
-# Register workflows as tools
-server.register_workflow(workflow)
-server.run(port=8080)
-```
-
-## Authentication
-
-### API Key Authentication
-
-<Note>
-  Get your API key from the [Kubiya Platform](https://app.kubiya.ai/settings/api-keys)
-</Note>
-
-```python
-# Direct API key
-client = Client(api_key="key_...")
-
-# From environment
-os.environ["KUBIYA_API_KEY"] = "key_..."
-client = Client()
-
-# From file
-with open(".kubiya-key", "r") as f:
-    api_key = f.read().strip()
-client = Client(api_key=api_key)
-```
-
-### Organization Context
-
-```python
-# Specify organization
-client = Client(
-    api_key="key_...",
-    org_name="my-company"  # For multi-org accounts
-)
-```
-
-## Local Development
-
-### Docker Setup
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  kubiya-local:
-    image: kubiya/sdk:latest
-    volumes:
-      - .:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - KUBIYA_MODE=local
-```
-
-### Local Runners
-
-Local runners are created and managed through the Kubiya platform:
-
-1. **Via Web Interface**: Go to the Kubiya platform and create a new runner
-2. **Via API**: Use the Kubiya API to create a runner programmatically
-3. **Get Manifest**: Receive a Kubernetes manifest or Helm chart
-4. **Deploy**: Apply the manifest to your Kubernetes cluster
-
+**Check what tools are available:**
 ```bash
-# Example: Apply the runner manifest
-kubectl apply -f kubiya-runner-manifest.yaml
-
-# Or using Helm
-helm install my-runner kubiya/runner -f values.yaml
+kubiya tool list
 ```
 
-For detailed setup instructions, see the [Runners documentation](/concepts/runners).
-
-## Proxy Configuration
-
-For corporate environments:
-
-```python
-# HTTP proxy
-client = Client(
-    api_key="...",
-    proxy="http://proxy.company.com:8080"
-)
-
-# SOCKS proxy
-client = Client(
-    api_key="...",
-    proxy="socks5://proxy.company.com:1080"
-)
-
-# With authentication
-client = Client(
-    api_key="...",
-    proxy="http://user:pass@proxy.company.com:8080"
-)
+**Run a simple automation:**
+```bash
+kubiya tool exec kubectl get pods
 ```
 
-## SSL/TLS Configuration
-
-```python
-# Disable SSL verification (not recommended)
-client = Client(
-    api_key="...",
-    verify_ssl=False
-)
-
-# Custom CA bundle
-client = Client(
-    api_key="...",
-    ca_bundle="/path/to/ca-bundle.crt"
-)
+**Execute a workflow from GitHub:**
+```bash
+kubiya workflow execute https://github.com/kubiyabot/workflows/blob/main/examples/hello-world.yaml
 ```
 
-## SDK Features Matrix
+## Next steps
 
-<ComparisonTable>
-  <Row>
-    <Cell>Feature</Cell>
-    <Cell>Free Tier</Cell>
-    <Cell>Pro</Cell>
-    <Cell>Enterprise</Cell>
-  </Row>
-  <Row>
-    <Cell>Workflow Execution</Cell>
-    <Cell>✅ 100/month</Cell>
-    <Cell>✅ 10,000/month</Cell>
-    <Cell>✅ Unlimited</Cell>
-  </Row>
-  <Row>
-    <Cell>AI Generation</Cell>
-    <Cell>✅ Basic models</Cell>
-    <Cell>✅ All models</Cell>
-    <Cell>✅ Custom models</Cell>
-  </Row>
-  <Row>
-    <Cell>Streaming</Cell>
-    <Cell>❌</Cell>
-    <Cell>✅</Cell>
-    <Cell>✅</Cell>
-  </Row>
-  <Row>
-    <Cell>Custom Providers</Cell>
-    <Cell>❌</Cell>
-    <Cell>❌</Cell>
-    <Cell>✅</Cell>
-  </Row>
-  <Row>
-    <Cell>Local Development</Cell>
-    <Cell>✅</Cell>
-    <Cell>✅</Cell>
-    <Cell>✅</Cell>
-  </Row>
-  <Row>
-    <Cell>Support</Cell>
-    <Cell>Community</Cell>
-    <Cell>Email</Cell>
-    <Cell>Dedicated</Cell>
-  </Row>
-</ComparisonTable>
+- **[Try the web interface →](/composer/overview)** - Visual workflow builder
+- **[Use the Python SDK →](/getting-started/quickstart)** - For developers
+- **[Browse workflow examples →](https://github.com/kubiyabot/workflows)** - Copy proven patterns
 
-## Troubleshooting
+---
 
-### Common Issues
-
-<AccordionGroup>
-  <Accordion title="ImportError: No module named 'kubiya_workflow_sdk'">
-    ```bash
-    # Ensure correct Python environment
-    which python
-    pip list | grep kubiya
-    
-    # Reinstall
-    pip uninstall kubiya-workflow-sdk
-    pip install kubiya-workflow-sdk
-    ```
-  </Accordion>
-  
-  <Accordion title="Authentication Failed">
-    ```python
-    # Check API key format
-    print(f"Key starts with: {api_key[:7]}")  # Should be "key_..."
-    
-    # Verify connection
-    client.test_connection()
-    ```
-  </Accordion>
-  
-  <Accordion title="SSL Certificate Error">
-    ```python
-    # Temporary workaround
-    client = Client(verify_ssl=False)
-    
-    # Permanent fix - update certificates
-    pip install --upgrade certifi
-    ```
-  </Accordion>
-  
-  <Accordion title="Docker Permission Denied">
-    ```bash
-    # Add user to docker group
-    sudo usermod -aG docker $USER
-    newgrp docker
-    
-    # Or use rootless Docker
-    dockerd-rootless-setuptool.sh install
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Version Compatibility
-
-| SDK Version | Python | API Version | Features |
-|------------|--------|-------------|----------|
-| 2.0+ | 3.8+ | v2 | AI generation, streaming |
-| 1.5+ | 3.7+ | v1 | Basic workflows |
-| 1.0+ | 3.6+ | v1 | Initial release |
-
-## What's Next?
-
-<CardGroup cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/getting-started/quickstart">
-    Build your first workflow
-  </Card>
-  <Card title="Workflow Basics" icon="sitemap" href="/workflows/overview">
-    Learn workflow concepts
-  </Card>
-  <Card title="AI Generation" icon="robot" href="/providers/adk/getting-started">
-    Generate workflows with AI
-  </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/compose">
-    Explore the full API
-  </Card>
-</CardGroup>
-
-## Getting Help
-
-<CardGroup cols={3}>
-  <Card title="GitHub" icon="github" href="https://github.com/kubiyabot/workflows">
-    Report issues
-  </Card>
-  <Card title="Support" icon="headset" href="mailto:support@kubiya.ai">
-    Contact support
-  </Card>
-</CardGroup> 
+**Want to see what's possible?** Try [Composer](/composer/overview) - the web interface makes it easy to explore and build workflows visually.

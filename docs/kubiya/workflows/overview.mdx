@@ -1,431 +1,132 @@
 ---
 title: "Workflows Overview"
-description: "Understanding Kubiya workflows and their components"
+description: "Build automated sequences that run reliably in containers"
 sidebarTitle: "Overview"
 icon: "diagram-project"
 ---
 
-# Workflows Overview
+Workflows are sequences of automated steps that accomplish complex tasks safely and reliably using containers.
 
-Kubiya workflows are the foundation of intelligent automation. They combine the power of AI generation with the reliability of deterministic execution, all running in containerized environments.
+## What workflows do
 
-## The DAG Revolution
+**Run steps in containers:** Each step runs in its own Docker container with specific tools and dependencies.
 
-```mermaid
-graph TB
-    subgraph "Traditional Script"
-        S1[Linear Script]
-        S2[Step 1]
-        S3[Step 2]
-        S4[Step 3]
-        
-        S1 --> S2
-        S2 --> S3
-        S3 --> S4
-        
-        S2 -.->|"Fails?"| FAIL1[Entire Script Fails]
-    end
-    
-    subgraph "Agent Framework"
-        A1[Agent Decision]
-        A2[Maybe Step A]
-        A3[Or Step B?]
-        A4[Loop Forever?]
-        
-        A1 --> A2
-        A1 --> A3
-        A2 --> A4
-        A3 --> A4
-        A4 --> A1
-        
-        A4 -.->|"Lost?"| CHAOS[🌪️ Chaos]
-    end
-    
-    subgraph "Kubiya DAG"
-        K1[Define Workflow]
-        K2[Step 1: Container A]
-        K3[Step 2: Container B]
-        K4[Step 3: Container C]
-        
-        K1 --> K2
-        K2 --> K3
-        K2 --> K4
-        K3 --> SUCCESS[✅ Predictable Success]
-        K4 --> SUCCESS
-        
-        K2 -.->|"Fails?"| RETRY[Retry with Backoff]
-        RETRY --> K2
-    end
-    
-    style FAIL1 fill:#FF5252,stroke:#333,stroke-width:2px,color:#fff
-    style CHAOS fill:#FF5252,stroke:#333,stroke-width:3px,color:#fff
-    style SUCCESS fill:#4CAF50,stroke:#333,stroke-width:3px,color:#fff
-```
+**Connect step outputs:** Pass data between steps to build complex automation sequences.
 
-## What is a Kubiya Workflow?
+**Handle failures gracefully:** Built-in retry logic and error handling keep workflows robust.
 
-A workflow in Kubiya is:
+**Execute in parallel:** Independent steps run simultaneously for faster completion.
 
-- **Directed Acyclic Graph (DAG)**: Steps with dependencies, no circular references
-- **Container-Based**: Each step runs in its own Docker container
-- **Language Agnostic**: Use Python, Go, Node.js, or any language
-- **AI-Generated**: Created from natural language or defined programmatically
-- **Deterministic**: Same input → Same execution → Same output
+**Integrate AI agents:** Include intelligent decision-making within deterministic workflows.
 
-## Core Components
-
-### 1. **Workflow Definition**
+## Basic workflow structure
 
 ```python
 from kubiya import workflow, step
 
 @workflow
-def my_data_pipeline():
-    # Your workflow logic here
-    pass
-```
-
-### 2. **Steps**
-
-Each step is an atomic unit of work:
-
-```python
-data = step.extract(
-    name="extract-data",
-    image="python:3.11",
-    script="extract.py",
-    inputs={"source": "database"}
-)
-```
-
-### 3. **Dependencies**
-
-Steps can depend on outputs from other steps:
-
-```mermaid
-graph LR
-    A[Extract Data] -->|data| B[Transform]
-    B -->|cleaned_data| C[Load to DW]
-    B -->|metrics| D[Send Report]
-    
-    style A fill:#2196F3,stroke:#333,stroke-width:2px
-    style B fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-    style C fill:#4CAF50,stroke:#333,stroke-width:2px
-    style D fill:#FF9800,stroke:#333,stroke-width:2px
-```
-
-### 4. **Containers**
-
-Every step runs in isolation:
-
-<CardGroup cols={3}>
-  <Card title="🐳 Any Docker Image" icon="docker">
-    Public or private registries
-  </Card>
-  <Card title="🔒 Complete Isolation" icon="lock">
-    No shared state between steps
-  </Card>
-  <Card title="📦 Dependency Freedom" icon="box">
-    Each step has its own environment
-  </Card>
-</CardGroup>
-
-## Workflow Execution Model
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant SDK
-    participant API as Kubiya API
-    participant Runner
-    participant K8s as Kubernetes
-    
-    User->>SDK: Define/Generate Workflow
-    SDK->>API: Submit Workflow
-    API->>Runner: Schedule Execution
-    Runner->>K8s: Create Job
-    
-    loop For Each Step
-        K8s->>K8s: Pull Docker Image
-        K8s->>K8s: Create Pod
-        K8s->>K8s: Run Container
-        K8s->>K8s: Collect Output
-        K8s-->>Runner: Stream Logs
-    end
-    
-    Runner-->>API: Execution Complete
-    API-->>SDK: Return Results
-    SDK-->>User: Success/Failure
-```
-
-## Key Features
-
-### Parallel Execution
-
-Run independent steps simultaneously:
-
-```mermaid
-graph TD
-    START[Start Workflow]
-    
-    START --> A[Fetch User Data]
-    START --> B[Fetch Product Data]
-    START --> C[Fetch Order History]
-    
-    A --> MERGE[Merge & Analyze]
-    B --> MERGE
-    C --> MERGE
-    
-    MERGE --> REPORT[Generate Report]
-    
-    style A fill:#2196F3,stroke:#333,stroke-width:2px
-    style B fill:#2196F3,stroke:#333,stroke-width:2px
-    style C fill:#2196F3,stroke:#333,stroke-width:2px
-    style MERGE fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-```
-
-### Conditional Logic
-
-Dynamic paths based on results:
-
-```python
-if data.quality_score > 0.8:
-    step.proceed_to_production()
-else:
-    step.alert_data_team()
-```
-
-### Error Handling
-
-Built-in retry mechanisms:
-
-```python
-step.critical_operation(
-    retry=3,
-    backoff="exponential",
-    on_failure="alert"
-)
-```
-
-### Inline AI Agents
-
-Embed intelligent decision-making:
-
-```python
-analysis = step.inline_agent(
-    message="Analyze these logs for anomalies",
-    runners=["kubiya-hosted"],
-    tools=[log_parser_tool]
-)
-```
-
-## Workflow vs Other Approaches
-
-<ComparisonTable>
-  <Row>
-    <Cell>Feature</Cell>
-    <Cell>Bash Scripts</Cell>
-    <Cell>Agent Frameworks</Cell>
-    <Cell>Traditional DAGs</Cell>
-    <Cell>Kubiya Workflows</Cell>
-  </Row>
-  <Row>
-    <Cell>Execution Model</Cell>
-    <Cell>Linear, single process</Cell>
-    <Cell>Non-deterministic</Cell>
-    <Cell>Fixed DAG</Cell>
-    <Cell>Dynamic DAG + Containers</Cell>
-  </Row>
-  <Row>
-    <Cell>Error Recovery</Cell>
-    <Cell>Manual scripting</Cell>
-    <Cell>Agent "figures it out"</Cell>
-    <Cell>Basic retry</Cell>
-    <Cell>Smart retries</Cell>
-  </Row>
-  <Row>
-    <Cell>Language Support</Cell>
-    <Cell>Bash only</Cell>
-    <Cell>Framework language</Cell>
-    <Cell>Usually Python</Cell>
-    <Cell>Any language/tool</Cell>
-  </Row>
-  <Row>
-    <Cell>AI Integration</Cell>
-    <Cell>None</Cell>
-    <Cell>Chaotic</Cell>
-    <Cell>None</Cell>
-    <Cell>Structured inline agents</Cell>
-  </Row>
-  <Row>
-    <Cell>Production Ready</Cell>
-    <Cell>No</Cell>
-    <Cell>No</Cell>
-    <Cell>Yes, but complex</Cell>
-    <Cell>Yes, simple</Cell>
-  </Row>
-</ComparisonTable>
-
-## Real-World Example
-
-Let's see a complete workflow that showcases Kubiya's power:
-
-```python
-from kubiya import workflow, step
-
-@workflow(
-    name="intelligent-deployment",
-    description="AI-assisted deployment with safety checks"
-)
-def deploy_with_intelligence():
-    # Run tests in Node.js container
+def deploy_application():
+    # Step 1: Run tests in Node.js container
     test_results = step.run_tests(
         image="node:18",
-        script="npm test",
-        timeout="5m"
+        script="npm test"
     )
     
-    # Analyze results with AI
-    analysis = step.inline_agent(
-        message=f"Analyze these test results: {test_results}",
-        runners=["kubiya-hosted"],
-        tools=[{
-            "name": "decide-deployment",
-            "type": "function",
-            "description": "Decide if safe to deploy"
-        }]
+    # Step 2: Build Docker image
+    app_image = step.build_image(
+        dockerfile="./Dockerfile",
+        tag="myapp:latest"
     )
     
-    # Conditional deployment
-    if analysis.should_deploy:
-        # Build in parallel
-        image = step.build_docker_image(
-            dockerfile="./Dockerfile",
-            tag="myapp:latest"
-        )
-        
-        # Deploy to Kubernetes
-        step.deploy_to_k8s(
-            manifest="k8s/deployment.yaml",
-            image=image.tag,
-            namespace="production"
-        )
-        
-        # Notify team
-        step.send_notification(
-            channel="deployments",
-            message="🚀 Deployed successfully!"
-        )
-    else:
-        # Alert on issues
-        step.create_incident(
-            severity="high",
-            details=analysis.concerns
-        )
+    # Step 3: Deploy to Kubernetes
+    step.deploy(
+        image=app_image.tag,
+        manifest="k8s/deployment.yaml"
+    )
 ```
 
-## Visual Workflow Builder
+## Key benefits
 
-```mermaid
-graph TD
-    subgraph "Workflow Definition"
-        DEF[Natural Language: "Deploy my app safely"]
-    end
-    
-    subgraph "AI Generation"
-        GEN[ADK Generates DAG]
-    end
-    
-    subgraph "Execution DAG"
-        TEST[Run Tests<br/>node:18]
-        AI[Analyze Results<br/>inline_agent]
-        
-        BUILD[Build Image<br/>docker:dind]
-        DEPLOY[Deploy to K8s<br/>kubectl:latest]
-        NOTIFY[Send Notification<br/>slack-cli:latest]
-        
-        ALERT[Create Incident<br/>pagerduty:latest]
-    end
-    
-    DEF --> GEN
-    GEN --> TEST
-    
-    TEST --> AI
-    AI -->|"Safe"| BUILD
-    AI -->|"Issues"| ALERT
-    
-    BUILD --> DEPLOY
-    DEPLOY --> NOTIFY
-    
-    style DEF fill:#E1BEE7,stroke:#333,stroke-width:2px
-    style GEN fill:#9C27B0,stroke:#333,stroke-width:3px,color:#fff
-    style AI fill:#FFF59D,stroke:#333,stroke-width:2px
-    style BUILD fill:#4CAF50,stroke:#333,stroke-width:2px
-    style ALERT fill:#FF5252,stroke:#333,stroke-width:2px,color:#fff
+**Reliable:** Same inputs produce same outputs every time - no surprises in production.
+
+**Isolated:** Each step runs in its own container, preventing conflicts and dependency issues.
+
+**Language-agnostic:** Use Python, Node.js, Go, or any language/tool you need.
+
+**AI-enhanced:** Include intelligent agents that can make decisions and use tools.
+
+**Scalable:** Steps run in parallel when possible, and the system scales automatically.
+
+## Common workflow patterns
+
+**Deployment pipeline:**
+Tests → Build → Deploy → Verify
+
+**Data processing:**
+Extract → Transform → Validate → Load
+
+**Incident response:**
+Detect → Analyze → Execute fix → Notify team
+
+**Code review:**
+Fetch changes → AI analysis → Post feedback
+
+## Container execution
+
+Every step runs in its own container:
+
+- Use any Docker image (Python, Node.js, custom tools)
+- No shared state between steps
+- Clean environment for each operation
+- Automatic resource management
+
+```python
+# Different containers for different tasks
+step.analyze(image="python:3.11", script="analyze.py")
+step.build(image="node:18", command="npm run build") 
+step.deploy(image="kubectl:latest", command="kubectl apply -f app.yaml")
 ```
 
-## Benefits of Kubiya Workflows
+## AI integration
 
-### 1. **Predictability**
-- Deterministic execution paths
-- No agent wandering or infinite loops
-- Clear audit trails
+Include intelligent agents in workflows:
 
-### 2. **Flexibility**
-- Use any programming language
-- Integrate any tool or service
-- Mix AI and traditional logic
+```python
+# AI agent analyzes logs and decides next action
+analysis = step.inline_agent(
+    message="Analyze these error logs and suggest fixes",
+    tools=[log_parser_tool, fix_generator_tool]
+)
 
-### 3. **Scalability**
-- Parallel execution by default
-- Kubernetes-native scaling
-- Efficient resource usage
-
-### 4. **Maintainability**
-- Version control friendly
-- Easy to test and debug
-- Clear dependencies
-
-## Common Patterns
-
-### ETL Pipeline
-```mermaid
-graph LR
-    E[Extract<br/>postgres:15] --> T[Transform<br/>apache/spark:3.4]
-    T --> L[Load<br/>snowflake/client:latest]
+# Use AI decision in next step
+if analysis.severity == "high":
+    step.emergency_response()
+else:
+    step.create_ticket()
 ```
 
-### CI/CD Pipeline
-```mermaid
-graph LR
-    TEST[Test<br/>node:18] --> BUILD[Build<br/>docker:dind]
-    BUILD --> DEPLOY[Deploy<br/>kubectl:latest]
-    DEPLOY --> SMOKE[Smoke Test<br/>cypress:latest]
+## Error handling
+
+Built-in resilience patterns:
+
+```python
+step.fetch_data(
+    retry=3,                    # Retry failed steps
+    timeout="5m",              # Set time limits
+    on_failure="send_alert"    # Handle failures
+)
 ```
 
-### Data Science Pipeline
-```mermaid
-graph LR
-    DATA[Fetch Data<br/>python:3.11] --> PREP[Preprocess<br/>pandas:latest]
-    PREP --> TRAIN[Train Model<br/>tensorflow:latest]
-    TRAIN --> EVAL[Evaluate<br/>mlflow:latest]
-```
+## Getting started
 
-## Next Steps
+**Define workflow:** Write steps and their dependencies
 
-Ready to build your first workflow?
+**Test locally:** Run workflows in development environment
 
-<CardGroup cols={2}>
-  <Card title="Workflow Architecture" icon="building" href="/workflows/architecture">
-    Deep dive into execution model
-  </Card>
-  <Card title="DSL Reference" icon="code" href="/workflows/dsl-reference">
-    Complete workflow syntax guide
-  </Card>
-  <Card title="Examples" icon="lightbulb" href="/workflows/examples">
-    Real-world workflow patterns
-  </Card>
-  <Card title="Quick Start" icon="rocket" href="/getting-started/quickstart">
-    Build your first workflow
-  </Card>
-</CardGroup> 
+**Deploy to production:** Execute on your infrastructure with runners
+
+**Monitor execution:** Track progress and debug issues
+
+---
+
+**Next:** Try building your first workflow with our [examples](/workflows/examples) or [quick start guide](/getting-started/quickstart). 

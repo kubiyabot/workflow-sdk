@@ -141,15 +141,15 @@
           {
             "group": "Full-Stack Agents",
             "pages": [
-              "mcp/full-stack-agents/overview",
-              "mcp/full-stack-agents/architecture",
-              "mcp/full-stack-agents/quickstart",
-              "mcp/full-stack-agents/examples",
+              "mcpserver/full-stack-agents/overview",
+              "mcpserver/full-stack-agents/architecture",
+              "mcpserver/full-stack-agents/quickstart",
+              "mcpserver/full-stack-agents/examples",
               {
                 "group": "Existing Frameworks",
                 "pages": [
-                  "mcp/full-stack-agents/existing-frameworks/overview",
-                  "mcp/full-stack-agents/existing-frameworks/langgraph"
+                  "mcpserver/full-stack-agents/existing-frameworks/overview",
+                  "mcpserver/full-stack-agents/existing-frameworks/langgraph"
                 ]
               }
             ]
@@ -157,8 +157,8 @@
           {
             "group": "Streaming UI",
             "pages": [
-              "mcp/streaming-ui/overview",
-              "mcp/streaming-ui/vercel-ai-sdk"
+              "mcpserver/streaming-ui/overview",
+              "mcpserver/streaming-ui/vercel-ai-sdk"
             ]
           },
           {
@@ -197,9 +197,9 @@
           {
             "group": "MCP Server APIs",
             "pages": [
-              "api-reference/mcpserver/overview",
-              "api-reference/mcpserver/tools",
-              "api-reference/mcpserver/protocol"
+              "api-reference/mcp/overview",
+              "api-reference/mcp/tools",
+              "api-reference/mcp/protocol"
             ]
           },
           {

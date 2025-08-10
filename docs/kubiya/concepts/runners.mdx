@@ -1,236 +1,86 @@
 ---
 title: Runners
-description: Understanding Kubiya runners and how they execute workflows on your infrastructure
+description: Execution engines that run workflows securely on your infrastructure
 icon: server
 ---
 
-# Runners
+Runners execute workflows on your infrastructure - keeping your data secure while connecting to Kubiya's coordination platform.
 
-Kubiya Runners are the execution engines that bring workflows to life. They are Kubernetes operators that orchestrate containers securely within your infrastructure, ensuring your data never leaves your environment while providing enterprise-grade workflow execution.
+## What runners do
 
-## What is a Runner?
+**Execute workflows:** Run each workflow step in isolated containers for security and reliability.
 
-A Kubiya Runner is:
-- A **Kubernetes operator** that manages workflow execution
-- Deployed in **your infrastructure** (K8s cluster)
-- Connects to Kubiya platform for **workflow coordination**
-- Executes workflow steps as **Kubernetes pods**
-- Provides **secure isolation** between executions
+**Stay in your infrastructure:** All data and execution happens on your servers, never leaves your environment.
 
-## Runner Architecture
+**Connect to Kubiya:** Receive workflow instructions and report results back to the platform.
 
-```mermaid
-graph TB
-    subgraph "Kubiya Platform"
-        API[Kubiya API]
-        WQ[Workflow Queue]
-        SM[State Manager]
-    end
-    
-    subgraph "Your Kubernetes Cluster"
-        subgraph "Runner Pod"
-            OP[Operator]
-            CTRL[Controller]
-            EXEC[Executor]
-        end
-        
-        subgraph "Workflow Executions"
-            P1[Step Pod 1]
-            P2[Step Pod 2]
-            P3[Step Pod N]
-        end
-        
-        SEC[Secrets]
-        CM[ConfigMaps]
-        PV[Volumes]
-    end
-    
-    API <--> OP
-    OP --> CTRL
-    CTRL --> EXEC
-    EXEC --> P1
-    EXEC --> P2
-    EXEC --> P3
-    
-    P1 --> SEC
-    P2 --> CM
-    P3 --> PV
-    
-    style OP fill:#0088ff,stroke:#0066cc,stroke-width:3px
-    style EXEC fill:#00d4ff,stroke:#0066cc,stroke-width:2px
-```
+**Manage resources:** Handle container orchestration, secrets, networking, and storage automatically.
 
-## Types of Runners
+## Two deployment options
 
-### Local Runners
+### Self-hosted runners (recommended for production)
 
-Deploy runners in your own infrastructure for complete control:
-
-- **Your Infrastructure**: Run in your Kubernetes cluster, VMs, or bare metal
-- **Network Isolation**: Keep sensitive data within your network
-- **Custom Configuration**: Tailor resources to your needs
-- **Compliance**: Meet regulatory requirements
-
-#### Deployment Options
-
-1. **Helm Chart** (Recommended)
-   ```bash
-   helm repo add kubiya https://charts.kubiya.ai
-   helm install my-runner kubiya/kubiya-runner \
-     --namespace kubiya \
-     --create-namespace
-   ```
-   
-   See the [Helm Chart documentation](/deployment/helm-chart) for detailed configuration options.
-
-2. **Kubernetes Manifest**
-   - Create runner in Kubiya platform
-   - Download generated manifest
-   - Apply to your cluster
-
-3. **Docker**
-   - For development/testing only
-   - Not recommended for production
-
-<Note>
-  Local runners require outbound HTTPS connectivity to Kubiya's control plane for management and coordination. Your data and workflows remain within your infrastructure.
-</Note>
-
-### Hosted Runners
-
-Managed by Kubiya for quick starts:
-
-<CardGroup cols={2}>
-  <Card title="Zero Setup" icon="rocket">
-    Start executing workflows immediately without any infrastructure setup
-  </Card>
-  <Card title="Managed Updates" icon="arrows-rotate">
-    Automatic updates and maintenance handled by Kubiya
-  </Card>
-  <Card title="Elastic Scaling" icon="expand">
-    Automatically scales based on workload without capacity planning
-  </Card>
-  <Card title="Development" icon="code">
-    Perfect for development, testing, and proof-of-concepts
-  </Card>
-</CardGroup>
-
-## How Runners Work
-
-### 1. Connection & Authentication
-
-```mermaid
-sequenceDiagram
-    participant R as Runner
-    participant K as Kubiya API
-    participant CR as Cluster RBAC
-    
-    R->>K: Authenticate with token
-    K->>R: Return JWT
-    R->>CR: Create service account
-    CR->>R: Grant permissions
-    R->>K: Register as available
-```
-
-The runner:
-- Authenticates with Kubiya using a secure token
-- Establishes a persistent connection
-- Registers its capabilities and constraints
-- Begins polling for assigned workflows
-
-### 2. Workflow Execution
-
-When a workflow is assigned:
-
-```yaml
-# Runner creates pods like this for each step
-apiVersion: v1
-kind: Pod
-metadata:
-  name: workflow-${id}-step-${name}
-  labels:
-    kubiya.ai/workflow: ${workflow_id}
-    kubiya.ai/step: ${step_name}
-    kubiya.ai/runner: ${runner_name}
-spec:
-  containers:
-  - name: step
-    image: ${step.image}
-    command: ${step.command}
-    env: ${step.env}
-    resources:
-      requests:
-        memory: ${step.resources.memory}
-        cpu: ${step.resources.cpu}
-  restartPolicy: Never
-  serviceAccountName: kubiya-workflow
-```
-
-### 3. Resource Management
-
-Runners manage:
-- **Pod lifecycle**: Creation, monitoring, cleanup
-- **Resource limits**: CPU, memory, GPU allocation
-- **Storage**: Volume mounts and persistent data
-- **Networking**: Service discovery and policies
-- **Secrets**: Secure injection of credentials
-
-### 4. Security Model
-
-```mermaid
-graph TB
-    subgraph "Security Layers"
-        NET[Network Policies]
-        RBAC[RBAC Policies]
-        SA[Service Accounts]
-        SEC[Secret Management]
-        POD[Pod Security]
-    end
-    
-    subgraph "Isolation"
-        NS[Namespace Isolation]
-        PS[Pod Security Standards]
-        NP[Network Segmentation]
-    end
-    
-    NET --> NS
-    RBAC --> SA
-    SEC --> PS
-    POD --> NP
-    
-    style RBAC fill:#0088ff,stroke:#0066cc,stroke-width:2px
-    style SEC fill:#00d4ff,stroke:#0066cc,stroke-width:2px
-```
-
-## Deployment Options
-
-### Helm Chart Installation
-
-The recommended way to deploy runners:
+Run on your own Kubernetes cluster:
 
 ```bash
-# Add Kubiya Helm repository
 helm repo add kubiya https://charts.kubiya.ai
-helm repo update
-
-# Install runner
-helm install kubiya-runner kubiya/runner \
+helm install my-runner kubiya/kubiya-runner \
   --namespace kubiya \
   --create-namespace \
-  --set runner.token=${RUNNER_TOKEN} \
-  --set runner.name=production-runner
+  --set runner.token=${RUNNER_TOKEN}
 ```
 
-### Configuration Options
+**Benefits:**
+- Complete data control and security
+- Custom resource allocation
+- Integration with existing monitoring
+- Compliance with internal policies
+
+**Requirements:**
+- Kubernetes cluster
+- Outbound HTTPS access to Kubiya API
+- Sufficient resources for workflow execution
+
+### Hosted runners (quick start)
+
+Managed by Kubiya for immediate use:
+
+- Zero infrastructure setup required
+- Automatic updates and scaling
+- Perfect for development and testing
+- No capacity planning needed
+
+**Note:** Hosted runners are shared infrastructure - use self-hosted for production workloads.
+
+## How runners work
+
+1. **Connect:** Runner authenticates with Kubiya using a secure token
+2. **Receive:** Gets workflow assignments from Kubiya's coordination platform  
+3. **Execute:** Runs each step in isolated containers with proper resources
+4. **Report:** Sends results, logs, and status back to Kubiya
+5. **Clean up:** Removes containers and temporary resources after completion
+
+## Security model
+
+**Container isolation:** Each step runs in its own container, preventing conflicts and ensuring clean environments.
+
+**Network policies:** Only necessary network access is allowed, with outbound HTTPS to Kubiya API.
+
+**Secret management:** Credentials are encrypted and injected securely into workflow steps.
+
+**RBAC:** Fine-grained permissions control what runners can do in your cluster.
+
+**Audit logs:** Complete record of all workflow executions for compliance.
+
+## Configuration example
 
 ```yaml
-# values.yaml
+# Basic runner configuration
 runner:
-  # Runner identification
   name: production-runner
   token: ${RUNNER_TOKEN}
   
-  # Resource allocation
+  # Resource limits
   resources:
     requests:
       memory: "256Mi"
@@ -239,311 +89,42 @@ runner:
       memory: "1Gi"
       cpu: "500m"
   
-  # Workflow execution
+  # Workflow settings
   workflow:
     namespace: kubiya-workflows
-    serviceAccount: kubiya-executor
     defaultTimeout: 30m
     maxConcurrent: 10
   
   # Security
   security:
-    podSecurityStandard: restricted
-    allowPrivileged: false
     runAsNonRoot: true
-  
-  # Networking
-  network:
-    dnsPolicy: ClusterFirst
-    enableServiceLinks: false
-  
-  # Storage
-  storage:
-    workspaceSize: 10Gi
-    storageClass: fast-ssd
+    allowPrivileged: false
 ```
 
-### kubectl Installation
+## Common troubleshooting
 
-For quick testing:
+**Runner won't connect:**
+- Verify token is valid
+- Check outbound HTTPS connectivity
+- Ensure DNS can resolve Kubiya API
 
-```bash
-# Create namespace
-kubectl create namespace kubiya
+**Workflows fail to start:**
+- Check RBAC permissions
+- Verify resource quotas
+- Ensure container images are accessible
 
-# Create secret with token
-kubectl create secret generic kubiya-runner-token \
-  --from-literal=token=${RUNNER_TOKEN} \
-  -n kubiya
+**Performance issues:**
+- Increase resource limits
+- Check node capacity
+- Monitor image pull times
 
-# Apply runner manifest
-kubectl apply -f https://get.kubiya.ai/runner.yaml
-```
+## Getting started
 
-## Runner Capabilities
+1. **Choose deployment:** Self-hosted for production, hosted for testing
+2. **Install runner:** Use Helm chart or kubectl manifests
+3. **Test connectivity:** Verify runner shows as online in Kubiya
+4. **Run first workflow:** Execute a simple workflow to confirm everything works
 
-### Container Orchestration
+---
 
-Runners can orchestrate any container:
-
-```python
-# Python containers
-step.analyze(
-    image="python:3.11-slim",
-    command=["python", "analyze.py"]
-)
-
-# Node.js applications
-step.build(
-    image="node:18-alpine",
-    command=["npm", "run", "build"]
-)
-
-# Custom tools
-step.security_scan(
-    image="aquasec/trivy:latest",
-    command=["trivy", "image", "myapp:latest"]
-)
-
-# Cloud CLIs
-step.deploy(
-    image="amazon/aws-cli:latest",
-    command=["aws", "ecs", "update-service"]
-)
-```
-
-### Advanced Features
-
-#### 1. Sidecar Containers
-
-Run multiple containers in a step:
-
-```python
-step.database_migration(
-    image="migrate:latest",
-    sidecars=[
-        {
-            "name": "postgres",
-            "image": "postgres:15",
-            "env": {"POSTGRES_PASSWORD": "temp"}
-        }
-    ]
-)
-```
-
-#### 2. Init Containers
-
-Prepare environment before main container:
-
-```python
-step.process(
-    image="processor:latest",
-    init_containers=[
-        {
-            "name": "download-data",
-            "image": "aws-cli:latest",
-            "command": ["aws", "s3", "sync", "s3://data", "/data"]
-        }
-    ]
-)
-```
-
-#### 3. Volume Management
-
-Share data between steps:
-
-```python
-# Create volume
-volume = workflow.create_volume("shared-data", size="5Gi")
-
-# Write data
-step.generate(
-    image="generator:latest",
-    volumes=[{"name": "data", "mount": "/output", "volume": volume}]
-)
-
-# Read data
-step.process(
-    image="processor:latest",
-    volumes=[{"name": "data", "mount": "/input", "volume": volume}]
-)
-```
-
-## Monitoring & Observability
-
-### Runner Metrics
-
-Exposed via Prometheus:
-
-```prometheus
-# Runner health
-kubiya_runner_up{runner="production"} 1
-
-# Workflow execution
-kubiya_workflows_running{runner="production"} 5
-kubiya_workflows_completed{runner="production",status="success"} 142
-kubiya_workflows_completed{runner="production",status="failed"} 3
-
-# Resource usage
-kubiya_runner_cpu_usage{runner="production"} 0.45
-kubiya_runner_memory_usage{runner="production"} 0.72
-
-# Step execution times
-kubiya_step_duration_seconds{step="build",percentile="p99"} 45.2
-```
-
-### Logging
-
-Structured logging with context:
-
-```json
-{
-  "timestamp": "2024-01-10T10:30:45Z",
-  "level": "info",
-  "runner": "production-runner",
-  "workflow_id": "wf-123",
-  "step_name": "deploy",
-  "message": "Starting step execution",
-  "image": "kubectl:latest",
-  "namespace": "kubiya-workflows"
-}
-```
-
-### Health Checks
-
-Built-in health endpoints:
-
-```bash
-# Liveness probe
-curl http://runner:8080/healthz
-
-# Readiness probe
-curl http://runner:8080/ready
-
-# Metrics
-curl http://runner:8080/metrics
-```
-
-## Security Best Practices
-
-### 1. Network Isolation
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: kubiya-runner-policy
-spec:
-  podSelector:
-    matchLabels:
-      app: kubiya-runner
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: kubiya
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          name: kubiya
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 443  # HTTPS only
-```
-
-### 2. RBAC Configuration
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: kubiya-runner
-rules:
-- apiGroups: [""]
-  resources: ["pods", "pods/log"]
-  verbs: ["create", "get", "list", "watch", "delete"]
-- apiGroups: [""]
-  resources: ["configmaps", "secrets"]
-  verbs: ["get", "list"]
-- apiGroups: [""]
-  resources: ["persistentvolumeclaims"]
-  verbs: ["create", "get", "delete"]
-```
-
-### 3. Pod Security Standards
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kubiya-workflows
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
-```
-
-## Troubleshooting
-
-### Common Issues
-
-<AccordionGroup>
-  <Accordion title="Runner not connecting" icon="plug">
-    Check:
-    - Runner token is valid
-    - Network connectivity to Kubiya API
-    - Firewall rules allow outbound HTTPS
-    - DNS resolution works
-    
-    ```bash
-    kubectl logs -n kubiya deployment/kubiya-runner
-    ```
-  </Accordion>
-  
-  <Accordion title="Workflows not executing" icon="pause">
-    Verify:
-    - Runner has sufficient permissions
-    - Resource quotas not exceeded
-    - Image pull secrets configured
-    - Node resources available
-    
-    ```bash
-    kubectl describe pod -n kubiya-workflows
-    ```
-  </Accordion>
-  
-  <Accordion title="Performance issues" icon="gauge">
-    Investigate:
-    - CPU/memory limits too low
-    - Network latency
-    - Image pull times
-    - Node scheduling constraints
-    
-    ```bash
-    kubectl top pods -n kubiya-workflows
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Deploy a Runner" icon="rocket" href="/runners/kubernetes-operator">
-    Step-by-step runner deployment
-  </Card>
-  <Card title="Security Guide" icon="shield" href="/runners/security">
-    Secure your runner deployment
-  </Card>
-  <Card title="Local Development" icon="laptop" href="/runners/local-runners">
-    Set up local runners
-  </Card>
-  <Card title="Monitoring" icon="chart-line" href="/deployment/production">
-    Production monitoring setup
-  </Card>
-</CardGroup> 
+**Next:** [Deploy a runner](/runners/kubernetes-operator) or [learn about security](/runners/security) 

@@ -1,172 +1,82 @@
 ---
 title: "Why Kubiya?"
 sidebarTitle: "Why Kubiya?"
-description: The advantages of deterministic workflows over chaotic AI agents
-icon: lightbulb
+description: "The advantages of AI automation that actually works in production"
+icon: "lightbulb"
 ---
 
-# Why Choose Kubiya?
+Kubiya combines the intelligence of AI with the reliability of traditional automation.
 
-## The Problem with Traditional Approaches
+## The problem with other approaches
 
-### AI Agent Frameworks: Unpredictable Chaos
-- **Non-deterministic**: Same input can produce different execution paths
-- **Hard to debug**: Complex agent interactions make troubleshooting nearly impossible
-- **Production risks**: Unpredictable behavior in critical environments
-- **State management hell**: Agents accumulate state leading to drift
+**Pure AI agents** are unpredictable:
+- Same request might do different things each time
+- Hard to debug when something goes wrong  
+- Can't trust them with critical infrastructure
+- Might "hallucinate" or go off track
 
-### Traditional Orchestrators: Manual Complexity
-- **No AI capabilities**: Everything must be manually coded
-- **Steep learning curve**: Complex DSLs and configurations
-- **Limited flexibility**: Hard to adapt to changing requirements
-- **Slow development**: Every workflow requires extensive coding
+**Traditional automation** is too rigid:
+- Requires extensive coding for every scenario
+- Can't adapt to new situations
+- Needs constant maintenance as systems change
+- No natural language interface
 
-## The Kubiya Solution
+## Kubiya's approach
 
-<CardGroup cols={2}>
-  <Card title="AI-Powered Generation" icon="brain">
-    Natural language to workflow in seconds
-  </Card>
-  <Card title="Deterministic Execution" icon="route">
-    Same input always produces same result
-  </Card>
-  <Card title="Container Isolation" icon="shield">
-    Every step runs in its own secure container
-  </Card>
-  <Card title="Universal Compatibility" icon="globe">
-    Run any language, tool, or software
-  </Card>
-</CardGroup>
+**AI for understanding** - Tell it what you want in plain English and it figures out the steps.
 
-## Key Differentiators
+**Deterministic execution** - Once the plan is made, it follows it exactly every time.
 
-### 1. **Deterministic by Design**
-```mermaid
-graph LR
-    A[Input] --> B[Workflow]
-    B --> C[Step 1]
-    C --> D[Step 2]
-    D --> E[Step 3]
-    E --> F[Output]
-    
-    style B fill:#4CAF50
-    style F fill:#2196F3
-```
+**Container isolation** - Each step runs safely in its own environment.
 
-Unlike agent frameworks where execution paths vary, Kubiya workflows follow the exact same path every time.
+**Rich integrations** - Works with all your existing tools and systems.
 
-### 2. **Application Layer Security**
-- No direct infrastructure access required
-- No god-mode Kubernetes permissions
-- Complete audit trail of all actions
-- Runs in isolated containers
+## Real benefits
 
-### 3. **AI as a Tool, Not a Controller**
-```python
-# AI generates the workflow
-workflow = adk.compose("Deploy my app with health checks")
+**For DevOps teams:**
+- Deploy faster without sacrificing reliability
+- Automate incident response consistently
+- Scale operations without hiring more people
+- Reduce human error in critical tasks
 
-# But execution is deterministic
-result = execute_workflow(workflow)  # Same result every time
-```
+**For platform teams:**
+- Enable self-service without writing custom tools
+- Standardize processes across teams
+- Maintain security and compliance guardrails
+- Integrate disparate systems easily
 
-### 4. **Production-Ready from Day One**
-- Built-in error handling and retries
-- Comprehensive logging and monitoring
-- Rollback capabilities
-- Health checks and validations
+**For engineering leaders:**
+- Increase team productivity measurably
+- Reduce operational risk through consistency
+- Scale engineering operations efficiently
+- Get AI benefits without AI risks
 
-## Comparison Matrix
+## When Kubiya makes sense
 
-| Feature | Agent Frameworks | Traditional Orchestrators | Kubiya |
-|---------|-----------------|-------------------------|---------|
-| **AI Capabilities** | ✅ Deep but chaotic | ❌ None | ✅ AI-generated, deterministic |
-| **Predictability** | ❌ Non-deterministic | ✅ Deterministic | ✅ Deterministic |
-| **Debugging** | ❌ Nearly impossible | ⚠️ Complex | ✅ Step-by-step visibility |
-| **Setup Time** | Days/Weeks | Days/Weeks | Minutes |
-| **Language Support** | Limited | Limited | ✅ Universal |
-| **Production Safety** | ❌ High risk | ✅ Safe but rigid | ✅ Safe and flexible |
+✅ **You have repetitive operational tasks** that could be automated
 
-## Real-World Benefits
+✅ **Your team uses multiple tools** that don't integrate well
 
-### For DevOps Teams
-- **Faster automation**: Natural language to production workflow in minutes
-- **Reduced errors**: Deterministic execution eliminates surprises
-- **Easy maintenance**: Clear, auditable workflow definitions
-- **Universal tooling**: Use any tool or language you prefer
+✅ **You want AI benefits** but need production reliability
 
-### For Security Teams
-- **No infrastructure access**: Workflows run in isolated containers
-- **Complete audit trails**: Every action is logged and traceable
-- **Least privilege**: Only the permissions needed for each step
-- **Compliance ready**: SOC2, GDPR compliant platform
+✅ **You want to scale operations** without linear headcount growth
 
-### For Development Teams
-- **Rapid prototyping**: Test ideas quickly with AI generation
-- **Language agnostic**: Use Python, Go, Node.js, or any language
-- **Version control**: Workflows are just code, use Git naturally
-- **Testing friendly**: Deterministic = easily testable
+❌ **You only have simple, single-tool workflows** (basic automation might be enough)
 
-## Success Stories
+❌ **You need creative, open-ended AI** (try ChatGPT or Claude directly)
 
-### Before Kubiya
-- 🔴 3 days to build a deployment pipeline
-- 🔴 Constant debugging of agent behavior
-- 🔴 Production incidents from unpredictable AI
-- 🔴 Complex state management code
+❌ **You have unlimited engineering resources** (custom solutions might work)
 
-### After Kubiya
-- ✅ 30 minutes from idea to production
-- ✅ Predictable, debuggable workflows
-- ✅ Zero AI-related production incidents
-- ✅ Simple, declarative workflows
+## Getting started
 
-## The Bottom Line
+**Try the CLI first** - See how it works with no setup required.
 
-Kubiya provides the best of both worlds:
-- **AI power** for rapid workflow generation
-- **Deterministic execution** for production reliability
-- **Container isolation** for security
-- **Universal compatibility** for flexibility
+**Connect one integration** - Start with a tool you use daily.
 
-## Get Started Today
+**Automate one workflow** - Pick something you do manually every week.
 
-<Steps>
-  <Step title="Install SDK">
-    ```bash
-    pip install kubiya-workflow-sdk
-    ```
-  </Step>
-  
-  <Step title="Generate Your First Workflow">
-    ```python
-    from kubiya_workflow_sdk.providers import get_provider
-    
-    adk = get_provider("adk", api_key="YOUR_KEY")
-    workflow = await adk.compose("Create a backup of my database")
-    ```
-  </Step>
-  
-  <Step title="Deploy with Confidence">
-    ```python
-    result = execute_workflow(workflow)  # Deterministic execution
-    ```
-  </Step>
-</Steps>
+**Scale gradually** - Add more tools and workflows as you build confidence.
 
-## Learn More
+---
 
-<CardGroup cols={2}>
-  <Card title="Platform Overview" icon="layer-group" href="/concepts/platform-overview">
-    Understand the architecture
-  </Card>
-  <Card title="Quickstart" icon="rocket" href="/getting-started/quickstart">
-    Build your first workflow
-  </Card>
-  <Card title="Agent Comparison" icon="balance-scale" href="/concepts/agent-frameworks-comparison">
-    Detailed framework comparison
-  </Card>
-  <Card title="Examples" icon="lightbulb" href="/sdk/examples">
-    Real-world use cases
-  </Card>
-</CardGroup> 
+**The goal:** Make your team more effective without making your systems less reliable.
