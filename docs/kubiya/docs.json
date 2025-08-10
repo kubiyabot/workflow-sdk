@@ -75,6 +75,27 @@
             ]
           },
           {
+            "group": "Composer (Web Interface)",
+            "pages": [
+              "composer/overview",
+              "composer/getting-started",
+              "composer/task-chat",
+              "composer/workflow-designer",
+              "composer/context-graph",
+              "composer/agents",
+              "composer/tools",
+              "composer/settings",
+              "composer/mcp-integration",
+              {
+                "group": "Features",
+                "pages": [
+                  "composer/features/dashboard",
+                  "composer/features/integrations"
+                ]
+              }
+            ]
+          },
+          {
             "group": "Core Concepts",
             "pages": [
               "concepts/platform-overview",

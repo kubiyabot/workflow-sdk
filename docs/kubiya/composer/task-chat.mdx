@@ -1,0 +1,425 @@
+---
+title: "Task Chat & Agent Interaction"
+description: "Complete guide to using the interactive chat interface for AI agent communication and task execution"
+icon: "comments"
+---
+
+# Task Chat & Agent Interaction
+
+The Task Chat interface is Composer's primary interaction method with AI agents. It provides a natural language interface for creating, monitoring, and managing automated tasks in real-time.
+
+## Interface Overview
+
+### Chat Layout Components
+
+<CardGroup cols={2}>
+  <Card title="Message Area" icon="message">
+    Scrollable conversation history with user messages and agent responses
+  </Card>
+  <Card title="Input Panel" icon="keyboard">
+    Text input area with formatting tools and attachment options
+  </Card>
+  <Card title="Agent Info Panel" icon="robot">
+    Current agent details, capabilities, and status information
+  </Card>
+  <Card title="Task Status Bar" icon="progress">
+    Real-time execution progress and status indicators
+  </Card>
+</CardGroup>
+
+### Agent Information Display
+The agent panel shows:
+```yaml
+Agent Details:
+  Name: "DevOps Assistant"
+  Status: "🟢 Available"
+  Capabilities: "Infrastructure, Deployment, Monitoring"
+  Tools Available: 47
+  Response Time: "~2.3s average"
+  Success Rate: "94.7%"
+```
+
+## Starting a Task Chat
+
+### Creating a New Chat Session
+
+<Steps>
+  <Step title="Navigate to Tasks">
+    Click **"Tasks"** in the main navigation or use the **"Start New Task"** quick action
+  </Step>
+  
+  <Step title="Select Agent (Optional)">
+    Choose a specific agent or let the system auto-select based on your request
+  </Step>
+  
+  <Step title="Begin Conversation">
+    Type your request in natural language and press Enter or click **"Send"**
+  </Step>
+</Steps>
+
+### Example Opening Messages
+Here are effective ways to start different types of tasks:
+
+#### Infrastructure Management
+```
+"I need to deploy a new microservice to our Kubernetes cluster. 
+The image is my-app:v2.1.0 and it needs 3 replicas with load balancing."
+```
+
+#### Data Operations  
+```
+"Can you help me analyze the logs from yesterday's production incident? 
+I need to identify error patterns and affected users."
+```
+
+#### Development Tasks
+```
+"Create a new feature branch called 'user-authentication' and 
+set up the initial project structure with authentication middleware."
+```
+
+## Message Types and Formatting
+
+### Text Messages
+Standard conversational messages for:
+- Task requests and clarifications
+- Progress updates and confirmations
+- Questions and troubleshooting
+
+### Rich Message Features
+
+#### Code Blocks
+Agents can display formatted code:
+````markdown
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+```
+````
+
+#### Interactive Elements
+- **Action Buttons**: Quick response options
+- **File Downloads**: Generated reports and configs
+- **Links**: Related resources and documentation
+- **Tables**: Structured data display
+
+#### Tool Execution Display
+When agents execute tools, you'll see:
+```yaml
+Tool Execution:
+  🔧 Tool: kubectl-deploy
+  ⚡ Status: Running...
+  📝 Command: kubectl apply -f deployment.yaml
+  ⏱️  Duration: 00:00:15
+  ✅ Result: Deployment successful
+```
+
+## Agent Response Types
+
+### Confirmation Responses
+Agents will ask for confirmation before:
+- Making changes to production systems
+- Deleting resources or data
+- Executing potentially dangerous operations
+- Spending budget or resources
+
+Example:
+```
+Agent: "I'm ready to deploy the application to production. This will:
+       - Update the running containers with version 2.1.0
+       - Restart 3 pods with brief downtime (~30 seconds)
+       - Update the load balancer configuration
+       
+       Should I proceed with the deployment? (Yes/No)"
+```
+
+### Progress Updates
+For long-running tasks, agents provide regular updates:
+```
+Agent: "🔄 Step 1/4: Pulling container image (Complete)
+       🔄 Step 2/4: Validating configuration (Complete)  
+       ⚡ Step 3/4: Rolling out deployment (In Progress - 2/3 pods ready)
+       ⏳ Step 4/4: Updating load balancer (Pending)"
+```
+
+### Error Handling
+When issues occur, agents provide:
+- **Clear Error Description**: What went wrong
+- **Root Cause Analysis**: Why it happened  
+- **Resolution Options**: How to fix it
+- **Prevention Suggestions**: Avoid future issues
+
+## Advanced Chat Features
+
+### Multi-Turn Conversations
+Maintain context across multiple exchanges:
+
+```
+User: "Deploy the user service to staging"
+Agent: "Deployment completed. 3 pods are running and healthy."
+
+User: "Now run the integration tests"  
+Agent: "Running tests against the newly deployed staging environment..."
+
+User: "If tests pass, promote to production"
+Agent: "Tests passed! Promoting to production with the same configuration..."
+```
+
+### Context References
+Reference previous tasks and results:
+- **"Use the same configuration as before"**
+- **"Apply this to the database we set up yesterday"**
+- **"Check the logs from the previous deployment"**
+
+### Follow-up Tasks
+Chain related operations naturally:
+```
+User: "Set up monitoring for the new service"
+Agent: "I've configured Prometheus scraping and Grafana dashboards. 
+       Would you like me to set up alerting rules as well?"
+
+User: "Yes, alert if response time exceeds 500ms or error rate is above 1%"
+Agent: "Alerting rules configured. I'll also set up PagerDuty integration 
+       for critical alerts. Should I create an incident response runbook?"
+```
+
+## Task Execution Monitoring
+
+### Real-Time Status Tracking
+The interface provides live updates on:
+
+#### Execution Progress
+```yaml
+Task Status: "Deployment in Progress"
+Current Step: "Rolling Update (2/3 pods ready)"
+Estimated Time: "30 seconds remaining"
+Progress Bar: ████████░░ 80%
+```
+
+#### Resource Usage
+- **CPU Usage**: Current processing load
+- **Memory Usage**: RAM consumption  
+- **Network I/O**: Data transfer rates
+- **API Calls**: External service requests
+
+### Execution Logs
+Detailed logging for troubleshooting:
+
+<Tabs>
+  <Tab title="Summary View">
+    High-level task progress and key milestones
+  </Tab>
+  
+  <Tab title="Detailed Logs">
+    Complete command output and system responses
+  </Tab>
+  
+  <Tab title="Error Logs">
+    Filtered view of warnings and errors only
+  </Tab>
+  
+  <Tab title="Performance">
+    Timing information and resource usage metrics
+  </Tab>
+</Tabs>
+
+## Artifacts and File Management
+
+### Generated Artifacts
+Agents can create and share various file types:
+
+#### Configuration Files
+```yaml
+Generated Files:
+  - kubernetes-deployment.yaml
+  - nginx-config.conf  
+  - docker-compose.yml
+  - environment-variables.env
+```
+
+#### Reports and Documentation
+- **Task Execution Reports**: Summary of completed work
+- **System Analysis Reports**: Infrastructure assessments
+- **Incident Reports**: Troubleshooting documentation
+- **API Documentation**: Generated from code analysis
+
+### Artifact Actions
+For each generated file, you can:
+- **📥 Download**: Save to your local machine
+- **👁️ Preview**: View contents in the browser
+- **📋 Copy**: Copy contents to clipboard
+- **🔗 Share**: Generate shareable links
+- **📝 Edit**: Modify using built-in editor
+
+### File Uploads
+Upload files to provide context:
+- **Configuration Files**: For modification or deployment
+- **Log Files**: For analysis and troubleshooting  
+- **Documentation**: For reference during tasks
+- **Images**: Screenshots or diagrams
+
+## Collaborative Features
+
+### Shared Chat Sessions
+Multiple team members can participate in the same chat:
+
+#### Real-Time Collaboration
+- **Live Typing Indicators**: See when others are typing
+- **Message Threading**: Organize related discussions
+- **@Mentions**: Tag specific team members
+- **Role-Based Visibility**: Control who can see sensitive information
+
+#### Handoff Capabilities
+Transfer chat ownership:
+```
+User A: "@john can you take over this deployment?"
+John: "Taking over the deployment task."
+Agent: "Chat ownership transferred to John. Continuing with deployment..."
+```
+
+### Chat History and Search
+Comprehensive conversation management:
+
+#### Search Functionality
+- **Full-Text Search**: Find messages by content
+- **Filter by Date**: Narrow down time ranges
+- **Filter by User**: Show messages from specific people
+- **Filter by Agent**: View specific agent interactions
+
+#### Export and Sharing
+- **Export Chat**: Save conversations as PDF or text
+- **Share Links**: Generate links to specific conversations
+- **Create Reports**: Turn chat sessions into formal documentation
+
+## Chat Customization
+
+### Interface Preferences
+Customize the chat experience:
+
+#### Visual Settings
+```yaml
+Theme Options:
+  - Light Mode: Clean, bright interface
+  - Dark Mode: Reduced eye strain for extended use
+  - High Contrast: Enhanced accessibility
+  - Custom: Personalized color schemes
+
+Font Settings:
+  - Font Family: Choose readable fonts
+  - Font Size: Adjust for comfort
+  - Line Height: Optimize for readability
+```
+
+#### Notification Settings
+- **Sound Alerts**: Audio notifications for new messages
+- **Desktop Notifications**: System-level alerts
+- **Email Summaries**: Daily/weekly chat summaries
+- **Mobile Push**: Notifications on mobile devices
+
+### Keyboard Shortcuts
+Efficient navigation and actions:
+
+```
+Message Navigation:
+  ↑/↓ Arrow Keys: Navigate message history
+  Ctrl/Cmd + F: Search messages
+  Ctrl/Cmd + K: Quick command palette
+
+Message Composition:
+  Tab: Auto-complete suggestions
+  Shift + Enter: New line without sending
+  Ctrl/Cmd + Enter: Send message
+  Ctrl/Cmd + Z: Undo last edit
+
+Quick Actions:
+  Ctrl/Cmd + N: New chat session
+  Ctrl/Cmd + S: Save current conversation
+  Ctrl/Cmd + E: Export chat history
+  ESC: Cancel current operation
+```
+
+## Best Practices for Task Chat
+
+### Effective Communication
+
+#### Be Specific and Clear
+❌ **Vague**: "Fix the deployment issue"
+✅ **Specific**: "The user-service deployment is failing on pod startup with a database connection error. Please investigate and resolve."
+
+#### Provide Context
+❌ **No Context**: "Update the configuration"
+✅ **With Context**: "Update the production nginx configuration to handle the increased traffic we're seeing since yesterday's marketing campaign launch."
+
+#### Use Structured Requests
+For complex tasks, break them down:
+```
+"I need to set up a new microservice with these requirements:
+1. Deploy to staging environment first
+2. Configure auto-scaling (2-10 pods based on CPU usage)
+3. Set up health checks on /health endpoint
+4. Enable logging to our centralized ELK stack
+5. Create monitoring dashboards in Grafana"
+```
+
+### Security Considerations
+
+#### Sensitive Information
+- **Never share passwords or API keys in chat**
+- **Use environment variables for secrets**
+- **Reference secret names instead of values**
+- **Enable audit logging for compliance**
+
+#### Permission Awareness
+Understand agent capabilities and limitations:
+- **Production Access**: Confirm agent has appropriate permissions
+- **Resource Limits**: Be aware of quotas and constraints
+- **Approval Workflows**: Some operations may require human approval
+
+## Troubleshooting Chat Issues
+
+### Common Problems
+
+#### Agent Not Responding
+```yaml
+Possible Causes:
+  - Network connectivity issues
+  - Agent overload or maintenance
+  - Authentication problems
+  - Rate limiting active
+
+Solutions:
+  - Refresh the chat session
+  - Try a different agent
+  - Check system status page
+  - Contact support if persistent
+```
+
+#### Task Execution Failures
+```yaml
+Debugging Steps:
+  1. Review error messages in chat
+  2. Check execution logs for details
+  3. Verify permissions and access
+  4. Confirm resource availability
+  5. Try with simpler test case
+```
+
+#### Chat Performance Issues
+```yaml
+Optimization Tips:
+  - Clear browser cache and cookies
+  - Limit concurrent chat sessions
+  - Archive old conversations
+  - Use specific rather than broad requests
+```
+
+---
+
+*The Task Chat interface is your primary tool for AI automation. Master its features to unlock the full potential of conversational AI for your operations and development workflows.*

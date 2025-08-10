@@ -1,0 +1,292 @@
+---
+title: "Getting Started with Composer"
+description: "Complete end-to-end guide to setting up and using Kubiya's Composer web interface"
+icon: "rocket"
+---
+
+# Getting Started with Composer
+
+This comprehensive guide walks you through everything you need to know to start using Kubiya's Composer web interface effectively.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- Access to a Kubiya organization
+- Valid user credentials or SSO setup
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Basic understanding of automation concepts
+
+## Step 1: Accessing Composer
+
+### Web Access
+Navigate to your Composer instance:
+- **Production**: `https://app.kubiya.ai`
+- **Custom Domain**: Your organization's custom URL
+
+### First-Time Login
+1. Click **"Sign In"** on the homepage
+2. Choose your authentication method:
+   - **Email/Password**: Enter your credentials
+   - **Single Sign-On (SSO)**: Select your provider
+   - **Enterprise Login**: Use your organization's authentication
+
+### Organization Selection
+If you belong to multiple organizations:
+1. Select your target organization from the dropdown
+2. Confirm your role and permissions
+3. Click **"Continue to Dashboard"**
+
+## Step 2: Dashboard Overview
+
+Upon successful login, you'll see the main dashboard with:
+
+### Navigation Bar
+- **Home**: Return to dashboard
+- **Tasks**: View and manage task execution
+- **Workflows**: Access workflow designer and templates
+- **Integrations**: Manage tools and connections
+- **Settings**: Configuration and preferences
+
+### Quick Actions Panel
+- **Start New Task**: Launch an AI-powered automation
+- **Create Workflow**: Open the visual workflow designer
+- **Browse Agents**: Explore available AI agents
+- **View Activity**: See recent task executions and updates
+
+### Activity Feed
+Real-time updates showing:
+- Recent task completions
+- Workflow executions
+- System notifications
+- Team activity
+
+## Step 3: Your First Agent Interaction
+
+Let's start with a simple task to get familiar with the interface.
+
+### Starting a Chat Session
+1. Click **"Start New Task"** from the dashboard
+2. The task chat interface opens with an AI agent ready to help
+3. You'll see:
+   - **Chat Input**: Type your requests here
+   - **Agent Info**: Current agent capabilities and status
+   - **Task History**: Previous interactions in this session
+
+### Example First Task
+Try this simple automation:
+
+```
+Hello! Can you help me list all the files in my current directory and show me what tools are available?
+```
+
+The agent will:
+1. Execute the file listing command
+2. Show available tools and integrations
+3. Provide suggestions for next steps
+
+### Understanding Agent Responses
+Agent responses include:
+- **Text Messages**: Natural language explanations
+- **Tool Executions**: Command outputs and results
+- **Artifacts**: Files, reports, or data generated
+- **Status Updates**: Progress indicators and completion states
+
+## Step 4: Exploring Tools and Integrations
+
+### Accessing the Tools Catalog
+1. Navigate to **"Integrations"** in the main menu
+2. Browse available categories:
+   - **DevOps Tools**: Docker, Kubernetes, Terraform
+   - **Cloud Platforms**: AWS, Azure, GCP
+   - **Communication**: Slack, Teams, Email
+   - **Development**: GitHub, GitLab, CI/CD
+   - **Monitoring**: Prometheus, Grafana, Datadog
+
+### Installing Your First Integration
+Let's set up a GitHub integration:
+
+<Steps>
+  <Step title="Select GitHub Integration">
+    Find "GitHub" in the integrations catalog and click **"Install"**
+  </Step>
+  
+  <Step title="OAuth Authentication">
+    Click **"Connect to GitHub"** and authorize Kubiya in the popup window
+  </Step>
+  
+  <Step title="Configure Permissions">
+    Select repositories and permissions you want to grant
+  </Step>
+  
+  <Step title="Test Connection">
+    Use the built-in test feature to verify the integration works
+  </Step>
+</Steps>
+
+### Using Integrated Tools
+Once installed, you can use GitHub tools in chat:
+
+```
+Can you create a new pull request for my feature branch in the "my-project" repository?
+```
+
+## Step 5: Creating Your First Workflow
+
+### Opening the Workflow Designer
+1. Click **"Workflows"** → **"Create New Workflow"**
+2. The visual designer opens with:
+   - **Node Palette**: Available workflow components
+   - **Canvas**: Drag-and-drop design area
+   - **Property Panel**: Configure selected nodes
+   - **Test Panel**: Execute and debug workflows
+
+### Building a Simple Workflow
+Let's create an automated deployment workflow:
+
+<Steps>
+  <Step title="Add Trigger Node">
+    Drag a "Webhook Trigger" from the palette to the canvas
+  </Step>
+  
+  <Step title="Add GitHub Action">
+    Connect a "GitHub - Get Repository" node to fetch code
+  </Step>
+  
+  <Step title="Add Build Step">
+    Connect a "Docker - Build Image" node for containerization
+  </Step>
+  
+  <Step title="Add Deployment">
+    Connect a "Kubernetes - Deploy" node for final deployment
+  </Step>
+  
+  <Step title="Configure Properties">
+    Click each node and fill in required parameters
+  </Step>
+</Steps>
+
+### Testing Your Workflow
+1. Click **"Test Workflow"** in the toolbar
+2. Provide sample input data
+3. Watch execution progress in real-time
+4. Review outputs and debug any issues
+
+### Saving and Publishing
+1. Click **"Save Workflow"** and provide:
+   - **Name**: Descriptive workflow name
+   - **Description**: Purpose and usage notes
+   - **Tags**: Categorization labels
+2. Click **"Publish"** to make it available for execution
+
+## Step 6: Understanding the Context Graph
+
+The Context Graph helps you discover and understand relationships between your resources.
+
+### Accessing Context Graph
+1. Navigate to **"Context Graph"** from the main menu
+2. You'll see a visual representation of:
+   - **Connected Services**: Your integrations and tools
+   - **Resource Relationships**: How components interact
+   - **Data Flow**: Information movement between systems
+
+### Using Context for Better Automation
+The Context Graph enables:
+- **Smart Suggestions**: AI recommends relevant tools and connections
+- **Impact Analysis**: Understand what changes might affect
+- **Resource Discovery**: Find available services and capabilities
+
+## Step 7: Managing Settings and Preferences
+
+### Accessing Settings
+1. Click your profile icon → **"Settings"**
+2. Available tabs include:
+   - **General**: Basic preferences and profile information
+   - **Integrations**: Manage connected services
+   - **API Keys**: Authentication tokens and secrets
+   - **Notifications**: Alert preferences and channels
+   - **Organization**: Team settings and permissions
+
+### Key Configuration Options
+
+#### API Keys Management
+- Store secrets securely for tool integrations
+- Set up service account credentials
+- Manage token rotation and expiration
+
+#### Notification Settings
+- Choose which events trigger notifications
+- Configure delivery channels (email, Slack, webhook)
+- Set quiet hours and escalation rules
+
+## Step 8: Best Practices and Tips
+
+### Chat Interface Tips
+- **Be Specific**: Provide clear, detailed requests
+- **Use Context**: Reference previous tasks and outputs
+- **Ask for Explanations**: Request step-by-step breakdowns
+- **Save Important Results**: Bookmark useful outputs
+
+### Workflow Design Best Practices
+- **Start Simple**: Begin with basic workflows and add complexity gradually
+- **Use Templates**: Leverage pre-built workflow templates
+- **Test Thoroughly**: Always test workflows before production use
+- **Document Well**: Add descriptions and comments
+
+### Integration Management
+- **Regular Maintenance**: Keep credentials updated and test connections
+- **Least Privilege**: Grant minimum necessary permissions
+- **Monitor Usage**: Track integration performance and costs
+- **Security First**: Regular security audits and access reviews
+
+## Troubleshooting Common Issues
+
+### Login Problems
+- **Clear Browser Cache**: Remove stored authentication data
+- **Check SSO Configuration**: Verify identity provider settings
+- **Contact Admin**: For organization-level access issues
+
+### Agent Not Responding
+- **Check Connection**: Verify network connectivity
+- **Refresh Session**: Reload the page or restart chat
+- **Review Logs**: Check execution logs for error details
+
+### Integration Failures
+- **Verify Credentials**: Check API keys and authentication
+- **Test Connections**: Use built-in connection testing
+- **Review Permissions**: Ensure adequate access rights
+
+## Next Steps
+
+Now that you're familiar with the basics, explore these advanced topics:
+
+<CardGroup cols={2}>
+  <Card title="Advanced Workflows" icon="diagram-project" href="/composer/workflow-designer">
+    Learn complex workflow patterns and advanced features
+  </Card>
+  
+  <Card title="Custom Agents" icon="robot" href="/composer/agents">
+    Create and configure specialized AI agents
+  </Card>
+  
+  <Card title="MCP Integration" icon="plug" href="/composer/mcp-integration">
+    Connect external AI tools and services
+  </Card>
+  
+  <Card title="API Usage" icon="code" href="/api-reference/platform/overview">
+    Programmatic access to Composer features
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+Need assistance? Here are your options:
+
+- **Documentation**: Comprehensive guides and API references
+- **Community**: Connect with other users and share experiences
+- **Support**: Contact our support team for technical issues
+- **Training**: Schedule personalized training sessions
+
+---
+
+*Congratulations! You're now ready to harness the full power of Kubiya's Composer. Start building your first automation and experience the future of AI-powered operations.*

@@ -1,0 +1,302 @@
+---
+title: "Dashboard"
+description: "Complete guide to Composer's main dashboard interface and navigation"
+icon: "gauge-high"
+---
+
+# Dashboard
+
+The Composer dashboard is your central command center, providing a comprehensive overview of your AI automation environment, quick access to key features, and real-time insights into system activity.
+
+## Layout Overview
+
+### Header Navigation
+The top navigation bar provides access to all major sections:
+
+- **🏠 Home**: Return to the main dashboard
+- **⚡ Tasks**: View and manage task execution
+- **🔄 Workflows**: Access workflow designer and templates  
+- **🔧 Integrations**: Manage tools and connections
+- **⚙️ Settings**: Configuration and preferences
+- **👤 Profile**: User account and organization settings
+
+### Main Content Areas
+
+<CardGroup cols={2}>
+  <Card title="Quick Actions" icon="bolt">
+    One-click access to frequently used operations
+  </Card>
+  <Card title="Activity Feed" icon="activity">
+    Real-time updates on system events and executions
+  </Card>
+  <Card title="Stats Grid" icon="chart-bar">
+    Key performance metrics and usage statistics
+  </Card>
+  <Card title="Resources Section" icon="cube">
+    Overview of available agents, tools, and integrations
+  </Card>
+</CardGroup>
+
+## Quick Actions Panel
+
+### Primary Actions
+Located prominently at the top of the dashboard:
+
+```jsx
+// Available quick actions
+- Start New Task    → Opens agent chat interface
+- Create Workflow   → Launches workflow designer
+- Browse Agents     → Opens agent catalog
+- View Integrations → Shows connected tools
+```
+
+### Secondary Actions
+Additional actions available in the expanded menu:
+
+- **Upload Workflow**: Import existing workflow definitions
+- **Schedule Task**: Set up automated task execution
+- **Create Agent**: Build custom AI agents
+- **Generate Report**: Export activity and performance data
+
+### Action States
+Each action button shows contextual information:
+- **Enabled**: Ready for use (green indicator)
+- **Requires Setup**: Missing prerequisites (yellow warning)
+- **Unavailable**: Insufficient permissions (red disabled)
+
+## Activity Feed
+
+### Real-Time Updates
+The activity feed displays live updates including:
+
+#### Task Executions
+```yaml
+Task: "Deploy to Staging Environment"
+Status: ✅ Completed
+Duration: 2m 34s
+Agent: DevOps Assistant
+Timestamp: 2 minutes ago
+```
+
+#### Workflow Runs
+```yaml
+Workflow: "CI/CD Pipeline"
+Trigger: GitHub Push Event
+Status: 🔄 Running (Step 3/5)
+Branch: feature/user-auth
+Timestamp: 5 minutes ago
+```
+
+#### System Events
+- Integration health checks
+- User login/logout events
+- Permission changes
+- Configuration updates
+
+### Filtering and Search
+Control what appears in your feed:
+- **Filter by Type**: Tasks, workflows, system events
+- **Filter by Status**: Success, running, failed, pending
+- **Time Range**: Last hour, day, week, or custom range
+- **Search**: Full-text search across all activity
+
+## Stats Grid
+
+### Key Metrics Display
+
+<CardGroup cols={2}>
+  <Card title="Tasks This Week" icon="check-circle">
+    **127** completed tasks
+    <br />↗️ 12% increase from last week
+  </Card>
+  
+  <Card title="Active Workflows" icon="diagram-project">
+    **8** workflows running
+    <br />⚡ 2 scheduled for next hour
+  </Card>
+  
+  <Card title="Success Rate" icon="target">
+    **94.7%** completion rate
+    <br />📈 Above 90% target
+  </Card>
+  
+  <Card title="Response Time" icon="stopwatch">
+    **1.3s** average response
+    <br />⚡ 15% faster than average
+  </Card>
+</CardGroup>
+
+### Detailed Analytics
+Click any metric card to see:
+- **Historical Trends**: Performance over time
+- **Breakdown by Category**: Task types, agents, integrations
+- **Error Analysis**: Failure patterns and root causes
+- **Resource Usage**: Compute, storage, and API consumption
+
+## Resources Section
+
+### Connected Services Overview
+Visual representation of your integration ecosystem:
+
+#### Service Status Indicators
+- **🟢 Healthy**: All systems operational
+- **🟡 Warning**: Minor issues or maintenance
+- **🔴 Error**: Service unavailable or misconfigured
+- **⚪ Unknown**: Status not available
+
+#### Service Categories
+```yaml
+Cloud Platforms:
+  - AWS (🟢 Healthy)
+  - Azure (🟢 Healthy)
+  - GCP (🟡 Maintenance)
+
+Development:
+  - GitHub (🟢 Healthy)
+  - GitLab (🟢 Healthy)
+  - Docker Hub (🟢 Healthy)
+
+Communication:
+  - Slack (🟢 Healthy)
+  - Microsoft Teams (🔴 Error)
+  - Email SMTP (🟢 Healthy)
+```
+
+### Agent Status
+Overview of available AI agents:
+
+#### Agent Health Monitoring
+- **Active Agents**: Currently available for tasks
+- **Busy Agents**: Handling concurrent requests
+- **Maintenance**: Agents being updated or configured
+- **Offline**: Unavailable agents requiring attention
+
+#### Agent Capabilities Summary
+- **Total Available Tools**: 156 tools across all agents
+- **Custom Tools**: 23 organization-specific tools
+- **Recent Updates**: 5 tools updated this week
+- **Pending Approvals**: 2 new tools awaiting review
+
+## Dashboard Customization
+
+### Layout Options
+Personalize your dashboard layout:
+
+- **Grid Size**: Compact, standard, or expanded views
+- **Panel Order**: Drag and drop to reorder sections
+- **Widget Selection**: Show/hide specific dashboard components
+- **Color Theme**: Light, dark, or system preference
+
+### Saved Views
+Create and switch between dashboard configurations:
+- **Default View**: Standard layout for daily use
+- **Executive View**: High-level metrics and summaries
+- **Developer View**: Technical details and debugging info
+- **Operations View**: Infrastructure and deployment focus
+
+## Interactive Features
+
+### Contextual Actions
+Right-click on dashboard elements for quick actions:
+
+#### Activity Feed Items
+- View detailed logs
+- Restart failed tasks
+- Share task results
+- Create similar tasks
+
+#### Resource Status Cards
+- View detailed health information
+- Test connection
+- Update configuration
+- Access integration settings
+
+### Keyboard Shortcuts
+Efficient navigation with keyboard shortcuts:
+
+```
+Ctrl/Cmd + N   → Start new task
+Ctrl/Cmd + W   → Create workflow
+Ctrl/Cmd + I   → Open integrations
+Ctrl/Cmd + S   → Open settings
+Ctrl/Cmd + /   → Search everything
+ESC            → Close current dialog
+```
+
+## Dashboard Performance
+
+### Loading Optimization
+The dashboard uses several techniques for optimal performance:
+
+- **Progressive Loading**: Critical information loads first
+- **Lazy Loading**: Secondary data loads as needed
+- **Caching**: Frequently accessed data cached locally
+- **Real-time Updates**: WebSocket connections for live data
+
+### Performance Metrics
+Monitor dashboard performance:
+- **Initial Load Time**: Target <2 seconds
+- **Time to Interactive**: Target <3 seconds
+- **Real-time Update Latency**: Target <500ms
+- **Memory Usage**: Optimized for long-running sessions
+
+## Mobile Responsiveness
+
+### Adaptive Layout
+The dashboard automatically adapts to different screen sizes:
+
+#### Desktop (>1200px)
+- Full four-column grid layout
+- All panels visible simultaneously
+- Expanded navigation menu
+
+#### Tablet (768px - 1200px)
+- Two-column responsive grid
+- Collapsible navigation drawer
+- Touch-optimized controls
+
+#### Mobile (<768px)
+- Single-column stacked layout
+- Bottom navigation bar
+- Swipe gestures for navigation
+
+### Touch Interactions
+Mobile-specific features:
+- **Pull to Refresh**: Update dashboard data
+- **Swipe Navigation**: Move between sections
+- **Long Press**: Access contextual menus
+- **Pinch to Zoom**: Scale content (charts/graphs)
+
+## Troubleshooting
+
+### Common Issues
+
+#### Dashboard Won't Load
+1. Check network connection
+2. Clear browser cache and cookies
+3. Verify authentication status
+4. Check for browser console errors
+
+#### Missing Data or Empty Panels
+1. Verify integration connections
+2. Check user permissions
+3. Confirm data source availability
+4. Review filter settings
+
+#### Slow Performance
+1. Clear browser data
+2. Disable browser extensions
+3. Check network bandwidth
+4. Contact support if issues persist
+
+### Error Messages
+Understanding common error indicators:
+
+- **🔴 Connection Error**: Unable to reach backend services
+- **🟡 Permission Denied**: Insufficient access rights
+- **🔵 Loading Error**: Data retrieval timeout
+- **⚪ No Data**: No information available for selected timeframe
+
+---
+
+*The dashboard serves as your mission control for AI automation. Familiarize yourself with its features to maximize your productivity and maintain visibility into your automation ecosystem.*
