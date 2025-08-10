@@ -1,471 +1,290 @@
 ---
 title: "Advanced Workflows"
-description: "Deep dive into advanced workflow features, streaming, custom providers, and production deployment"
+description: "Advanced workflow patterns for production use"
 icon: "rocket"
 ---
 
-# Advanced Workflows
+Advanced workflow patterns for complex automation scenarios.
 
-Master the advanced features of Kubiya workflows for production-grade automation.
+## Conditional execution
 
-## Advanced Step Types
-
-### 1. **Shell Steps**
-
-Execute shell commands in any container:
+Run steps based on previous results:
 
 ```python
-result = step.shell(
-    name="process-data",
-    image="alpine:latest",
-    command="""
-    echo "Processing..."
-    cat input.json | jq '.data[]' > output.json
-    """,
-    env={"API_KEY": "${secrets.API_KEY}"}
-)
+from kubiya import workflow, step
+
+@workflow
+def conditional_deploy():
+    # Run tests
+    tests = step("test").docker(
+        image="node:18",
+        command="npm test"
+    ).output("TEST_RESULTS")
+    
+    # Deploy only if tests pass
+    step("deploy").docker(
+        image="kubectl:latest",
+        command="kubectl apply -f app.yaml"
+    ).depends("test").preconditions(
+        "${TEST_RESULTS.passed} == true",
+        "${TEST_RESULTS.coverage} > 80"
+    )
 ```
 
-### 2. **Python Steps**
+## Retry and error handling
 
-Run Python scripts with full ecosystem:
+Handle failures gracefully:
 
 ```python
-analysis = step.python(
-    name="analyze-metrics",
-    image="python:3.11-slim",
-    packages=["pandas", "numpy", "scikit-learn"],
-    script="""
+@workflow
+def resilient_workflow():
+    # Step with retry logic
+    data = step("fetch").docker(
+        image="curlimages/curl:latest", 
+        command="curl -f https://api.example.com/data"
+    ).retry(
+        limit=3,
+        backoff="exponential",
+        max_interval="5m"
+    ).timeout("10m")
+    
+    # Continue on specific errors
+    step("optional-step").docker(
+        image="python:3.11",
+        script="optional_process.py"
+    ).continue_on_exit_codes([404, 503])
+    
+    # Cleanup that always runs
+    step("cleanup").shell(
+        "rm -rf /tmp/workspace/*"
+    ).always_run(True)
+```
+
+## Parallel processing
+
+Process multiple items simultaneously:
+
+```python
+@workflow
+def parallel_processing():
+    # Get list of items
+    items = step("list-items").shell(
+        "ls /data/*.csv"
+    ).output("FILE_LIST")
+    
+    # Process each item in parallel
+    step("process-files").parallel(
+        items="${FILE_LIST}",
+        max_concurrent=5,
+        step_config={
+            "image": "python:3.11",
+            "script": """
+import sys
+filename = sys.argv[1]
+process_file(filename)
+"""
+        }
+    ).depends("list-items")
+```
+
+## Data sharing between steps
+
+Pass data and files between workflow steps:
+
+```python
+@workflow
+def data_pipeline():
+    # Extract data
+    extract = step("extract").docker(
+        image="postgres:15",
+        command="pg_dump mydb > /output/data.sql"
+    ).output("DATA_PATH")
+    
+    # Transform using extracted data
+    transform = step("transform").docker(
+        image="python:3.11",
+        script="""
 import pandas as pd
-import numpy as np
-
-df = pd.read_csv('/data/metrics.csv')
-summary = df.describe()
-print(summary.to_json())
-    """,
-    volumes={"/data": "metrics-volume"}
-)
-```
-
-### 3. **Container Steps**
-
-Run any containerized application:
-
-```python
-server = step.container(
-    name="web-server",
-    image="nginx:alpine",
-    ports={"80": "8080"},
-    volumes={
-        "./config": "/etc/nginx/conf.d",
-        "./static": "/usr/share/nginx/html"
-    },
-    health_check={
-        "test": ["CMD", "curl", "-f", "http://localhost/health"],
-        "interval": "30s",
-        "retries": 3
-    }
-)
-```
-
-### 4. **Inline Agent Steps**
-
-Embed AI decision-making:
-
-```python
-decision = step.inline_agent(
-    name="deployment-decision",
-    message="Analyze these metrics and decide if we should deploy: ${metrics}",
-    runners=["kubiya-hosted"],
-    llm_model="gpt-4",
-    is_debug_mode=True,
-    tools=[
-        {
-            "name": "check-metrics",
-            "type": "docker",
-            "image": "datadog/agent:latest",
-            "content": "datadog-check.sh",
-            "args": {"threshold": "0.95"}
-        }
-    ]
-)
-```
-
-## Streaming and Real-Time Updates
-
-### SSE Streaming
-
-```python
-from kubiya_workflow_sdk import Client
-import json
-
-client = Client(api_key="your-key")
-
-# Stream workflow execution
-for event in client.execute_workflow(workflow, stream=True):
-    if event.type == "step.started":
-        print(f"Starting: {event.data['step_name']}")
-    elif event.type == "log":
-        print(f"Log: {event.data['message']}")
-    elif event.type == "step.completed":
-        print(f"Completed: {event.data['step_name']}")
-```
-
-### Vercel AI SDK Format
-
-```python
-# For integration with Vercel AI SDK
-async for chunk in client.stream_workflow(workflow, format="vercel"):
-    # Chunk format compatible with Vercel AI SDK
-    if chunk['type'] == '0':  # Text delta
-        print(chunk['value'], end='')
-    elif chunk['type'] == '8':  # Tool call
-        tool_data = json.loads(chunk['value'])
-        print(f"Tool: {tool_data['toolName']}")
-```
-
-### Custom Stream Processing
-
-```python
-class WorkflowStreamProcessor:
-    def __init__(self):
-        self.steps_completed = 0
-        self.logs = []
-        
-    async def process_stream(self, workflow):
-        async for event in workflow.stream():
-            if event.type == "step.completed":
-                self.steps_completed += 1
-                await self.notify_progress(self.steps_completed)
-            elif event.type == "log":
-                self.logs.append(event.data)
-                await self.send_to_monitoring(event.data)
-```
-
-## Custom Providers
-
-### Creating a Custom Provider
-
-```python
-from kubiya_workflow_sdk.providers import BaseProvider
-from typing import Dict, Any, AsyncGenerator
-
-class CustomLLMProvider(BaseProvider):
-    """Custom provider for your LLM"""
+df = pd.read_sql_table("users", connection)
+df['processed'] = True
+df.to_csv('/output/transformed.csv')
+"""
+    ).depends("extract").volumes([{
+        "source": "${DATA_PATH}",
+        "target": "/input"
+    }]).output("TRANSFORMED_DATA")
     
-    def __init__(self, api_key: str, model: str = "custom-model"):
-        self.api_key = api_key
-        self.model = model
-        
-    async def compose(
-        self, 
-        task: str,
-        mode: str = "plan",
-        context: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
-        """Generate workflow from natural language"""
-        # Your LLM logic here
-        workflow = await self._call_llm(task, context)
-        return {
-            "workflow": workflow,
-            "metadata": {"model": self.model}
-        }
-        
-    async def stream_compose(
-        self,
-        task: str,
-        mode: str = "plan"
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        """Stream workflow generation"""
-        async for chunk in self._stream_llm(task):
-            yield {
-                "type": "token",
-                "content": chunk
+    # Load transformed data
+    step("load").docker(
+        image="snowflake/cli:latest",
+        command="snow stage copy ${TRANSFORMED_DATA} @warehouse"
+    ).depends("transform")
+```
+
+## Multi-environment workflows
+
+Deploy to different environments with different configurations:
+
+```python
+@workflow
+def multi_env_deploy(environment: str, version: str):
+    # Build application
+    build = step("build").docker(
+        image="docker:latest",
+        command=f"docker build -t myapp:{version} ."
+    )
+    
+    # Get environment-specific config
+    config = step("get-config").docker(
+        image="alpine:latest",
+        command=f"cp /configs/{environment}.yaml /output/config.yaml"
+    ).output("CONFIG")
+    
+    # Deploy with environment-specific settings
+    step("deploy").docker(
+        image="kubectl:latest",
+        script=f"""
+kubectl config use-context {environment}
+kubectl apply -f ${{CONFIG}}
+kubectl set image deployment/myapp myapp=myapp:{version}
+"""
+    ).depends(["build", "get-config"])
+```
+
+## Workflow orchestration
+
+Chain multiple workflows together:
+
+```python
+@workflow
+def main_pipeline():
+    # Run data ingestion workflow
+    ingest = step("run-ingestion").workflow(
+        name="data-ingestion",
+        inputs={"source": "production-db"}
+    )
+    
+    # Run processing workflow
+    process = step("run-processing").workflow(
+        name="data-processing", 
+        inputs={"data_path": "${ingest.output_path}"}
+    ).depends("run-ingestion")
+    
+    # Run ML training workflow
+    step("run-training").workflow(
+        name="ml-training",
+        inputs={"features": "${process.features}"}
+    ).depends("run-processing")
+```
+
+## Dynamic workflow generation
+
+Generate workflow steps based on runtime data:
+
+```python
+@workflow
+def dynamic_processing():
+    # Get list of datasets
+    datasets = step("list-datasets").docker(
+        image="awscli/aws-cli:latest",
+        command="aws s3 ls s3://data-bucket/ --recursive | grep .csv"
+    ).output("DATASET_LIST")
+    
+    # AI agent creates processing plan
+    plan = step("create-plan").inline_agent(
+        message="Create a processing plan for these datasets: ${DATASET_LIST}",
+        agent_name="data-planner",
+        tools=[
+            {
+                "name": "analyze-dataset",
+                "image": "python:3.11",
+                "script": "analyze_data_schema.py"
             }
-```
-
-### Registering Custom Provider
-
-```python
-from kubiya_workflow_sdk.providers import register_provider
-
-# Register your provider
-register_provider("custom-llm", CustomLLMProvider)
-
-# Use it
-provider = get_provider("custom-llm", api_key="...")
-workflow = await provider.compose("Deploy my app")
-```
-
-## Kubernetes Deployment
-Simply create a local runner on the Kubiya platform web interface, REST API, or CLI to get a manifest, give your runner a name - and deploy it on your cluster
--> You can now reference this runner string for workflow execution
-
-### Local Testing
-
-```python
-# test_workflow.py
-import pytest
-from kubiya_workflow_sdk import Workflow, Client, Step
-
-def test_data_pipeline():
-    workflow = Workflow(
-        name="test-pipeline",
-        steps=[
-            Step("fetch", "curl -o data.json https://api.example.com/data"),
-            Step("process", "jq '.items[]' data.json > processed.json"),
-            Step("validate", "python validate.py processed.json")
         ]
-    )
+    ).depends("list-datasets").output("PROCESSING_PLAN")
     
-    # Use client with your test runner
-    client = Client(api_key="test-key")
-    result = client.execute_workflow(
-        workflow,
-        runner="your-test-runner"  # Created via Kubiya platform
-    )
-    assert result.success
-    assert len(result.steps) == 3
+    # Execute the generated plan
+    step("execute-plan").dynamic_workflow(
+        plan="${PROCESSING_PLAN}"
+    ).depends("create-plan")
 ```
 
-### Debug Mode
+## Production monitoring
 
-```python
-# Enable debug mode for detailed logs
-workflow = Workflow(
-    name="debug-workflow",
-    debug=True,
-    log_level="DEBUG"
-)
-
-# Step-through debugging
-for step in workflow.steps:
-    print(f"Executing: {step.name}")
-    result = step.execute(breakpoint=True)
-    
-    # Inspect state
-    print(f"Output: {result.output}")
-    print(f"Logs: {result.logs}")
-    
-    # Continue or modify
-    if input("Continue? (y/n): ") != "y":
-        break
-```
-
-## Production Best Practices
-
-### 1. **Error Handling**
+Monitor workflow execution and performance:
 
 ```python
 @workflow
-def production_pipeline():
-    try:
-        data = step.fetch_critical_data(
-            retry=3,
-            retry_interval="exponential",
-            timeout="5m",
-            on_failure="continue"  # Don't fail entire workflow
-        )
-    except StepError as e:
-        # Fallback logic
-        data = step.fetch_cached_data()
-        step.alert_team(f"Using cached data: {e}")
-```
-
-### 2. **Monitoring & Observability**
-
-```python
-# Add monitoring hooks
-workflow.add_hook("before_step", lambda s: metrics.increment(f"step.{s.name}.started"))
-workflow.add_hook("after_step", lambda s, r: metrics.histogram(f"step.{s.name}.duration", r.duration))
-
-# Custom spans
-with workflow.span("critical-section"):
-    result = step.critical_operation()
-```
-
-### 3. **Secrets Management**
-
-```python
-# Use Kubernetes secrets
-step.database_operation(
-    env={
-        "DB_PASSWORD": "${k8s:secret/db-credentials/password}",
-        "API_KEY": "${vault:secret/api-keys/external}"
-    }
-)
-
-# Or environment variables
-step.secure_operation(
-    env={
-        "TOKEN": "${env:SECURE_TOKEN}",
-        "CERT": "${file:/secrets/cert.pem}"
-    }
-)
-```
-
-### 4. **Caching & Artifacts**
-
-```python
-# Cache step outputs
-@step.cache(key="data-fetch-${date}", ttl="1h")
-def fetch_expensive_data():
-    return step.shell("./fetch-data.sh")
-
-# Store artifacts
-step.generate_report(
-    output_artifacts={
-        "report.pdf": "/reports/",
-        "metrics.json": "/metrics/"
-    }
-)
-```
-
-## Advanced Patterns
-
-### Dynamic DAG Generation
-
-```python
-@workflow
-def dynamic_pipeline(regions: list):
-    # Generate steps dynamically
-    results = []
-    for region in regions:
-        result = step.process_region(
-            name=f"process-{region}",
-            env={"REGION": region},
-            parallel=True  # Run all regions in parallel
-        )
-        results.append(result)
+def monitored_workflow():
+    # Step with custom metrics
+    process = step("process-data").docker(
+        image="python:3.11",
+        script="process_data.py"
+    ).metrics([
+        {"name": "records_processed", "type": "counter"},
+        {"name": "processing_time", "type": "gauge"}
+    ])
     
-    # Wait for all and aggregate
-    step.aggregate_results(
-        inputs=results,
-        wait_for_all=True
-    )
+    # Health check step
+    step("health-check").docker(
+        image="curlimages/curl:latest",
+        command="curl -f http://service/health"
+    ).depends("process-data").on_failure("send-alert")
+    
+    # Send notification on completion
+    step("notify").docker(
+        image="alpine:latest",
+        script="""
+curl -X POST $SLACK_WEBHOOK \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Workflow completed: ${workflow.name}"}'
+"""
+    ).always_run(True)
 ```
 
-### Conditional Workflows
+## Resource management
+
+Control resource allocation for steps:
 
 ```python
-@workflow
-def conditional_deployment():
-    test_result = step.run_tests()
-    
-    if test_result.exit_code == 0:
-        if test_result.coverage > 80:
-            step.deploy_to_production()
-        else:
-            step.deploy_to_staging()
-            step.alert_team("Low coverage: ${test_result.coverage}%")
-    else:
-        step.rollback()
-        step.create_incident()
-```
-
-### Map-Reduce Patterns
-
-```python
-@workflow
-def map_reduce_analysis():
-    # Map phase - parallel processing
-    chunks = step.split_data(chunks=10)
-    
-    processed = step.map(
-        over=chunks,
-        operation=lambda chunk: step.process_chunk(
-            data=chunk,
-            image="processor:latest"
-        )
+@workflow  
+def resource_managed():
+    # Memory-intensive step
+    step("process-large-data").docker(
+        image="python:3.11",
+        script="process_big_data.py"
+    ).resources(
+        cpu="2000m",
+        memory="8Gi",
+        timeout="2h"
     )
     
-    # Reduce phase
-    result = step.reduce(
-        data=processed,
-        operation="merge",
-        image="reducer:latest"
+    # GPU-accelerated step
+    step("ml-inference").docker(
+        image="tensorflow/tensorflow:latest-gpu",
+        script="run_inference.py"
+    ).resources(
+        gpu=1,
+        memory="4Gi"
     )
 ```
 
-## Troubleshooting
+## Best practices
 
-### Common Issues
+**Use specific timeouts:** Set reasonable timeouts for each step to prevent hanging.
 
-<AccordionGroup>
-  <Accordion title="Step Timeout">
-    ```python
-    # Increase timeout for long-running steps
-    step.long_operation(
-        timeout="30m",  # Default is 5m
-        grace_period="5m"  # Time to cleanup after timeout
-    )
-    ```
-  </Accordion>
-  
-  <Accordion title="Memory Issues">
-    ```python
-    # Set appropriate memory limits
-    step.memory_intensive(
-        resources={"limits": {"memory": "32Gi"}},
-        swap_limit="64Gi"
-    )
-    ```
-  </Accordion>
-  
-  <Accordion title="Network Issues">
-    ```python
-    # Configure network policies
-    step.external_api_call(
-        network_mode="host",
-        dns_servers=["8.8.8.8", "8.8.4.4"],
-        extra_hosts={"api.internal": "10.0.0.100"}
-    )
-    ```
-  </Accordion>
-</AccordionGroup>
+**Implement proper cleanup:** Always include cleanup steps that run even on failure.
 
-## Performance Optimization
+**Monitor resource usage:** Set appropriate CPU and memory limits.
 
-### 1. **Parallel Execution**
+**Handle secrets securely:** Use environment variables for sensitive data, never hardcode.
 
-```python
-# Maximize parallelism
-workflow.configure(
-    max_parallel_steps=20,
-    queue_size=100
-)
-```
+**Test failure scenarios:** Verify your error handling and retry logic work correctly.
 
-### 2. **Resource Pooling**
+**Use meaningful step names:** Make workflow execution logs easy to understand.
 
-```python
-# Reuse containers for similar steps
-workflow.configure(
-    container_reuse=True,
-    pool_size=10
-)
-```
+**Optimize for parallelism:** Identify independent steps that can run simultaneously.
 
-### 3. **Caching Strategies**
+---
 
-```python
-# Layer caching for builds
-step.build_image(
-    cache_from=["registry/base:latest"],
-    build_args={"BUILDKIT_INLINE_CACHE": "1"}
-)
-```
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="API Reference" icon="code" href="/api-reference/compose">
-    Complete API documentation
-  </Card>
-  <Card title="Examples" icon="lightbulb" href="/workflows/examples">
-    Real-world workflow patterns
-  </Card>
-  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
-    Common issues and solutions
-  </Card>
-</CardGroup> 
+**Next:** Learn about [DSL syntax](/workflows/dsl-reference) or see more [workflow examples](/workflows/examples)
