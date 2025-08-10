@@ -14,7 +14,7 @@
   "topbarLinks": [
     {
       "name": "Platform",
-      "url": "https://app.kubiya.ai"
+      "url": "https://compose.kubiya.ai"
     },
     {
       "name": "GitHub",
@@ -23,7 +23,7 @@
   ],
   "topbarCtaButton": {
     "name": "Get Started",
-    "url": "https://app.kubiya.ai",
+    "url": "https://compose.kubiya.ai",
     "style": "roundedRectangle"
   },
 
