@@ -99,7 +99,8 @@ class KubiyaClient:
             SourceService,
             SecretService,
             RunnerService,
-            ProjectService
+            ProjectService,
+            StacksService,
         )
 
         self.workflows = WorkflowService(self)
@@ -111,6 +112,7 @@ class KubiyaClient:
         self.secrets = SecretService(self)
         self.runners = RunnerService(self)
         self.projects = ProjectService(self)
+        self.stacks = StacksService(self)
 
     def make_request(
         self,

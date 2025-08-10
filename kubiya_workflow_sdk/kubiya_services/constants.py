@@ -66,3 +66,8 @@ class Endpoints:
     PROJECT_PLAN_APPROVE = "/api/v1/tasks/{plan_id}"
     PROJECT_EXECUTION_GET = "/api/v1/tasks/{execution_id}"
     PROJECT_EXECUTION_LOGS = "/api/v1/tasks/logs/{execution_id}"
+
+    # Stacks endpoints
+    STACKS_PLAN = "api/v1/tasks/inline/plan"
+    STACKS_APPLY = "/api/v1/tasks/inline"
+    STACKS_STREAM = "/api/v1/tasks/stream/logs/{stack_id}"

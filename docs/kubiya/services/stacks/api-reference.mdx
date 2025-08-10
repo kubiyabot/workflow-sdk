@@ -1,0 +1,382 @@
+---
+title: "Stacks Service API Reference"
+description: "Complete API reference for the Kubiya Stacks service methods and classes"
+icon: "code"
+tags: ["stacks", "api", "reference"]
+---
+
+# Stacks Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Stacks service.
+
+## Classes
+
+### StackFiles
+
+Handles Terraform configuration files with flexible input options.
+
+```python
+class StackFiles(BaseModel):
+    """Terraform files for stack deployment
+    
+    Accepts either file content directly or file paths.
+    If file paths are provided, content will be read from those files.
+    """
+```
+
+#### Attributes
+
+| Attribute | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `main_tf` | `str` | Yes | Main Terraform configuration content |
+| `variables_tf` | `str` | Yes | Terraform variables configuration content |
+| `main_tf_path` | `Union[str, Path]` | Yes | Path to main.tf file |
+| `variables_tf_path` | `Union[str, Path]` | Yes | Path to variables.tf file |
+
+#### Validation Rules
+
+- Either `main_tf` content or `main_tf_path` must be provided
+- Either `variables_tf` content or `variables_tf_path` must be provided
+- File paths are resolved when content methods are called
+
+#### Methods
+
+
+### StackRequest
+
+Request model for stack operations that combines metadata with configuration files.
+
+```python
+class StackRequest(BaseModel):
+    """Request model for stack operations"""
+```
+
+#### Attributes
+
+| Attribute | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| `name` | `str` | No | Name of the Terraform stack |
+| `files` | `StackFiles` | No | Terraform configuration files |
+
+
+### StacksService
+
+Main service class for managing Terraform stacks.
+
+```python
+class StacksService(BaseService):
+    """Service for managing Terraform stacks"""
+```
+
+#### Methods
+
+##### `plan(stack_request: StackRequest) -> Dict[str, Any]`
+
+Plan a Terraform deployment to validate configuration and preview changes.
+
+**Parameters:**
+- `stack_request` (`StackRequest`): Stack configuration with name and files
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing plan response data
+
+**Response Structure:**
+```python
+{
+    "success": True,
+    "planOutput": "Terraform plan output...",
+    "initOutput": "Terraform init output..."
+}
+```
+
+**Raises:**
+- `StackPlanError`: For planning-specific errors with detailed context
+
+**Example:**
+```python
+try:
+    plan_result = client.stacks.plan(stack_request)
+    
+    if plan_result.get("success"):
+        print(f"Plan successful. Resources to create: {plan_result.get('resourceCount', 0)}")
+        print(f"Plan output: {plan_result.get('planOutput', 'N/A')}")
+    else:
+        print("Plan returned success=False")
+        
+except StackPlanError as e:
+    print(f"Planning failed: {e}")
+    
+    # Access detailed validation errors
+    if e.details.get("validation_errors"):
+        errors = e.details["validation_errors"]
+        print(f"Error: {errors.get('errorMessage')}")
+        print(f"Init output: {errors.get('initOutput')}")
+        print(f"Plan output: {errors.get('planOutput')}")
+```
+
+##### `apply(stack_request: StackRequest) -> Dict[str, Any]`
+
+Apply a Terraform deployment to create/modify infrastructure.
+
+**Parameters:**
+- `stack_request` (`StackRequest`): Stack configuration with name and files
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing apply response data with task_id for streaming
+
+**Response Structure:**
+```python
+{
+    "uuid": "stack-uuid-for-streaming",
+    "name": "stack-name"
+    "org": "kubiya-org",
+    "email": "john@doe.com"
+    ...
+}
+```
+
+**Raises:**
+- `StackApplyError`: For apply-specific errors with detailed context
+
+**Example:**
+```python
+try:
+    apply_result = client.stacks.apply(stack_request)
+    
+    if apply_result.get("success"):
+        stack_id = apply_result.get("uuid")
+        print(f"Apply started successfully. Stack ID: {stack_id}")
+        
+        # Use stack_id for streaming logs
+        if stack_id:
+            for log in client.stacks.stream(stack_id):
+                print(f"📋 {log}")
+    else:
+        print("Apply returned success=False")
+        
+except StackApplyError as e:
+    print(f"Apply failed: {e}")
+    print(f"Stack name: {e.stack_name}")
+    print(f"Stack ID: {e.stack_id}")
+    
+    # Access Terraform-specific errors
+    if e.details.get("terraform_errors"):
+        errors = e.details["terraform_errors"]
+        print(f"Error: {errors.get('errorMessage')}")
+        print(f"Full result: {errors.get('result')}")
+```
+
+##### `stream(stack_id: Optional[str] = None) -> Generator[str, None, None]`
+
+Stream real-time logs from a Terraform stack apply operation.
+
+**Parameters:**
+- `stack_id` (`Optional[str]`): Stack ID. If not provided, uses the stack ID from the last apply operation
+
+**Returns:**
+- `Generator[str, None, None]`: Generator yielding log data as strings
+
+**Raises:**
+- `StackStreamError`: For streaming-specific errors
+
+**Example:**
+```python
+# NEW: Stream without arguments using internal tracking
+try:
+    print("Streaming logs for current stack...")
+    
+    for log_line in client.stacks.stream():  # No stack_id needed!
+        # Process each log line
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {log_line}")
+        
+        # Check for completion signals
+        if "Apply complete!" in log_line:
+            print("✅ Deployment completed successfully")
+            break
+        elif "Error:" in log_line:
+            print("❌ Error detected in logs")
+            
+except StackStreamError as e:
+    print(f"Streaming failed: {e}")
+    print(f"Stack ID: {e.stack_id}")
+    
+    # Check if stream position is available
+    if e.details.get("stream_position"):
+        print(f"Failed at stream position: {e.details['stream_position']}")
+
+# BACKWARD COMPATIBLE: Explicit stack_id still works
+stack_id = apply_result.get("uuid")
+if stack_id:
+    for log_line in client.stacks.stream(stack_id):
+        print(f"Log: {log_line}")
+```
+
+---
+
+## Exceptions
+
+### StackError (Base Exception)
+
+Base exception class for all stack-related errors.
+
+```python
+class StackError(Exception):
+    """Base exception for stack operations"""
+```
+
+#### Attributes
+- `stack_name` (`Optional[str]`): Name of the stack that caused the error
+- `details` (`Dict[str, Any]`): Additional error context and metadata
+
+---
+
+### StackPlanError
+
+Specialized exception for Terraform planning failures.
+
+```python
+class StackPlanError(StackError):
+    """Exception raised when stack planning fails"""
+```
+
+#### Attributes
+- `stack_name` (`Optional[str]`): Name of the stack that failed planning
+- `validation_errors` (`Optional[Dict[str, Any]]`): Terraform validation error details
+- `details` (`Dict[str, Any]`): Complete error context
+
+#### Error Details Structure
+```python
+{
+    "validation_errors": {
+        "errorMessage": "Terraform error message",
+        "initOutput": "terraform init output",
+        "planOutput": "terraform plan output"
+    }
+}
+```
+
+#### Example
+```python
+try:
+    plan_result = client.stacks.plan(stack_request)
+except StackPlanError as e:
+    print(f"Stack '{e.stack_name}' planning failed: {e}")
+    
+    # Access validation errors
+    validation_errors = e.details.get("validation_errors", {})
+    error_message = validation_errors.get("errorMessage", "Unknown error")
+    init_output = validation_errors.get("initOutput", "No init output")
+    plan_output = validation_errors.get("planOutput", "No plan output")
+    
+    print(f"Error: {error_message}")
+    if init_output and init_output != "No init output":
+        print(f"Init output:\n{init_output}")
+    if plan_output and plan_output != "No plan output":
+        print(f"Plan output:\n{plan_output}")
+```
+
+---
+
+### StackApplyError
+
+Specialized exception for Terraform apply failures.
+
+```python
+class StackApplyError(StackError):
+    """Exception raised when stack apply fails"""
+```
+
+#### Attributes
+- `stack_name` (`Optional[str]`): Name of the stack that failed apply
+- `stack_id` (`Optional[str]`): UUID of the failed apply operation
+- `terraform_errors` (`Optional[Dict[str, Any]]`): Terraform apply error details
+- `details` (`Dict[str, Any]`): Complete error context
+
+#### Error Details Structure
+```python
+{
+    "terraform_errors": {
+        "errorMessage": "Terraform apply error message",
+        "result": {
+            # Full API response with detailed error context
+        }
+    }
+}
+```
+
+#### Example
+```python
+try:
+    apply_result = client.stacks.apply(stack_request)
+except StackApplyError as e:
+    print(f"Stack '{e.stack_name}' apply failed: {e}")
+    print(f"Stack ID: {e.stack_id}")
+    
+    # Access Terraform errors
+    terraform_errors = e.details.get("terraform_errors", {})
+    error_message = terraform_errors.get("errorMessage", "Unknown error")
+    full_result = terraform_errors.get("result", {})
+    
+    print(f"Error: {error_message}")
+    print(f"Full result: {full_result}")
+    
+    # Check for specific error types
+    if "authentication" in error_message.lower():
+        print("💡 Tip: Check your provider credentials")
+    elif "resource already exists" in error_message.lower():
+        print("💡 Tip: Resource may already exist - check your state")
+```
+
+---
+
+### StackStreamError
+
+Specialized exception for log streaming failures.
+
+```python
+class StackStreamError(StackError):
+    """Exception raised when stack log streaming fails"""
+```
+
+#### Attributes
+- `stack_id` (`Optional[str]`): UUID of the stack with streaming issues
+- `stream_position` (`Optional[int]`): Position in stream where error occurred
+- `details` (`Dict[str, Any]`): Complete error context
+
+#### Error Details Structure
+```python
+{
+    "stream_position": 1234,  # Byte position where streaming failed
+    "connection_error": "Connection timeout",
+    "retry_count": 3
+}
+```
+
+#### Example
+```python
+try:
+    for log_line in client.stacks.stream(stack_id):
+        print(log_line)
+except StackStreamError as e:
+    print(f"Streaming failed for stack {e.stack_id}: {e}")
+    
+    # Check stream position for resume capability
+    stream_position = e.details.get("stream_position")
+    if stream_position:
+        print(f"Failed at position: {stream_position}")
+        # Could implement resume logic here
+    
+    # Check connection errors
+    connection_error = e.details.get("connection_error")
+    if connection_error:
+        print(f"Connection issue: {connection_error}")
+        
+    # Check retry count
+    retry_count = e.details.get("retry_count", 0)
+    if retry_count > 0:
+        print(f"Already retried {retry_count} times")
+```
+
+This API reference provides complete documentation for all public interfaces in the Stacks service. 
+Use the examples and error handling patterns to build robust Terraform deployment workflows.
