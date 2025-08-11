@@ -219,3 +219,11 @@ class PolicyValidationError(ValidationError):
 class PolicyDeniedError(AuthorizationError):
     """Policy denied errors"""
     pass
+
+
+class KnowledgeError(KubiyaSDKError):
+    """Exception for knowledge-related errors"""
+
+    def __init__(self, message: str, knowledge_id: Optional[str] = None):
+        details = {"knowledge_id": knowledge_id} if knowledge_id else None
+        super().__init__(message, details)

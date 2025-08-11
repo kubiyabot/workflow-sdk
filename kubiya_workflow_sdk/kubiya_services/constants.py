@@ -75,3 +75,8 @@ class Endpoints:
     POLICY_DELETE = "/api/v1/opa/policies/{policy_name}"
     POLICY_VALIDATE = "/api/v1/opa/policies/validate"
     POLICY_EVALUATE = "/api/v1/opa/policies/evaluate"
+
+    # Knowledge endpoints
+    KNOWLEDGE_QUERY = "/api/query"
+    KNOWLEDGE_LIST = "/knowledge"
+    KNOWLEDGE_GET = "/knowledge/{knowledge_id}"

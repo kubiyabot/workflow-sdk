@@ -100,7 +100,8 @@ class KubiyaClient:
             SecretService,
             RunnerService,
             ProjectService,
-            PolicyService
+            PolicyService,
+            KnowledgeService
         )
 
         self.workflows = WorkflowService(self)
@@ -113,6 +114,7 @@ class KubiyaClient:
         self.runners = RunnerService(self)
         self.projects = ProjectService(self)
         self.policies = PolicyService(self)
+        self.knowledge = KnowledgeService(self)
 
     def make_request(
         self,
@@ -120,6 +122,7 @@ class KubiyaClient:
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
         stream: bool = False,
+        base_url: Optional[str] = None,
         **kwargs,
     ) -> Union[requests.Response, Generator[str, None, None]]:
         """Make an HTTP request to the Kubiya API.
@@ -129,6 +132,7 @@ class KubiyaClient:
             endpoint: API endpoint
             data: Request data
             stream: Whether to stream the response
+            base_url: Base URL for API request. If None, uses the client's base URL.
             **kwargs: Additional request arguments
 
         Returns:
@@ -140,7 +144,9 @@ class KubiyaClient:
             KubiyaTimeoutError: For timeout errors
             KubiyaAuthenticationError: For authentication errors
         """
-        url = urljoin(self.base_url, endpoint)
+        # If no base URL is provided, use the default one.
+        base_url = base_url or self.base_url
+        url = urljoin(base_url, endpoint)
 
         # Update headers for streaming if needed
         headers = kwargs.pop("headers", {})
