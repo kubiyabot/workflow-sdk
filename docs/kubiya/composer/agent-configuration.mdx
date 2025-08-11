@@ -1,0 +1,150 @@
+---
+title: "Agent Configuration"
+description: "Configure AI engines, models, and create custom agents for your workflows"
+icon: "robot"
+---
+
+Agent Configuration allows you to customize AI engines, select models, choose execution environments, and create specialized agents for your automation needs.
+
+![AI Engine Configuration](/assets/screenshots/composer/agent-configuration/ai-engine-configuration-1.png)
+
+## Agent Types
+
+**On Demand (Execute):** Create custom agents with specific engines, tools, and configuration for immediate execution.
+
+**Existing Agent from Organization:** Use pre-configured agents from your organization's catalog with inherited settings.
+
+**Import Agent Preset:** Load agent configurations from URLs, paste JSON/YAML directly, or generate new agents with AI assistance.
+
+![AI Engine Configuration Options](/assets/screenshots/composer/agent-configuration/ai-engine-configuration-2.png)
+
+## AI Engine & Model Configuration
+
+### Selecting AI Engines
+
+**Claude Code (Recommended):** Anthropic Claude models with enhanced tooling capabilities
+**LiteLLM:** Universal LLM gateway supporting multiple providers
+**Claude Code:** Direct access to Claude models with advanced reasoning
+
+![Execution Runner Selection](/assets/screenshots/composer/agent-configuration/execution-runner-selection.png)
+
+### Available Models
+
+![Model Selection Dropdown](/assets/screenshots/composer/agent-configuration/model-selection-dropdown.png)
+
+**Claude Sonnet 4:** Latest Claude model with enhanced reasoning and performance
+**Claude Opus 4:** Most capable Claude model for complex analysis and problem-solving  
+**GPT-4o:** OpenAI's most advanced multimodal model
+
+![LiteLLM GPT-4o Configuration](/assets/screenshots/composer/agent-configuration/litellm-gpt4o-config.png)
+
+### Execution Runners
+
+Choose from available execution environments:
+- **kubiya-prod:** Production environment
+- **kubiya-hosted:** Managed cloud runner (recommended)
+- **core-testing-1, core-testing-2:** Testing environments
+- **costa-least-privileges:** Security-focused environment
+- **enforcer:** Compliance-focused runner
+- **gcp-no-vcluster:** Google Cloud environment
+- **omer-runner, pai-runner:** Specialized runners
+- **pargevestaging:** Staging environment
+
+## Importing Agent Presets
+
+### From URL
+
+![Import Agent from URL](/assets/screenshots/composer/agent-configuration/import-agent-url.png)
+
+Load agent configurations directly from GitHub, GitLab, or any public repository. Supports JSON, YAML, and YML formats.
+
+### Paste Configuration
+
+![Import Agent Paste Config](/assets/screenshots/composer/agent-configuration/import-agent-paste-config.png)
+
+Paste JSON or YAML agent configurations directly into the interface for quick setup.
+
+### Generate with AI
+
+![Generate with AI Description](/assets/screenshots/composer/agent-configuration/generate-with-ai-description.png)
+
+Describe your desired agent functionality and let AI generate a complete configuration.
+
+**Example prompts:**
+- "agent that can interact with kubernetes clusters"
+- "I need an agent that can talk with AWS and create instances via EC2 running on hosted runner"
+
+![AI Agent Generation Process](/assets/screenshots/composer/agent-configuration/ai-agent-generation-process.png)
+
+The AI assistant analyzes your requirements and generates a comprehensive agent configuration with:
+- Relevant tool searches
+- Agent detail extraction
+- Customized capabilities
+
+## Generated Agent Configuration
+
+![Generated Kubernetes Agent](/assets/screenshots/composer/agent-configuration/generated-kubernetes-agent.png)
+
+Generated agents include:
+- **Agent Name:** Descriptive name (e.g., "Kubernetes Operations Manager")
+- **Description:** Comprehensive capabilities overview
+- **AI Instructions:** Detailed operational guidelines
+- **Tools:** Pre-configured tool set (kubectl-cluster-info, etc.)
+- **Environment Variables:** Required configuration (KUBECONFIG, KUBECTL_VERSION)
+
+![Agent Configuration Details](/assets/screenshots/composer/agent-configuration/agent-configuration-details.png)
+
+Review the complete agent specification including:
+- Core capabilities and operational guidelines
+- Tool configurations and Docker images
+- Environment variables and secrets
+- JSON specification for export
+
+## Agent Preview & Import
+
+![Agent Preview and Import](/assets/screenshots/composer/agent-configuration/agent-preview-and-import.png)
+
+Before importing, review the agent configuration showing:
+- **Tools:** Number of included tools (3)
+- **Secrets:** Required secrets count (0)
+- **Integrations:** Connected services (0)
+- **Environment Variables:** Configuration variables (2)
+
+**Actions available:**
+- **Accept & Use Agent:** Import and make available
+- **Reject:** Cancel the import
+- **Continue Chatting:** Modify the configuration
+
+## Using Configured Agents
+
+![Final Task Interface with Imported Agent](/assets/screenshots/composer/agent-configuration/final-task-interface-with-imported-agent.png)
+
+Once configured, your custom agents appear in the task creation interface alongside the AI engine and execution environment, ready for workflow automation.
+
+## Configuration Best Practices
+
+**Model Selection:**
+- Use Claude Sonnet 4 for most general-purpose tasks
+- Choose Claude Opus 4 for complex reasoning and analysis
+- Select GPT-4o for multimodal tasks requiring vision capabilities
+
+**Runner Selection:**
+- Use `kubiya-hosted` for production workloads (managed and recommended)
+- Choose specialized runners for specific security or compliance requirements
+- Test configurations in staging environments before production deployment
+
+**Agent Design:**
+- Create focused agents with specific domain expertise
+- Include comprehensive AI instructions for consistent behavior
+- Configure only necessary tools to maintain security boundaries
+- Use descriptive names and documentation for team collaboration
+
+**Security Considerations:**
+- Review generated configurations before importing
+- Validate tool permissions and access scopes
+- Use least-privilege execution environments
+- Regularly audit agent capabilities and usage
+
+---
+
+**Quick start:** Begin with the "Generate with AI" option to create your first custom agent, then iterate on the configuration based on your workflow needs.

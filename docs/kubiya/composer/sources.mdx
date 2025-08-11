@@ -1,0 +1,119 @@
+---
+title: "Source Management"
+description: "Manage Git repositories and tool sources for your workflows"
+icon: "code-branch"
+---
+
+Source Management lets you connect and sync Git repositories and tool sources that power your workflows and integrations.
+
+![Source Management Overview](/assets/screenshots/composer/sources/source-management-overview.png)
+
+## What are Sources?
+
+Sources are the foundation of your tools and workflows:
+
+- **Git Repositories** - Your application code, infrastructure as code, scripts
+- **Tool Collections** - Curated sets of tools for specific use cases  
+- **Custom Tools** - Your organization's proprietary automation tools
+- **Configuration Files** - Environment-specific settings and parameters
+
+## Connecting Git Repositories
+
+1. **Navigate to Resources** → **Sources**
+2. **Click "Add Source"** 
+3. **Select "Git Repository"**
+4. **Enter repository details:**
+   - Repository URL (public or private)
+   - Branch to track (default: main)
+   - Authentication credentials if needed
+5. **Choose runner environment**
+6. **Test and save**
+
+![Add New Git Source](/assets/screenshots/composer/sources/add-new-git-source.png)
+
+When adding a new Git source, specify the source name, repository URL, branch, and target runner for execution.
+
+## Source Types
+
+**Public Repositories:**
+- No authentication required
+- Great for open-source tools and documentation
+- Automatically sync on changes
+
+**Private Repositories:**  
+- Requires authentication (SSH keys, tokens, etc.)
+- Secure access to proprietary code
+- Full version control integration
+
+**Tool Packages:**
+- Pre-built tool collections from the marketplace
+- Community-contributed automation tools
+- Enterprise tool bundles
+
+## Managing Sources
+
+**Sync Status:**
+Monitor synchronization with your repositories and get notified of any issues.
+
+**Version Control:**
+Track which commit/branch is currently deployed and roll back if needed.
+
+**Access Control:**
+Set permissions for who can modify source configurations and deploy changes.
+
+**Health Monitoring:**
+Get alerts when sources become unavailable or sync fails.
+
+![ArgoCD Tool Detail View](/assets/screenshots/composer/sources/argocd-tool-detail-view.png)
+
+Individual tools from sources show detailed configuration including secrets, environment variables, Docker image, and tool content with helper functions.
+
+## Using Sources in Workflows
+
+Once connected, source tools become available to agents:
+
+**Tool Discovery:** Agents automatically discover tools from your connected sources.
+
+**Version Management:** Tools update automatically when you push changes to the source repository.
+
+**Environment Isolation:** Different runners can use different versions of the same tools.
+
+**Dependency Management:** Tools can declare dependencies on other tools or services.
+
+## Best Practices
+
+**Repository Structure:**
+- Keep tools in a dedicated `/tools` directory
+- Include clear documentation for each tool
+- Use semantic versioning for releases
+
+**Security:**
+- Use least-privilege access for repository connections
+- Regularly rotate authentication tokens
+- Scan code for security vulnerabilities
+
+**Performance:**
+- Keep tool repositories lightweight
+- Use efficient Docker base images
+- Implement proper caching strategies
+
+## Troubleshooting
+
+**Sync Issues:**
+- Check network connectivity to Git provider
+- Verify authentication credentials are valid
+- Review repository permissions
+
+**Tool Not Available:**
+- Ensure tool meets format requirements
+- Check for syntax errors in tool definitions
+- Verify runner compatibility
+
+**Performance Problems:**
+- Monitor repository size and cleanup old files
+- Optimize Docker images for faster loading
+- Consider using tool caching
+
+---
+
+**Getting started?** Connect a simple public repository first to understand how sources work, then add your private repositories.
