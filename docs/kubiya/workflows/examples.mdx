@@ -98,6 +98,66 @@ def ai_code_review(pr_number: int):
     ).depends("analyze-code")
 ```
 
+## Custom Tool Integration
+
+Use custom Tool class instances for reusable, typed functionality:
+
+```python
+from kubiya_workflow_sdk.tools import Tool, Arg
+
+# Define custom tools
+url_validator = Tool(
+    name="url_validator",
+    description="Validate URL format and connectivity",
+    type="docker",
+    image="curlimages/curl:latest",
+    content="""
+#!/bin/sh
+echo "Validating URL: $url"
+if echo "$url" | grep -q '^https\\?://'; then
+    echo "✓ Valid URL format"
+    curl -s --head "$url" && echo "✓ URL is accessible"
+else
+    echo "✗ Invalid URL format"
+    exit 1
+fi
+    """,
+    args=[
+        Arg(name="url", type="str", description="URL to validate", required=True)
+    ]
+)
+
+json_processor = Tool(
+    name="json_processor",
+    description="Process and validate JSON data",
+    type="docker",
+    image="python:3.11-alpine",
+    content="""
+#!/bin/sh
+python3 -c "
+import json
+import sys
+
+try:
+    data = json.loads('$json_data')
+    if '$operation' == 'validate':
+        print('✓ Valid JSON')
+        print(f'Keys: {list(data.keys())}')
+    elif '$operation' == 'pretty':
+        print(json.dumps(data, indent=2))
+except json.JSONDecodeError as e:
+    print(f'✗ Invalid JSON: {e}')
+    sys.exit(1)
+"
+    """,
+    args=[
+        Arg(name="json_data", type="str", description="JSON data to process", required=True),
+        Arg(name="operation", type="str", description="Operation type", 
+            default="validate", options=["validate", "pretty"])
+    ]
+)
+```
+
 ## Incident response automation
 
 Automated response to system alerts:

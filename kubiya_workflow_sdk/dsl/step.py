@@ -143,7 +143,30 @@ class Step:
         return self
 
     def tool(self, tool_name_or_instance: Union[str, "Tool"], args: Optional[Dict[str, Any]] = None, timeout: Optional[int] = None, **kwargs) -> "Step":
-        """Use a pre-registered tool or Tool instance."""
+        """
+        Use a pre-registered tool or Tool class instance.
+        
+        Args:
+            tool_name_or_instance: Either a string name of a pre-registered tool, 
+                                 or a Tool class instance from kubiya_workflow_sdk.tools.models
+            args: Arguments to pass to the tool
+            timeout: Execution timeout in seconds
+            **kwargs: Additional configuration options
+            
+        Returns:
+            Step: The current step instance for method chaining
+            
+        Examples:
+            Using a Tool class instance:
+                from custom_tools import url_validator
+                step.tool(url_validator).args(url="https://example.com")
+                
+            Using a pre-registered tool name:
+                step.tool("slack-notifier").args(channel="#alerts")
+                
+            With inline arguments:
+                step.tool(json_processor, args={"json_data": data, "operation": "validate"})
+        """
         # Check if it's a Tool instance
         if Tool and isinstance(tool_name_or_instance, Tool):
             tool_instance = tool_name_or_instance

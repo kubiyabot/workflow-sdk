@@ -572,6 +572,68 @@ def send_slack_message(channel: "str", message: "str", username: "str" = "Bot") 
     }
 ```
 
+## Using Tools in Workflows
+
+Tools can be integrated directly into workflows using the `.tool()` method, providing type-safe, reusable components:
+
+### Basic Tool Integration
+
+```python
+from kubiya_workflow_sdk.dsl import Workflow
+from my_tools import url_validator, json_processor
+
+# Create workflow using custom tools
+workflow = (Workflow("data-validation")
+    .description("Validate URLs and process JSON data")
+    .step("validate_url", callback=lambda s:
+        s.description("Validate API endpoint")
+        .tool(url_validator)
+        .args(url="https://api.example.com")
+        .output("validation_result")
+    )
+    .step("process_config", callback=lambda s:
+        s.description("Process JSON configuration")
+        .tool(json_processor)
+        .args(
+            json_data='{"env": "prod", "replicas": 3}',
+            operation="validate"
+        )
+        .depends("validate_url")
+    )
+)
+```
+
+### Advanced Tool Usage
+
+```python
+# Using tools with pre-registered tool names
+workflow.step("notify", callback=lambda s:
+    s.tool("slack-notifier")  # String reference to registered tool
+    .args(channel="#alerts", message="Process completed")
+)
+
+# Using Tool instances with timeout and custom config
+workflow.step("backup", callback=lambda s:
+    s.tool(database_backup_tool, timeout=300)
+    .args(database="production", backup_type="full")
+)
+```
+
+### Tool Registry Integration
+
+Tools are automatically available for workflow use when registered:
+
+```python
+from kubiya_workflow_sdk.tools import tool_registry
+
+# Register custom tool
+tool_registry.register(my_custom_tool)
+
+# Use in workflow by name or instance
+workflow.step("process").tool("my_custom_tool")  # By name
+workflow.step("process").tool(my_custom_tool)    # By instance
+```
+
 ## Related Documentation
 
 - [Installation Guide](./installation)
@@ -580,5 +642,6 @@ def send_slack_message(channel: "str", message: "str", username: "str" = "Bot") 
 - [Advanced Examples](./advanced-examples)
 - [API Reference](./api-reference)
 - [Workflow Examples](/workflows/examples)
+- [Workflow DSL Reference](/workflows/dsl-reference)
 - [Tool Development Guide](/mcpserver/tools-reference)
 - [API Reference](/api-reference/platform/overview)
