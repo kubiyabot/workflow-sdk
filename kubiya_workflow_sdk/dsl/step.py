@@ -10,6 +10,12 @@ Properly handles:
 
 from typing import Dict, Any, List, Optional, Union
 
+try:
+    from kubiya_workflow_sdk.tools.models import Tool
+except ImportError:
+    # Fallback for cases where tools module is not available
+    Tool = None
+
 
 class Step:
     """
@@ -136,11 +142,85 @@ class Step:
 
         return self
 
-    def tool(self, tool_name: str, args: Optional[Dict[str, Any]] = None, **kwargs) -> "Step":
-        """Use a pre-registered tool."""
-        config = {"tool_name": tool_name}
-        if args:
-            config["args"] = args
+    def tool(self, tool_name_or_instance: Union[str, "Tool"], args: Optional[Dict[str, Any]] = None, timeout: Optional[int] = None, **kwargs) -> "Step":
+        """Use a pre-registered tool or Tool instance."""
+        # Check if it's a Tool instance
+        if Tool and isinstance(tool_name_or_instance, Tool):
+            tool_instance = tool_name_or_instance
+            
+            # Create tool definition from Tool instance
+            tool_def = {
+                "name": tool_instance.name,
+                "type": tool_instance.type,
+                "image": tool_instance.get_image(),
+                "content": tool_instance.content or "",
+            }
+            
+            if tool_instance.description:
+                tool_def["description"] = tool_instance.description
+            if tool_instance.with_files:
+                tool_def["with_files"] = [
+                    {
+                        "source": f.source,
+                        "destination": f.destination,
+                        "content": f.content
+                    } for f in tool_instance.with_files if f.source or f.content
+                ]
+            if tool_instance.with_services:
+                tool_def["with_services"] = [
+                    {
+                        "name": s.name,
+                        "image": s.image,
+                        "exposed_ports": s.exposed_ports,
+                        "env": s.env,
+                        "entrypoint": s.entrypoint,
+                        "with_volumes": [
+                            {"name": v.name, "path": v.path} for v in s.volumes
+                        ] if s.volumes else None
+                    } for s in tool_instance.with_services
+                ]
+            if tool_instance.args:
+                # Convert Arg objects to dict format expected by tool_def
+                tool_def["args"] = [
+                    {
+                        "name": arg.name,
+                        "type": arg.type,
+                        "description": arg.description,
+                        "required": arg.required,
+                        "default": arg.default,
+                        "options": arg.options,
+                        "options_from": arg.options_from
+                    } for arg in tool_instance.args
+                ]
+            if tool_instance.entrypoint:
+                tool_def["entrypoint"] = tool_instance.entrypoint
+            if tool_instance.env:
+                tool_def["env"] = tool_instance.env
+            if tool_instance.secrets:
+                tool_def["secrets"] = tool_instance.secrets
+            if tool_instance.dependencies:
+                tool_def["dependencies"] = tool_instance.dependencies
+            if tool_instance.with_volumes:
+                tool_def["with_volumes"] = [
+                    {"name": v.name, "path": v.path} for v in tool_instance.with_volumes
+                ]
+            
+            # Add any additional kwargs
+            tool_def.update(kwargs)
+            
+            # Use tool_def style configuration
+            config = {"tool_def": tool_def}
+            if args:
+                config["args"] = args
+            if timeout:
+                config["timeout"] = timeout
+                
+        else:
+            # Original behavior - tool_name as string
+            tool_name = tool_name_or_instance
+            config = {"name": tool_name}
+            if args:
+                config["args"] = args
 
         self.data["executor"] = {"type": "tool", "config": config}
         return self
