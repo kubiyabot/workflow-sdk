@@ -11,6 +11,7 @@ from kubiya_workflow_sdk.kubiya_services.services.source import SourceService
 from kubiya_workflow_sdk.kubiya_services.services.secrets import SecretService
 from kubiya_workflow_sdk.kubiya_services.services.runners import RunnerService
 from kubiya_workflow_sdk.kubiya_services.services.projects import ProjectService
+from kubiya_workflow_sdk.kubiya_services.services.policies import PolicyService
 
 __all__ = [
     "WorkflowService",
@@ -21,5 +22,6 @@ __all__ = [
     "SourceService",
     "SecretService",
     "RunnerService",
-    "ProjectService"
+    "ProjectService",
+    "PolicyService"
 ]

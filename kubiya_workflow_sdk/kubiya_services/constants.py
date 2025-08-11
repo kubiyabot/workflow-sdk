@@ -66,3 +66,12 @@ class Endpoints:
     PROJECT_PLAN_APPROVE = "/api/v1/tasks/{plan_id}"
     PROJECT_EXECUTION_GET = "/api/v1/tasks/{execution_id}"
     PROJECT_EXECUTION_LOGS = "/api/v1/tasks/logs/{execution_id}"
+
+    # Policy endpoints - for OPA policy management
+    POLICY_LIST = "/api/v1/opa/policies"
+    POLICY_GET = "/api/v1/opa/policies/{policy_name}"
+    POLICY_CREATE = "/api/v1/opa/policies"
+    POLICY_UPDATE = "/api/v1/opa/policies/{policy_name}"
+    POLICY_DELETE = "/api/v1/opa/policies/{policy_name}"
+    POLICY_VALIDATE = "/api/v1/opa/policies/validate"
+    POLICY_EVALUATE = "/api/v1/opa/policies/evaluate"

@@ -98,6 +98,14 @@ class WebhookError(KubiyaSDKError):
         super().__init__(message, details)
 
 
+class AuthorizationError(KubiyaSDKError):
+    """Exception for authorization-related errors"""
+
+    def __init__(self, message: str = "Access denied", resource: Optional[str] = None):
+        details = {"resource": resource} if resource else None
+        super().__init__(message, details)
+
+
 # User service exceptions
 class UserError(Exception):
     """Base exception for user service operations"""
@@ -197,4 +205,17 @@ class RunnerHealthError(RunnerError):
 
 class ProjectExecutionError(KubiyaSDKError):
     """Project execution errors"""
+    pass
+
+# Policy-specific exceptions
+class PolicyError(KubiyaSDKError):
+    """Policy-related errors"""
+    pass
+
+class PolicyValidationError(ValidationError):
+    """Policy validation errors"""
+    pass
+
+class PolicyDeniedError(AuthorizationError):
+    """Policy denied errors"""
     pass
