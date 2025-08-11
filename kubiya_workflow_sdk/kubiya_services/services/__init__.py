@@ -13,6 +13,7 @@ from kubiya_workflow_sdk.kubiya_services.services.runners import RunnerService
 from kubiya_workflow_sdk.kubiya_services.services.projects import ProjectService
 from kubiya_workflow_sdk.kubiya_services.services.policies import PolicyService
 from kubiya_workflow_sdk.kubiya_services.services.knowledge import KnowledgeService
+from kubiya_workflow_sdk.kubiya_services.services.integrations import IntegrationService
 
 __all__ = [
     "WorkflowService",
@@ -25,5 +26,6 @@ __all__ = [
     "RunnerService",
     "ProjectService",
     "PolicyService",
-    "KnowledgeService"
+    "KnowledgeService",
+    "IntegrationService"
 ]

@@ -154,11 +154,6 @@ class ToolExecutionError(ToolError):
     pass
 
 
-class IntegrationNotFoundError(ToolError):
-    """Exception raised when an integration template is not found"""
-    pass
-
-
 class SourceError(KubiyaSDKError):
     """Exception for source-related errors"""
 
@@ -227,3 +222,17 @@ class KnowledgeError(KubiyaSDKError):
     def __init__(self, message: str, knowledge_id: Optional[str] = None):
         details = {"knowledge_id": knowledge_id} if knowledge_id else None
         super().__init__(message, details)
+
+
+# Integration-specific exceptions
+class IntegrationError(KubiyaSDKError):
+    """Integration-related errors"""
+    pass
+
+class IntegrationNotFoundError(IntegrationError):
+    """Integration not found errors"""
+    pass
+
+class IntegrationValidationError(ValidationError):
+    """Integration validation errors"""
+    pass

@@ -101,7 +101,8 @@ class KubiyaClient:
             RunnerService,
             ProjectService,
             PolicyService,
-            KnowledgeService
+            KnowledgeService,
+            IntegrationService
         )
 
         self.workflows = WorkflowService(self)
@@ -115,6 +116,7 @@ class KubiyaClient:
         self.projects = ProjectService(self)
         self.policies = PolicyService(self)
         self.knowledge = KnowledgeService(self)
+        self.integrations = IntegrationService(self)
 
     def make_request(
         self,

@@ -80,3 +80,9 @@ class Endpoints:
     KNOWLEDGE_QUERY = "/api/query"
     KNOWLEDGE_LIST = "/knowledge"
     KNOWLEDGE_GET = "/knowledge/{knowledge_id}"
+
+    # Integration endpoints
+    INTEGRATIONS_LIST = "/api/v1/integrations"
+    INTEGRATION_GET = "/api/v1/integrations/{integration_name}"
+    INTEGRATIONS_GITHUB = "/api/v2/integrations/github_app"
+    INTEGRATION_INSTALL = "/api/v1/integration/{integration_name}/install"
