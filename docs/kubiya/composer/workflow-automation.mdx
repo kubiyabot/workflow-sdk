@@ -1,0 +1,283 @@
+---
+title: "Workflow Automation"
+description: "Complete guide to automating AI workflows and consuming agents for infrastructure tasks"
+icon: "cogs"
+---
+
+Workflow Automation in Composer enables you to create sophisticated, repeatable automation sequences that leverage AI agents and your connected tools.
+
+## Automation Fundamentals
+
+**Task-to-Workflow Pipeline:** Transform successful ad-hoc tasks into reusable workflows that your team can execute consistently.
+
+**Agent-Driven Execution:** Workflows use AI agents to make intelligent decisions, handle errors, and adapt to different environments.
+
+**Infrastructure-Aware:** Workflows understand your infrastructure context and can safely operate across different environments.
+
+## Creating Automated Workflows
+
+### From Successful Tasks
+
+1. **Execute a task** successfully through the chat interface
+2. **Review the execution flow** and identify reusable patterns  
+3. **Click "Save as Workflow"** to convert the task sequence
+4. **Configure parameters** that should be variables
+5. **Test the workflow** in a safe environment
+
+### Visual Workflow Builder
+
+![Visual Workflow Editor](/assets/screenshots/composer/workflow-designer/visual-workflow-editor.png)
+
+**Drag-and-Drop Components:**
+- **Triggers:** GitHub webhooks, scheduled execution, manual triggers
+- **Conditions:** Environment checks, resource validation, approval gates
+- **Actions:** Tool executions, agent interactions, data transformations
+- **Notifications:** Slack messages, email alerts, dashboard updates
+
+### Agent Integration Patterns
+
+**Sequential Agent Execution:**
+```yaml
+steps:
+  - agent: "aws-specialist"
+    task: "Provision EC2 instances"
+    outputs: ["instance_ids", "security_groups"]
+  
+  - agent: "kubernetes-operator"  
+    task: "Deploy application to cluster"
+    inputs: ["instance_ids"]
+    
+  - agent: "monitoring-agent"
+    task: "Configure alerts and dashboards"
+    inputs: ["instance_ids", "app_endpoints"]
+```
+
+**Parallel Agent Processing:**
+```yaml
+parallel:
+  - agent: "security-scanner"
+    task: "Run vulnerability assessment"
+    
+  - agent: "performance-tester"
+    task: "Execute load tests"
+    
+  - agent: "compliance-checker"
+    task: "Validate policy compliance"
+```
+
+## Common Automation Patterns
+
+### CI/CD Automation
+
+**GitHub to Production Pipeline:**
+1. **Trigger:** GitHub webhook on main branch push
+2. **Agent:** Code analysis and security scan
+3. **Condition:** All checks pass
+4. **Agent:** Build and containerize application  
+5. **Agent:** Deploy to staging environment
+6. **Agent:** Run integration tests
+7. **Condition:** Tests successful
+8. **Agent:** Deploy to production
+9. **Notification:** Team success/failure alert
+
+### Infrastructure Management
+
+**Auto-Scaling Response:**
+1. **Trigger:** CloudWatch metric threshold
+2. **Agent:** Analyze current resource utilization
+3. **Condition:** Scale-up criteria met
+4. **Agent:** Provision additional resources
+5. **Agent:** Update load balancer configuration
+6. **Agent:** Verify healthy deployment
+7. **Notification:** Operations team update
+
+### Incident Response
+
+**Automated Remediation:**
+1. **Trigger:** Alert from monitoring system
+2. **Agent:** Diagnose issue severity and scope
+3. **Condition:** Auto-remediation approved for issue type
+4. **Agent:** Execute standard remediation steps
+5. **Agent:** Verify resolution effectiveness
+6. **Condition:** Issue resolved or escalate
+7. **Notification:** Incident status update
+
+## Agent Consumption Strategies
+
+### Specialized Agent Roles
+
+**Domain Expertise:** Create agents with specific knowledge domains:
+- **AWS-Expert:** Deep knowledge of AWS services and best practices
+- **K8s-Operator:** Kubernetes cluster management and troubleshooting  
+- **Security-Guardian:** Security scanning, compliance, and remediation
+- **Data-Engineer:** ETL processes, database management, analytics
+
+**Tool-Specific Agents:** Optimize agents for specific tool interactions:
+- **Git-Manager:** Repository operations, branch management, code review
+- **Docker-Builder:** Container creation, registry management, optimization
+- **Terraform-Operator:** Infrastructure as code deployment and management
+
+### Agent Orchestration Patterns
+
+**Handoff Pattern:**
+```yaml
+workflow:
+  - name: "requirements_analysis"
+    agent: "business-analyst"
+    output: "requirements_spec"
+    
+  - name: "architecture_design"  
+    agent: "solutions-architect"
+    input: "requirements_spec"
+    output: "architecture_plan"
+    
+  - name: "implementation"
+    agent: "dev-team-lead"
+    input: "architecture_plan"
+```
+
+**Consensus Pattern:**
+```yaml
+workflow:
+  - name: "multi_agent_review"
+    parallel:
+      - agent: "security-expert"
+        task: "Security assessment"
+      - agent: "performance-expert"  
+        task: "Performance evaluation"
+      - agent: "cost-optimizer"
+        task: "Cost analysis"
+        
+  - name: "consensus_decision"
+    agent: "decision-maker"
+    inputs: ["security_report", "performance_report", "cost_analysis"]
+    task: "Make final deployment decision"
+```
+
+**Retry and Recovery Pattern:**
+```yaml
+workflow:
+  - name: "primary_deployment"
+    agent: "deployment-agent"
+    retry_policy:
+      max_attempts: 3
+      backoff: "exponential"
+      
+  - name: "rollback_on_failure"
+    condition: "primary_deployment.failed"
+    agent: "rollback-agent"
+    task: "Restore previous version"
+```
+
+## Advanced Automation Features
+
+### Dynamic Agent Selection
+
+**Context-Aware Agent Choice:**
+```yaml
+steps:
+  - name: "select_deployment_agent"
+    condition: |
+      if environment == "production":
+        return "production-deployment-agent"
+      elif environment == "staging":
+        return "staging-deployment-agent"  
+      else:
+        return "development-deployment-agent"
+```
+
+### Approval Workflows
+
+**Human-in-the-Loop Integration:**
+```yaml
+steps:
+  - name: "prepare_production_deployment"
+    agent: "deployment-planner"
+    
+  - name: "request_approval"
+    type: "approval_gate"
+    approvers: ["ops-manager", "security-lead"]
+    timeout: "24h"
+    
+  - name: "execute_deployment"
+    condition: "request_approval.approved"
+    agent: "production-deployer"
+```
+
+### Error Handling and Monitoring
+
+**Comprehensive Error Management:**
+```yaml
+workflow:
+  error_handling:
+    - type: "network_timeout"
+      action: "retry_with_backoff"
+      max_attempts: 3
+      
+    - type: "permission_denied"
+      action: "escalate_to_admin"
+      
+    - type: "resource_limit"
+      action: "provision_additional_resources"
+      
+  monitoring:
+    - metric: "execution_time"
+      threshold: "30min"
+      alert: "performance-team"
+      
+    - metric: "failure_rate"  
+      threshold: "5%"
+      alert: "ops-team"
+```
+
+## Performance Optimization
+
+### Agent Resource Management
+
+**Efficient Agent Utilization:**
+- **Agent Pooling:** Reuse agents across workflow steps
+- **Resource Limits:** Configure memory and CPU constraints
+- **Parallel Execution:** Run independent steps concurrently
+- **Caching:** Store intermediate results for reuse
+
+**Execution Environment Optimization:**
+- **Runner Selection:** Choose appropriate execution environments
+- **Network Optimization:** Minimize data transfer between steps
+- **Tool Connection Pooling:** Reuse integration connections
+
+### Monitoring and Analytics
+
+**Workflow Performance Tracking:**
+- **Execution Time Analysis:** Identify bottlenecks and optimization opportunities
+- **Success Rate Monitoring:** Track reliability across different scenarios
+- **Resource Usage Metrics:** Optimize agent and infrastructure utilization
+- **Cost Analysis:** Monitor and optimize automation costs
+
+## Best Practices
+
+### Design Principles
+
+**Idempotency:** Ensure workflows can be safely re-executed
+**Fault Tolerance:** Design for graceful degradation and recovery
+**Observability:** Include comprehensive logging and monitoring
+**Security:** Implement proper access controls and secret management
+
+### Testing Strategies
+
+**Workflow Validation:**
+- **Dry Run Mode:** Test workflows without executing actual changes
+- **Staging Environment:** Validate workflows in production-like environments  
+- **Canary Deployment:** Gradually roll out workflow changes
+- **A/B Testing:** Compare different automation approaches
+
+### Maintenance and Evolution
+
+**Continuous Improvement:**
+- **Regular Review:** Analyze workflow performance and effectiveness
+- **Agent Updates:** Keep agent configurations current with infrastructure changes
+- **Documentation:** Maintain clear documentation for workflow logic and dependencies
+- **Version Control:** Track workflow changes and enable rollbacks
+
+---
+
+**Ready to automate?** Start with simple, repetitive tasks and gradually build more sophisticated workflows as your team gains confidence with agent-driven automation.

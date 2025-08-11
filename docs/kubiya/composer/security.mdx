@@ -1,0 +1,177 @@
+---
+title: "Security & Secrets"
+description: "Manage credentials, secrets, and security policies for your workflows"
+icon: "shield-alt"
+---
+
+Security & Secrets management ensures your sensitive information is stored securely and accessed safely by agents and workflows.
+
+![Secrets Vault Overview](/assets/screenshots/composer/security/secrets-vault-overview.png)
+
+## Secrets Vault
+
+The Secrets Vault provides encrypted storage for sensitive information:
+
+- **API Keys** - Service authentication tokens and keys
+- **Database Credentials** - Connection strings and passwords  
+- **Configuration Tokens** - Integration-specific authentication
+- **Application Keys** - Custom application secrets
+- **Environment Variables** - Sensitive configuration values
+
+## Managing Secrets
+
+**Adding Secrets:**
+1. Navigate to **Resources** → **Secrets Vault**
+2. Click **Add Secret**
+3. Enter a descriptive name
+4. Provide the secret value
+5. Set expiration date (optional)
+6. Configure access permissions
+
+**Secret Types:**
+
+**API Keys:**
+- `CONFIGCAT_API_PASS` - Feature flag management
+- `CONFIGCAT_API_USER` - User authentication tokens
+- `DATABRICKS_TOKEN` - Data platform access
+- `DATADOG_API_KEY` - Monitoring service keys
+- `DATADOG_APP_KEY` - Application-specific tokens
+
+**Configuration Tokens:**
+- `CONFIGCAT_TOKEN` - Configuration management
+- `CONFLUENCE_API_TOKEN` - Documentation access
+
+All secrets are encrypted at rest and in transit, with access controlled through role-based permissions.
+
+## Security Features
+
+**Encryption:**
+- AES-256 encryption for all stored secrets
+- Encrypted communication channels
+- Zero-trust architecture principles
+
+**Access Control:**
+- Role-based permissions system
+- Least-privilege access principles
+- Time-limited access tokens
+- Audit trails for all secret access
+
+**Rotation:**
+- Automatic secret expiration
+- Manual rotation workflows
+- Integration with external secret managers
+- Notification alerts for expiring secrets
+
+## Using Secrets in Workflows
+
+Secrets are automatically injected into workflows and tools:
+
+```yaml
+# Example workflow using secrets
+steps:
+  - name: deploy_app
+    tool: kubernetes_deploy
+    secrets:
+      - KUBECONFIG_TOKEN
+      - DOCKER_REGISTRY_KEY
+```
+
+**Best Practices:**
+- Never hardcode secrets in workflow definitions
+- Use descriptive names for easy identification
+- Set appropriate expiration dates
+- Regularly audit secret usage
+
+## Integration Security
+
+**Secure Connections:**
+- TLS encryption for all integrations
+- Certificate validation and pinning
+- Mutual authentication where supported
+
+**Permission Scoping:**
+- Minimal required permissions for each integration
+- Regular permission audits
+- Automatic permission reviews
+
+**Network Security:**
+- VPC/network isolation
+- Firewall rules and security groups
+- IP allowlisting for sensitive integrations
+
+## Compliance & Auditing
+
+**Audit Logs:**
+- Complete audit trail of secret access
+- User activity tracking
+- Integration usage logging
+- Export capabilities for compliance
+
+**Compliance Standards:**
+- SOC 2 Type II certified
+- GDPR compliant data handling
+- Industry-standard encryption
+- Regular security assessments
+
+**Data Governance:**
+- Data classification and labeling
+- Retention policy management
+- Geographic data residency options
+- Right to deletion compliance
+
+## Security Policies
+
+**Password Requirements:**
+- Strong password enforcement
+- Multi-factor authentication support
+- Session timeout configuration
+
+**Access Policies:**
+- IP allowlisting capabilities
+- Time-based access restrictions
+- Geographic access controls
+- Failed login attempt monitoring
+
+**Incident Response:**
+- Automated threat detection
+- Security event alerting
+- Breach notification procedures
+- Recovery and remediation workflows
+
+## Monitoring & Alerts
+
+**Security Monitoring:**
+- Unusual access pattern detection
+- Failed authentication alerts
+- Secret exposure scanning
+- Integration health monitoring
+
+**Alert Configuration:**
+- Real-time security notifications
+- Customizable alert thresholds
+- Multiple notification channels
+- Escalation procedures
+
+## Troubleshooting
+
+**Access Issues:**
+- Verify user permissions and roles
+- Check secret expiration dates
+- Validate integration configurations
+- Review audit logs for errors
+
+**Integration Problems:**
+- Test secret values and formats
+- Confirm network connectivity
+- Validate API permissions
+- Check service-specific requirements
+
+**Performance Concerns:**
+- Monitor secret retrieval latency
+- Optimize secret caching strategies
+- Review access patterns
+- Consider secret consolidation
+
+---
+
+**Security first:** Regularly review and rotate your secrets, monitor access patterns, and keep permissions aligned with the principle of least privilege.
