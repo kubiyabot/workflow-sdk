@@ -189,7 +189,7 @@ class ProjectService(BaseService):
 
     def delete(
         self,
-        project_id: str,
+        project_id: str
     ) -> Dict[str, Any]:
         """
         Delete a project
@@ -207,7 +207,7 @@ class ProjectService(BaseService):
 
     def describe(
         self,
-        project_id: str,
+        project_id: str
     ) -> Union[Dict[str, Any], str]:
         """
         Get detailed project information
@@ -222,7 +222,7 @@ class ProjectService(BaseService):
 
     def templates(
         self,
-        repository: Optional[str] = None,
+        repository: Optional[str] = None
     ) -> Union[List[Dict[str, Any]], str]:
         """
         List available project templates
@@ -245,7 +245,7 @@ class ProjectService(BaseService):
 
     def __get_template(
         self,
-        template_id: str,
+        template_id: str
     ) -> Union[Dict[str, Any], str]:
         """
         Get detailed template information
@@ -264,7 +264,7 @@ class ProjectService(BaseService):
     def plan(
         self,
         project_id: str,
-        auto_approve: bool = False,
+        auto_approve: bool = False
     ) -> Dict[str, Any]:
         """
         Create a plan for a project
@@ -295,7 +295,7 @@ class ProjectService(BaseService):
 
     def approve(
         self,
-        plan_id: str,
+        plan_id: str
     ) -> Dict[str, Any]:
         """
         Approve a project plan
@@ -316,8 +316,8 @@ class ProjectService(BaseService):
         return response
 
     def __get_execution(
-            self,
-            execution_id: str
+        self,
+        execution_id: str
     ) -> Dict[str, Any]:
         """
         Get execution details
@@ -334,8 +334,8 @@ class ProjectService(BaseService):
         return response
 
     def __get_execution_logs(
-            self,
-            execution_id: str
+        self,
+        execution_id: str
     ) -> List[str]:
         """
         Get execution logs
@@ -356,40 +356,3 @@ class ProjectService(BaseService):
             return response.get('logs', [])
         else:
             return [str(response)]
-
-    def __follow_execution(
-        self,
-        execution_id: str,
-        poll_interval: int = 1
-    ) -> None:
-        """
-        Follow execution logs in real-time
-
-        Args:
-            execution_id: Execution ID
-            poll_interval: Polling interval in seconds
-        """
-        last_log_count = 0
-
-        while True:
-            time.sleep(poll_interval)
-
-            # Get execution status
-            execution = self.__get_execution(execution_id)
-            status = execution.get('status', '').lower()
-
-            # Get logs
-            logs = self.__get_execution_logs(execution_id)
-
-            # Print new logs
-            for i in range(last_log_count, len(logs)):
-                logger.info(logs[i])
-            last_log_count = len(logs)
-
-            # Check if execution is complete
-            if status in ['completed', 'failed']:
-                if status == 'completed':
-                    logger.info("✅ Execution completed")
-                else:
-                    logger.error("❌ Execution failed")
-                break

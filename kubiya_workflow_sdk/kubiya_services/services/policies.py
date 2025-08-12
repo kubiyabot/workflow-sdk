@@ -28,7 +28,7 @@ class PolicyService(BaseService):
 
     def get(
         self,
-        policy_name: str,
+        policy_name: str
     ) -> Union[Dict[str, Any], str]:
         """
         Get policy details

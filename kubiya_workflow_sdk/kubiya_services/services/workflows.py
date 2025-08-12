@@ -158,13 +158,9 @@ class WorkflowService(BaseService):
         # Use the provided runner or fall back to the client's default runner
         target_runner = runner or self.client.runner
 
-        # Prepare request body for resume
-        # Note: You'll need to implement execution state tracking
-        # to properly resume from the last checkpoint
         request_body = {
             "execution_id": execution_id,
             "resume": True,
-            # Add any additional resume-specific parameters
         }
 
         # Use the same execute endpoint - the server should handle resume logic
@@ -185,79 +181,3 @@ class WorkflowService(BaseService):
             for event in response:
                 result.append(event)
             return {"events": result}
-
-    def list_active_executions(self) -> Dict[str, Any]:
-        """
-        List active workflow executions that can be resumed.
-
-        Note: This would require server-side support or local state management
-        to track active executions.
-
-        Returns:
-            Dictionary containing list of active executions
-        """
-
-        # This would need to be implemented based on your execution tracking system
-        # The CLI version uses local state files to track active executions
-        request_body = {
-            "list_active": True
-        }
-
-        # You might need a separate endpoint for this, or use the existing workflow list
-        # with a filter for active/resumable executions
-        endpoint = self._format_endpoint(Endpoints.WORKFLOW_LIST, runner=self.client.runner)
-
-        response = self._post(endpoint=endpoint, data=request_body, stream=False)
-
-        # For non-streaming responses, response should be a requests.Response object
-        if hasattr(response, 'json'):
-            try:
-                return response.json()
-            except:
-                # If JSON parsing fails, try to get text content
-                return {"error": "Failed to parse response", "content": response.text}
-        elif hasattr(response, '__iter__') and not isinstance(response, (str, bytes, dict)):
-            # This should only happen for streaming responses
-            result = []
-            for event in response:
-                result.append(event)
-            return {"events": result}
-        else:
-            return response
-
-    def get_execution_state(self, execution_id: str) -> Dict[str, Any]:
-        """
-        Get the current state of a workflow execution.
-
-        Args:
-            execution_id: The execution ID to check
-
-        Returns:
-            Dictionary containing execution state information
-        """
-
-        request_body = {
-            "execution_id": execution_id,
-            "get_state": True
-        }
-
-        # This might use a status endpoint or workflow list with specific ID filter
-        endpoint = self._format_endpoint(Endpoints.WORKFLOW_STATUS, runner=self.client.runner)
-
-        response = self._post(endpoint=endpoint, data=request_body, stream=False)
-
-        # For non-streaming responses, response should be a requests.Response object
-        if hasattr(response, 'json'):
-            try:
-                return response.json()
-            except:
-                # If JSON parsing fails, try to get text content
-                return {"error": "Failed to parse response", "content": response.text}
-        elif hasattr(response, '__iter__') and not isinstance(response, (str, bytes, dict)):
-            # This should only happen for streaming responses
-            result = []
-            for event in response:
-                result.append(event)
-            return {"events": result}
-        else:
-            return response

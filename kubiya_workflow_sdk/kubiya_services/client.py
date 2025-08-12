@@ -291,7 +291,11 @@ class KubiyaClient:
                         # Don't immediately close on error events - wait for explicit end
                     else:
                         yield line
-                yield json.loads(line)
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    # If line is not valid JSON, yield it as a string
+                    yield line
 
         except Exception as e:
             error = WorkflowExecutionError(f"Error processing stream: {str(e)}")

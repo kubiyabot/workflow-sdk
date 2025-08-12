@@ -91,8 +91,8 @@ class RunnerService(BaseService):
 
 
     def _fetch_health_status_batch(
-            self,
-            runners: List[Dict[str, Any]]
+        self,
+        runners: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
         Fetch health status for multiple runners concurrently.

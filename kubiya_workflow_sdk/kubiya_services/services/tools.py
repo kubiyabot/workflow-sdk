@@ -66,10 +66,10 @@ class ToolService(BaseService):
             raise error
 
     def search(
-            self,
-            query: str,
-            non_interactive: bool = False,
-            output_format: str = "dict"
+        self,
+        query: str,
+        non_interactive: bool = False,
+        output_format: str = "dict"
     ) -> Union[List[Dict[str, Any]], str]:
         """
         Search for tools by query
