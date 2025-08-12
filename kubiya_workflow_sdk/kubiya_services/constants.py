@@ -22,7 +22,7 @@ class Endpoints:
 
     # Tool endpoints
     TOOL_EXECUTE = "/api/v1/tools/exec?runner={runner}"
-    TOOL_GENERATE = "/api/v2/tools/generate"
+    TOOL_GENERATE = "/api/v1/http-bridge/v1/generate-tool"
     TOOL_LIST = "/tools"
     TOOL_DESCRIBE = "/tools/{tool_name}"
     TOOL_SEARCH = "/tools/search"

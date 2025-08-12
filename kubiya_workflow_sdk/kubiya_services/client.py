@@ -194,8 +194,7 @@ class KubiyaClient:
                         "response_body": error_data
                     })
                     raise error
-
-            if stream:
+            else:
                 return self._handle_stream(response)
             return response
 
@@ -228,11 +227,9 @@ class KubiyaClient:
         """
         try:
             workflow_ended = False
-            last_heartbeat = time.time()
 
             for line in response.iter_lines():
                 if line:
-                    # Decode bytes to string first
                     if isinstance(line, bytes):
                         line = line.decode("utf-8")
 
@@ -294,6 +291,7 @@ class KubiyaClient:
                         # Don't immediately close on error events - wait for explicit end
                     else:
                         yield line
+                yield json.loads(line)
 
         except Exception as e:
             error = WorkflowExecutionError(f"Error processing stream: {str(e)}")

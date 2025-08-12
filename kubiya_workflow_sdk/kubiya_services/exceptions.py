@@ -153,6 +153,10 @@ class ToolExecutionError(ToolError):
     """Exception raised when tool execution fails"""
     pass
 
+class ToolGenerationError(ToolError):
+    """Tool generation errors"""
+    pass
+
 
 class SourceError(KubiyaSDKError):
     """Exception for source-related errors"""
