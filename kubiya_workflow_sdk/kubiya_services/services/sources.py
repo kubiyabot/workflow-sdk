@@ -573,7 +573,6 @@ class SourceService(BaseService):
         source_url: str = "",
         name: Optional[str] = None,
         dynamic_config_file: Optional[str] = None,
-        no_confirm: bool = False,
         inline_file: Optional[str] = None,
         inline_tools: Optional[List[Dict[str, Any]]] = None,
         runner: Optional[str] = None
@@ -585,7 +584,6 @@ class SourceService(BaseService):
             source_url: Source URL (empty for inline sources)
             name: Source name
             dynamic_config_file: Path to JSON configuration file
-            no_confirm: Skip confirmation prompt
             inline_file: Path to file containing inline tool definitions (YAML or JSON)
             inline_tools: List of inline tools (alternative to inline_file)
             runner: Runner name for the source
@@ -599,7 +597,6 @@ class SourceService(BaseService):
                 return self._add_inline_source(
                     name=name,
                     dynamic_config_file=dynamic_config_file,
-                    no_confirm=no_confirm,
                     inline_file=inline_file,
                     inline_tools=inline_tools,
                     runner=runner
@@ -613,31 +610,6 @@ class SourceService(BaseService):
             dynamic_config = None
             if dynamic_config_file:
                 dynamic_config = self.__load_dynamic_config(dynamic_config_file)
-
-            # First scan/load the source to preview tools
-            scanned_source = self.__load(
-                url=source_url,
-                name=name,
-                runner=runner
-            )
-
-            # Preview the source for confirmation
-            if not no_confirm:
-                logger.info(f"\n📦 Source Preview\n")
-                logger.info(f"URL: {scanned_source.get('url', source_url)}")
-                logger.info(f"Tools found: {len(scanned_source.get('tools', []))}\n")
-
-                tools = scanned_source.get('tools', [])
-                if tools:
-                    logger.info("Tools to be added:")
-                    for tool in tools:
-                        logger.info(f"• {tool.get('name', 'Unknown')}")
-                        if tool.get('description'):
-                            logger.info(f"  {tool['description']}")
-
-                response = input("\nDo you want to add this source? [y/N] ")
-                if response.lower() != 'y':
-                    raise SourceError("Operation cancelled")
 
             # Create the source
             created = self.__create(

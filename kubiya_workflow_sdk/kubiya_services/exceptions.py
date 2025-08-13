@@ -240,3 +240,7 @@ class IntegrationNotFoundError(IntegrationError):
 class IntegrationValidationError(ValidationError):
     """Integration validation errors"""
     pass
+
+class ProjectValidationError(ValidationError):
+    """Project validation errors"""
+    pass

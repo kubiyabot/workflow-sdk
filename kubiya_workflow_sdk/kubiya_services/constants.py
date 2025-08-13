@@ -56,7 +56,7 @@ class Endpoints:
     # Project endpoints (tasks and usecases)
     PROJECT_LIST = "/api/v1/usecases"
     PROJECT_GET = "/api/v1/tasks/{project_id}"
-    PROJECT_CREATE = "/api/v1/tasks"
+    PROJECT_CREATE = "/api/v1/usecases"
     PROJECT_UPDATE = "/api/v1/tasks/{project_id}"
     PROJECT_DELETE = "/api/v1/tasks/{project_id}"
     PROJECT_TEMPLATES_LIST = "/api/v1/usecases"
