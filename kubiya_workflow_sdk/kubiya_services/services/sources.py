@@ -710,7 +710,7 @@ class SourceService(BaseService):
     ) -> Dict[str, Any]:
         """Update an existing source.
 
-        Mirrors CLI flags for updating name, runner, dynamic config and/or inline tools.
+            Updating name, runner, dynamic config and/or inline tools.
         """
         try:
             # Get existing source

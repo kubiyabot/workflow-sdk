@@ -61,7 +61,6 @@ class SecretService(BaseService):
         if not name:
             raise SecretValidationError("Secret name is required")
 
-        # Using the special endpoint from Go implementation
         endpoint = self._format_endpoint(Endpoints.SECRETS_GET_VALUE, secret_name=name)
 
         response = self._get(endpoint=endpoint).json()
