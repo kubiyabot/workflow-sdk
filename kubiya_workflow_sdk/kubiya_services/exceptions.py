@@ -90,6 +90,16 @@ class KubiyaAPIError(KubiyaSDKError):
         return " | ".join(parts)
 
 
+class NotFoundError(KubiyaAPIError):
+    """Exception for resource not found errors"""
+
+    def __init__(self, resource_type: str, resource_id: str):
+        message = f"{resource_type} with ID '{resource_id}' not found"
+        super().__init__(message, status_code=404)
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+
+
 class WebhookError(KubiyaSDKError):
     """Exception for webhook-related errors"""
 
@@ -243,4 +253,13 @@ class IntegrationValidationError(ValidationError):
 
 class ProjectValidationError(ValidationError):
     """Project validation errors"""
+    pass
+
+# Documentation-specific exceptions
+class DocumentationError(KubiyaSDKError):
+    """Documentation-related errors"""
+    pass
+
+class DocumentationNotFoundError(NotFoundError):
+    """Documentation not found errors"""
     pass

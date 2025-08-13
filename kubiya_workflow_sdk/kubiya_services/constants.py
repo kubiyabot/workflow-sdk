@@ -86,3 +86,7 @@ class Endpoints:
     INTEGRATION_GET = "/api/v1/integrations/{integration_name}"
     INTEGRATIONS_GITHUB = "/api/v2/integrations/github_app"
     INTEGRATION_INSTALL = "/api/v1/integration/{integration_name}/install"
+
+    # Documentation endpoints
+    DOCUMENTATION_LIST = "/documentation"
+    DOCUMENTATION_GET = "/documentation/{doc_id}"
