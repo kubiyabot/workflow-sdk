@@ -93,6 +93,59 @@ wf.step("build", "docker build -t myapp:latest .")
 wf.step("test", "pytest tests/")
 ```
 
+#### `.step(name: str).tool(tool_name_or_instance, args=None, timeout=None, **kwargs)`
+Use a pre-registered tool or Tool class instance with enhanced type safety and automatic configuration.
+
+**Parameters:**
+- `tool_name_or_instance`: Either a string name of a pre-registered tool, or a Tool class instance from `kubiya_workflow_sdk.tools.models`
+- `args`: Optional dictionary of arguments to pass to the tool
+- `timeout`: Optional execution timeout in seconds
+- `**kwargs`: Additional configuration options
+
+**Using Tool Class Instances (Recommended):**
+```python
+from kubiya_workflow_sdk.tools.models import Tool, Arg
+
+# Define a tool instance
+json_processor = Tool(
+    name="json_processor",
+    type="docker",
+    image="python:3.11-slim",
+    content="""#!/bin/bash
+echo "Processing JSON data..."
+python -m json.tool < "$json_data"
+""",
+    args=[
+        Arg(name="json_data", type="str", description="JSON data to process", required=True),
+        Arg(name="operation", type="str", description="Operation type", default="validate")
+    ]
+)
+
+# Use the tool instance in workflow
+Workflow("processor-workflow")
+    .step("processor-step", callback=lambda s:
+            s.description("JSON processor step")
+            .tool(json_processor)
+            .args(json_data='{"key": "value"}', operation="validate")
+            .output("processing_summary")
+    )
+```
+
+**Benefits of Tool Instances:**
+- **Type Safety**: Full IDE support with autocomplete and type checking
+- **Automatic Configuration**: Tool definition, arguments, environment, and dependencies are automatically extracted
+- **Validation**: Built-in parameter validation and type checking
+- **Reusability**: Tool instances can be shared across multiple workflows
+
+**Automatic Configuration Extraction:**
+When using Tool instances, the step automatically extracts:
+- Tool name, type, and image
+- Script content and entrypoint
+- Argument definitions with types and validation
+- Environment variables and secrets
+- File mounts and volumes
+- Service dependencies
+
 ### Parallel Steps
 
 #### `.parallel_steps(name: str, items: list, command: str, max_concurrent: int = None)`
@@ -286,6 +339,137 @@ print(pipeline.to_yaml())
 from kubiya_workflow_sdk import execute_workflow
 result = execute_workflow(pipeline.to_dict(), api_key="YOUR_KEY")
 ```
+
+## Complete Example with Tool Instances
+
+Here's a comprehensive example showing how to use Tool instances in workflows:
+
+```python
+from kubiya_workflow_sdk.dsl import workflow
+from kubiya_workflow_sdk.tools.models import Tool, Arg
+
+# Define reusable tool instances
+url_validator = Tool(
+    name="url_validator",
+    type="docker", 
+    image="alpine:latest",
+    content="""#!/bin/sh
+echo "Validating URL: $url"
+if echo "$url" | grep -q '^https\\?://'; then
+    echo "✓ Valid URL format"
+    if echo "$url" | grep -q '^https://'; then
+        echo "✓ Secure (HTTPS)"
+    else
+        echo "⚠ Not secure (HTTP)"
+    fi
+else
+    echo "✗ Invalid URL format"
+    exit 1
+fi
+""",
+    args=[
+        Arg(name="url", type="str", description="URL to validate", required=True)
+    ]
+)
+
+json_processor = Tool(
+    name="json_processor", 
+    type="docker",
+    image="python:3.11-slim",
+    content="""#!/bin/bash
+echo "Processing JSON data..."
+echo "Operation: $operation"
+
+case "$operation" in
+    "validate")
+        echo "$json_data" | python -m json.tool > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "✓ Valid JSON"
+        else
+            echo "✗ Invalid JSON"
+            exit 1
+        fi
+        ;;
+    "pretty")
+        echo "$json_data" | python -m json.tool
+        ;;
+    *)
+        echo "Unknown operation: $operation"
+        exit 1
+        ;;
+esac
+""",
+    args=[
+        Arg(name="json_data", type="str", description="JSON data to process", required=True),
+        Arg(name="operation", type="str", description="Operation: validate, pretty", default="validate")
+    ]
+)
+
+# Create workflow using tool instances
+validation_pipeline = (
+    workflow("api-validation-pipeline")
+    .description("Validate API endpoints and process JSON responses")
+    .runner("production-runner")
+    .params(
+        API_URL="https://api.example.com/v1/data",
+        JSON_PAYLOAD='{"service": "api", "version": "1.0"}'
+    )
+    
+    # Step 1: Validate the API URL format
+    .step("validate-url").tool(url_validator).args(
+        url="${API_URL}"
+    ).output("URL_VALIDATION")
+    
+    # Step 2: Validate JSON payload structure  
+    .step("validate-json").tool(json_processor).args(
+        json_data="${JSON_PAYLOAD}",
+        operation="validate"
+    ).output("JSON_VALIDATION")
+    .depends("validate-url")
+    
+    # Step 3: Pretty print JSON for logging
+    .step("format-json").tool(
+        json_processor,
+        timeout=60,
+        args={"json_data": "${JSON_PAYLOAD}", "operation": "pretty"}
+    ).output("FORMATTED_JSON")
+    .depends("validate-json")
+    
+    # Step 4: Generate summary report
+    .step("generate-report").shell("""
+echo "=== API Validation Report ==="
+echo "URL: ${API_URL}"
+echo "URL Validation: ${URL_VALIDATION}"
+echo "JSON Validation: ${JSON_VALIDATION}" 
+echo "Formatted JSON:"
+echo "${FORMATTED_JSON}"
+echo "Report generated at: $(date)"
+echo "All validations completed successfully ✓"
+    """).depends("format-json")
+    
+    # Configure error handling
+    .handlers(
+        success="echo 'All validations passed!'",
+        failure="echo 'Validation failed - check logs for details'"
+    )
+    .timeout(300)
+)
+
+# Export the workflow
+print("Workflow YAML:")
+print(validation_pipeline.to_yaml())
+
+# Execute the workflow
+from kubiya_workflow_sdk import execute_workflow
+result = execute_workflow(validation_pipeline.to_dict(), api_key="YOUR_KEY")
+```
+
+**Key Benefits Demonstrated:**
+- **Type Safety**: Tool instances provide IDE autocomplete and validation
+- **Reusability**: Tools can be defined once and used multiple times
+- **Maintainability**: Tool logic is separate from workflow orchestration
+- **Flexibility**: Mix tool instances with shell commands and other executors
+- **Error Handling**: Built-in timeout and validation support
 
 ## Validation
 
