@@ -1,0 +1,287 @@
+---
+title: "Integration Executors"
+description: "Connect workflows to external APIs, services, and remote systems"
+icon: "plug"
+---
+
+Integration executors enable your workflows to communicate with external systems, APIs, and services, creating powerful automation bridges between different platforms.
+
+## HTTP Request Executor
+
+Make REST API calls to external services and web endpoints with full control over request parameters.
+
+### When to use
+- Webhook notifications and callbacks
+- REST API integrations
+- External service status checks
+- Data fetching from web APIs
+- Triggering actions in third-party systems
+
+### Configuration Options
+
+**Basic Settings:**
+- **URL** - Target endpoint (supports variable templating)
+- **Method** - HTTP verb (GET, POST, PUT, DELETE, PATCH)
+- **Headers** - Request headers (JSON format)
+- **Body** - Request payload for POST/PUT operations
+- **Timeout** - Maximum request time in seconds
+
+### Request Examples
+
+**GET Request:**
+```yaml
+URL: https://api.example.com/status
+Method: GET
+Headers: {"Authorization": "Bearer ${API_TOKEN}"}
+```
+
+**POST Request:**
+```yaml
+URL: https://api.github.com/repos/owner/repo/issues
+Method: POST
+Headers: {"Authorization": "token ${GITHUB_TOKEN}", "Content-Type": "application/json"}
+Body: {"title": "Automated Issue", "body": "Generated from workflow: ${workflow_name}"}
+```
+
+### Best Practices
+- Always use HTTPS for secure communications
+- Store API tokens in secrets vault, not in configuration
+- Set appropriate timeouts for external dependencies
+- Handle rate limiting with retry logic
+- Validate response status codes in subsequent steps
+
+### Common Integration Patterns
+- **Webhook notifications** - Notify external systems of workflow events
+- **Data synchronization** - Keep systems in sync with periodic API calls
+- **Service orchestration** - Coordinate actions across multiple services
+- **Status monitoring** - Check health of external dependencies
+
+## Kubiya API Executor
+
+Access internal Kubiya platform APIs for managing secrets, users, and platform resources.
+
+### When to use
+- Retrieving secrets and configuration values
+- Managing user permissions and access
+- Accessing platform metadata
+- Integrating with Kubiya's internal services
+- Building platform-aware workflows
+
+### Configuration Options
+
+**API Configuration:**
+- **API URL** - Platform endpoint (e.g., `api/v1/secret/get_secret_value/SECRET_NAME`)
+- **HTTP Method** - Usually GET for retrieving data
+- **Headers** - Authentication headers (auto-populated with platform credentials)
+
+### Common Operations
+
+**Secret Management:**
+```yaml
+# Retrieve secret value
+URL: api/v1/secret/get_secret_value/DATABASE_PASSWORD
+Method: GET
+
+# List available secrets
+URL: api/v1/secrets
+Method: GET
+```
+
+**User Management:**
+```yaml
+# Get user information
+URL: api/v1/users/${user_id}
+Method: GET
+
+# List team members
+URL: api/v1/teams/${team_id}/members
+Method: GET
+```
+
+### Security Features
+- Automatic authentication with platform credentials
+- Secure secret retrieval without exposure
+- Role-based access control integration
+- Audit logging for compliance
+
+## Slack Executor
+
+Send messages, upload files, and manage Slack communications as part of your automation workflows.
+
+### When to use
+- Team notifications and alerts
+- Automated reporting and status updates
+- Incident communication workflows
+- File sharing and collaboration
+- Interactive workflow feedback
+
+### Available Operations
+
+**Send Message:**
+- Send text messages to channels or users
+- Support for rich formatting and mentions
+- Attachment and link previews
+
+**Send Direct Message:**
+- Private messages to specific users
+- Personalized notifications
+- Sensitive information sharing
+
+**Send Block Kit:**
+- Rich interactive messages with buttons and forms
+- Structured data presentation
+- User interaction workflows
+
+**Send Template:**
+- Reusable message templates
+- Consistent formatting across workflows
+- Brand-compliant communications
+
+**Upload File:**
+- Share files and documents
+- Automated report distribution
+- Log file sharing for troubleshooting
+
+**Channel Management:**
+- Create channels for incidents or projects
+- Get channel information and metadata
+- Manage channel membership
+
+**User Operations:**
+- Get user information and presence
+- Lookup users by email or ID
+- Access user preferences and settings
+
+### Configuration Examples
+
+**Basic Notification:**
+```yaml
+Operation: Send Message
+Channel: #deployments
+Message: "🚀 Deployment completed for ${service_name} version ${version}"
+```
+
+**Incident Alert:**
+```yaml
+Operation: Send Block Kit
+Channel: #incidents
+Template: |
+  {
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "🚨 *Alert: ${alert_type}*\n*Service:* ${service_name}\n*Severity:* ${severity}"
+        }
+      },
+      {
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {"type": "plain_text", "text": "Acknowledge"},
+            "action_id": "ack_incident"
+          }
+        ]
+      }
+    ]
+  }
+```
+
+### Best Practices
+- Use appropriate channels for different notification types
+- Include relevant context and actionable information
+- Use Block Kit for rich, interactive messages
+- Respect rate limits for high-frequency notifications
+- Configure message threading for related updates
+
+## SSH Executor
+
+Execute commands on remote servers via secure SSH connections for distributed operations and remote management.
+
+### When to use
+- Remote server deployments
+- Distributed system management
+- Remote data collection and monitoring
+- Multi-server configuration updates
+- Cross-environment operations
+
+### Configuration Options
+
+**Connection Settings:**
+- **Host** - Remote server hostname or IP address
+- **User** - SSH username for authentication
+- **Port** - SSH port (default: 22)
+- **Key File** - Path to private SSH key
+- **Password** - Alternative password authentication
+- **Strict Host Key Checking** - Verify host keys (recommended: true)
+
+### Security Features
+- Key-based authentication preferred over passwords
+- Host key verification prevents man-in-the-middle attacks
+- Secure credential management through secrets vault
+- Connection encryption and integrity protection
+
+### Configuration Examples
+
+**Key-based Authentication:**
+```yaml
+Host: production-server.example.com
+User: deploy
+Port: 22
+Key File: ${SSH_PRIVATE_KEY_PATH}
+Command: sudo systemctl restart nginx
+```
+
+**Multi-server Deployment:**
+```yaml
+# Step 1: Deploy to staging
+Host: staging.example.com
+User: deploy
+Command: ./deploy.sh ${version} staging
+
+# Step 2: Deploy to production (conditional on staging success)
+Host: production.example.com  
+User: deploy
+Command: ./deploy.sh ${version} production
+```
+
+### Best Practices
+- Always use key-based authentication
+- Store SSH keys securely in the secrets vault
+- Use dedicated deployment users with minimal privileges
+- Implement idempotent deployment scripts
+- Log deployment activities for audit trails
+- Test commands on staging before production
+
+### Common Remote Operations
+- **Application deployments** - Deploy code and restart services
+- **Configuration management** - Update config files across servers
+- **System monitoring** - Collect metrics and health data
+- **Database operations** - Run migrations and maintenance tasks
+- **Log collection** - Gather logs from distributed systems
+
+## Error Handling and Connectivity
+
+### Connection Failures
+- Network timeouts and unreachable hosts
+- Authentication failures and key issues
+- Permission denied errors
+- Host key verification failures
+
+### Command Failures
+- Non-zero exit codes indicate command failures
+- Capture stderr output for debugging
+- Implement retry logic for transient failures
+- Use conditional execution for error recovery
+
+### Monitoring and Debugging
+- Enable verbose logging for troubleshooting
+- Monitor connection latency and success rates
+- Set up alerts for repeated connection failures
+- Use health checks to verify remote system status
+
+---
+
+**Next:** Learn about [Data Processing Executors](/composer/workflow-designer/data-processing-executors) for transforming and analyzing data.

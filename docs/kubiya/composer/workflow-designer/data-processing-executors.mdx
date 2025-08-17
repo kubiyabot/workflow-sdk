@@ -1,0 +1,262 @@
+---
+title: "Data Processing Executors"
+description: "Transform, analyze, and process data using AI models and JSON manipulation tools"
+icon: "chart-line"
+---
+
+Data processing executors specialize in transforming, analyzing, and manipulating data within your workflows, from AI-powered content generation to precise JSON data transformation.
+
+## LLM Completion Executor
+
+Generate content and analyze data using Large Language Models with customizable prompts and model selection.
+
+### When to use
+- Content generation and text creation
+- Data analysis and insight extraction
+- Text summarization and transformation
+- Intelligent data processing
+- Natural language understanding tasks
+- Code generation and documentation
+
+### Configuration Options
+
+**Model Selection:**
+- **GPT-4o** - Advanced reasoning and complex tasks
+- **Claude 3.5 Sonnet** - Balanced performance for most use cases
+- **GPT-4o-mini** - Fast, cost-effective for simple tasks
+- **Custom Models** - Organization-specific model configurations
+
+**Prompt Configuration:**
+- **System Prompt** - Instructions that define the AI's role and behavior
+- **User Prompt** - The specific task or question for the model
+- **Temperature** - Control randomness in responses (0.0-1.0)
+- **Max Tokens** - Limit response length
+
+**Advanced Parameters:**
+- **Timeout** - Maximum processing time in seconds
+- **Context Window** - Input token limits for large data processing
+- **Streaming** - Real-time response generation for long outputs
+
+### Prompt Engineering Best Practices
+
+**System Prompt Structure:**
+```text
+You are a helpful assistant analyzing ${SERVICE_NAME} metrics.
+Focus on identifying anomalies and trends.
+Provide actionable insights in JSON format.
+```
+
+**User Prompt with Data:**
+```text
+Analyze the following data and provide insights:
+${previous_step.output}
+
+Format your response as:
+{
+  "summary": "Brief overview",
+  "anomalies": ["list of issues found"],
+  "recommendations": ["suggested actions"]
+}
+```
+
+### Model Selection Guide
+
+| Model | Best For | Speed | Cost | Max Tokens |
+|-------|----------|-------|------|------------|
+| GPT-4o | Complex reasoning, code generation | Medium | High | 128K |
+| Claude 3.5 Sonnet | Balanced tasks, analysis | Fast | Medium | 200K |
+| GPT-4o-mini | Simple tasks, classification | Very Fast | Low | 128K |
+
+### Example Use Cases
+
+**Log Analysis:**
+```yaml
+System Prompt: |
+  You are a system administrator analyzing application logs.
+  Identify errors, warnings, and patterns that need attention.
+
+User Prompt: |
+  Analyze these logs and summarize findings:
+  ${log_data}
+  
+  Return JSON with: {"errors": [], "warnings": [], "summary": ""}
+```
+
+**Incident Report Generation:**
+```yaml
+System Prompt: |
+  You are an incident response specialist.
+  Create detailed incident reports with timeline and impact analysis.
+
+User Prompt: |
+  Generate an incident report for:
+  - Service: ${service_name}
+  - Duration: ${incident_duration}
+  - Impact: ${affected_users}
+  - Root Cause: ${root_cause_analysis}
+```
+
+**Code Review Analysis:**
+```yaml
+System Prompt: |
+  You are a senior software engineer reviewing code changes.
+  Focus on security, performance, and maintainability issues.
+
+User Prompt: |
+  Review this code diff and provide feedback:
+  ${code_diff}
+  
+  Include: security concerns, performance issues, suggestions for improvement
+```
+
+## jq Processor Executor
+
+Process and transform JSON data using jq queries for precise data extraction and manipulation.
+
+### When to use
+- Extracting specific fields from API responses
+- Transforming JSON data structures
+- Filtering and sorting data sets
+- Converting between data formats
+- Data validation and cleanup
+- Building complex data pipelines
+
+### Configuration Options
+
+**Query Configuration:**
+- **jq Query** - The jq expression to process the input data
+- **Raw Output** - Return raw strings instead of JSON (useful for text extraction)
+- **Compact Output** - Minimize JSON output formatting
+
+### jq Query Patterns
+
+**Basic Field Extraction:**
+```jq
+# Extract specific fields
+.user.name, .user.email
+
+# Get array elements
+.items[] | .id
+
+# Filter by condition
+.data[] | select(.status == "active")
+```
+
+**Data Transformation:**
+```jq
+# Reshape data structure
+{
+  user_name: .user.name,
+  total_orders: .orders | length,
+  active_orders: [.orders[] | select(.status == "pending")]
+}
+
+# Group and aggregate
+group_by(.category) | map({
+  category: .[0].category,
+  count: length,
+  total_value: map(.value) | add
+})
+```
+
+**Complex Processing:**
+```jq
+# Multi-level processing with error handling
+try (
+  .data[] 
+  | select(.metadata != null)
+  | {
+      id: .id,
+      processed_date: now | strftime("%Y-%m-%d"),
+      metrics: .metadata | keys | length
+    }
+) catch empty
+```
+
+### Common Use Cases
+
+**API Response Processing:**
+```yaml
+# Extract deployment status from Kubernetes API
+Input: ${kubectl_get_deployments}
+Query: '.items[] | select(.metadata.name == "api-server") | .status.readyReplicas'
+```
+
+**Log Analysis:**
+```yaml
+# Parse structured logs and extract errors
+Input: ${log_data}
+Query: '.[] | select(.level == "ERROR") | {timestamp: .time, message: .msg, service: .service}'
+```
+
+**Metrics Aggregation:**
+```yaml
+# Calculate service health metrics
+Input: ${health_check_results}
+Query: |
+  {
+    total_services: length,
+    healthy_services: [.[] | select(.status == "healthy")] | length,
+    critical_services: [.[] | select(.status == "critical")] | map(.name)
+  }
+```
+
+**Data Validation:**
+```yaml
+# Validate required fields are present
+Input: ${user_data}
+Query: |
+  if (.name and .email and .role) then 
+    {valid: true, user: .}
+  else 
+    {valid: false, missing_fields: [(.name // "name"), (.email // "email"), (.role // "role")] | map(select(. == null)) | map(split(" ")[0])}
+  end
+```
+
+### Advanced jq Techniques
+
+**Recursive Processing:**
+```jq
+# Walk through nested structures
+walk(if type == "object" and has("sensitive") then del(.sensitive) else . end)
+```
+
+**Date and Time Operations:**
+```jq
+# Format timestamps
+.created_at | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%B %d, %Y")
+```
+
+**Conditional Logic:**
+```jq
+# Complex conditional processing
+if .environment == "production" then
+  {alert_level: "high", notify_channels: ["#incidents", "#ops"]}
+elif .environment == "staging" then
+  {alert_level: "medium", notify_channels: ["#staging-alerts"]}
+else
+  {alert_level: "low", notify_channels: ["#dev"]}
+end
+```
+
+### Performance Considerations
+- Use streaming for large datasets (`.[]` instead of loading entire arrays)
+- Avoid recursive operations on very deep structures
+- Consider memory usage for large JSON processing
+- Use early filtering to reduce data size: `select()` conditions first
+
+### Error Handling
+- Use `try-catch` for operations that might fail
+- Provide default values with `// "default"`
+- Validate input structure before complex operations
+- Return meaningful error messages for debugging
+
+### Integration with Other Executors
+- **After HTTP requests** - Process API response data
+- **Before notifications** - Format data for human consumption
+- **Data validation** - Ensure data quality before further processing
+- **Workflow routing** - Extract values for conditional logic
+
+---
+
+**Next:** Learn about [Workflow Examples](/composer/workflow-designer/workflow-examples) to see how to combine executors into powerful automation patterns.

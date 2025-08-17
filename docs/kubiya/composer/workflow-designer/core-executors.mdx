@@ -1,0 +1,199 @@
+---
+title: "Core Executors"
+description: "Essential execution nodes for AI agents, commands, and containerized tools"
+icon: "gear"
+---
+
+Core executors handle the fundamental execution patterns in your workflows - from AI-powered decision making to system commands and containerized tools.
+
+## AI Agent Executor
+
+Execute tasks using intelligent AI agents with custom instructions and access to specialized tools.
+
+![AI Agent Configuration](/assets/screenshots/composer/workflow-designer/node-configuration-panel.png)
+
+### When to use
+- Complex reasoning and decision-making tasks
+- Data analysis and pattern recognition  
+- Content generation and text processing
+- Intelligent workflow orchestration
+- Tasks requiring context understanding
+
+### Configuration Options
+
+**Agent Configuration:**
+- **Existing Catalog Agent** - Use pre-configured agents from your catalog
+- **Inline Agent** - Create custom agents with specific instructions
+
+**Agent Selection:**
+- Browse and select from available agents in your organization
+- Filter by capabilities and use cases
+
+**Agent Instructions:**
+- Define the message/prompt for the agent
+- Use variables like `${VARIABLE_NAME}` to reference outputs from previous steps
+- Provide context and specific instructions for the task
+
+### Best Practices
+- Provide clear, specific instructions in the prompt
+- Use descriptive variable names when referencing previous step outputs
+- Test agent responses with sample data before deploying
+- Consider token limits for large data processing tasks
+
+### Example Use Cases
+```yaml
+# Security analysis workflow
+- name: "analyze-security-logs"
+  agent_instructions: "Analyze these security logs and identify potential threats: ${log_data}"
+  
+# Incident response
+- name: "generate-incident-report" 
+  agent_instructions: "Create an incident report based on this data: ${incident_data}. Include severity, impact, and recommended actions."
+```
+
+## Command Executor
+
+Execute shell commands and scripts directly on the system or within the workflow environment.
+
+### When to use
+- System administration tasks
+- File operations and data manipulation
+- Running build and deployment scripts
+- Integration with command-line tools
+- Batch processing operations
+
+### Configuration Options
+
+**Command Configuration:**
+- **Timeout (seconds)** - Maximum execution time (default: 300)
+- **Silent Mode** - Suppress command output in logs for security
+
+### Security Considerations
+- Commands run in sandboxed environments
+- Use Silent Mode for commands that might expose sensitive data
+- Validate inputs to prevent command injection
+- Consider using Tool executors for better isolation
+
+### Best Practices
+- Set appropriate timeouts for long-running operations
+- Use absolute paths when possible
+- Handle errors gracefully with exit codes
+- Use environment variables for sensitive data
+
+### Example Use Cases
+```bash
+# File backup operation
+tar -czf backup-$(date +%Y%m%d).tar.gz /important/data
+
+# Health check script
+curl -f http://localhost:8080/health || exit 1
+
+# Deployment command
+kubectl apply -f deployment.yaml
+```
+
+## Tool (Docker) Executor
+
+Run containerized tools and applications in isolated Docker environments with full control over the execution context.
+
+### When to use
+- Running specialized tools with specific dependencies
+- Ensuring consistent execution environments
+- Integrating third-party applications
+- Processing sensitive data in isolation
+- Custom scripts with complex dependencies
+
+### Configuration Options
+
+**Tool Configuration:**
+- **Tool Name** - Identifier for the containerized tool
+- **Description** - Purpose and functionality description
+- **Type** - Execution environment (Docker Container)
+- **Docker Image** - Base container image (e.g., `python:3.11-slim`)
+
+**Script Content:**
+- Full script or application code to execute
+- Support for multiple programming languages
+- File mounting and volume management
+- Environment variable access
+
+**Arguments Definition:**
+- Define input parameters with types (String, Number, Boolean, etc.)
+- Mark arguments as required or optional
+- Set default values for optional parameters
+
+**Secrets Management:**
+- Securely pass sensitive data to containers
+- Environment variable injection
+- Integration with Kubiya's secrets vault
+
+### Advanced Features
+- **File Mounts** - Mount external files into the container
+- **Volume Persistence** - Share data between workflow steps
+- **Network Configuration** - Control container networking
+- **Resource Limits** - Set CPU and memory constraints
+
+### Best Practices
+- Use official, minimal base images when possible
+- Implement proper error handling in scripts
+- Use secrets for sensitive data instead of hardcoding
+- Test scripts locally before deploying
+- Document expected inputs and outputs
+
+### Example Use Cases
+
+**Security Scanner:**
+```python
+# Docker Image: python:3.11-slim
+# File: /tmp/scan_script.py
+import subprocess
+import json
+
+def run_security_scan(target_path):
+    result = subprocess.run(['bandit', '-r', target_path, '-f', 'json'], 
+                          capture_output=True, text=True)
+    return json.loads(result.stdout)
+
+scan_results = run_security_scan(os.environ['TARGET_PATH'])
+print(json.dumps(scan_results))
+```
+
+**Data Processing Pipeline:**
+```python
+# Docker Image: python:3.11-slim  
+# Arguments: data_source (String, Required), output_format (String, Optional)
+import pandas as pd
+import os
+
+data_file = os.environ['DATA_SOURCE']
+output_format = os.environ.get('OUTPUT_FORMAT', 'json')
+
+df = pd.read_csv(data_file)
+processed_data = df.groupby('category').sum()
+
+if output_format == 'csv':
+    print(processed_data.to_csv())
+else:
+    print(processed_data.to_json())
+```
+
+## Connecting Executors
+
+### Data Flow
+- Each executor receives input from previous steps
+- Output is automatically available to subsequent steps
+- Use `${step_name.output}` to reference specific outputs
+
+### Error Handling
+- Failed steps stop workflow execution by default
+- Configure retry policies for transient failures
+- Use conditional logic for error recovery
+
+### Variable Templating
+- Reference previous step outputs: `${previous_step_name}`
+- Use environment variables: `${ENV_VAR_NAME}`
+- Access secrets: `${SECRET_NAME}` (automatically resolved)
+
+---
+
+**Next:** Learn about [Integration Executors](/composer/workflow-designer/integration-executors) for connecting to external services.
