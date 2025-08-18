@@ -154,14 +154,11 @@ class _InlineService(BaseService):
     def list(
         self,
         source_uuid: str,
-        output: str = "text",
     ) -> Union[List[Dict[str, Any]], str]:
         """List tools in an inline source."""
         try:
             source = self._get(self._format_endpoint(Endpoints.SOURCE_METADATA, source_uuid=source_uuid)).json()
             tools = source.get("inline_tools", []) if isinstance(source, dict) else []
-            if output == "json":
-                return json.dumps(tools, indent=2)
             return tools
         except Exception as e:
             raise SourceError(f"Failed to list inline tools: {e}")
@@ -468,12 +465,12 @@ class SourceService(BaseService):
             raise error
 
     def __create(
-            self,
-            source_url: str = "",
-            name: Optional[str] = None,
-            runner: Optional[str] = None,
-            dynamic_config: Optional[Dict[str, Any]] = None,
-            inline_tools: Optional[List[Dict[str, Any]]] = None
+        self,
+        source_url: str = "",
+        name: Optional[str] = None,
+        runner: Optional[str] = None,
+        dynamic_config: Optional[Dict[str, Any]] = None,
+        inline_tools: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Create a new source
@@ -576,7 +573,6 @@ class SourceService(BaseService):
         source_url: str = "",
         name: Optional[str] = None,
         dynamic_config_file: Optional[str] = None,
-        no_confirm: bool = False,
         inline_file: Optional[str] = None,
         inline_tools: Optional[List[Dict[str, Any]]] = None,
         runner: Optional[str] = None
@@ -588,7 +584,6 @@ class SourceService(BaseService):
             source_url: Source URL (empty for inline sources)
             name: Source name
             dynamic_config_file: Path to JSON configuration file
-            no_confirm: Skip confirmation prompt
             inline_file: Path to file containing inline tool definitions (YAML or JSON)
             inline_tools: List of inline tools (alternative to inline_file)
             runner: Runner name for the source
@@ -602,7 +597,6 @@ class SourceService(BaseService):
                 return self._add_inline_source(
                     name=name,
                     dynamic_config_file=dynamic_config_file,
-                    no_confirm=no_confirm,
                     inline_file=inline_file,
                     inline_tools=inline_tools,
                     runner=runner
@@ -616,31 +610,6 @@ class SourceService(BaseService):
             dynamic_config = None
             if dynamic_config_file:
                 dynamic_config = self.__load_dynamic_config(dynamic_config_file)
-
-            # First scan/load the source to preview tools
-            scanned_source = self.__load(
-                url=source_url,
-                name=name,
-                runner=runner
-            )
-
-            # Preview the source for confirmation
-            if not no_confirm:
-                logger.info(f"\n📦 Source Preview\n")
-                logger.info(f"URL: {scanned_source.get('url', source_url)}")
-                logger.info(f"Tools found: {len(scanned_source.get('tools', []))}\n")
-
-                tools = scanned_source.get('tools', [])
-                if tools:
-                    logger.info("Tools to be added:")
-                    for tool in tools:
-                        logger.info(f"• {tool.get('name', 'Unknown')}")
-                        if tool.get('description'):
-                            logger.info(f"  {tool['description']}")
-
-                response = input("\nDo you want to add this source? [y/N] ")
-                if response.lower() != 'y':
-                    raise SourceError("Operation cancelled")
 
             # Create the source
             created = self.__create(
@@ -679,14 +648,19 @@ class SourceService(BaseService):
             raise SourceNotFoundError(str(e))
 
     def delete(
-            self,
-            uuid: str,
-            force: bool = False,
-            runner: Optional[str] = None,
+        self,
+        uuid: str,
+        runner: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Delete a source by UUID.
-
-        The 'force' parameter mirrors the CLI (skips confirmation), no effect at service level.
+        """
+        Delete a source by UUID.
+        Args:
+            uuid: UUID of the source to delete
+            runner: Optional runner name to use for deletion
+        Returns:
+            Dictionary with result status or error message
+        Raises:
+            SourceError: If deletion fails
         """
         try:
             endpoint = self._format_endpoint(Endpoints.SOURCE_DELETE, source_uuid=uuid)
@@ -698,14 +672,14 @@ class SourceService(BaseService):
             raise SourceError(f"Failed to delete source: {e}")
 
     def sync(
-            self,
-            uuid: str,
-            mode: str = "interactive",
-            branch: str = "",
-            force: bool = False,
-            auto_commit: bool = False,
-            no_diff: bool = False,
-            runner: Optional[str] = None,
+        self,
+        uuid: str,
+        mode: str = "interactive",
+        branch: str = "",
+        force: bool = False,
+        auto_commit: bool = False,
+        no_diff: bool = False,
+        runner: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Sync a source by UUID."""
         try:
@@ -725,20 +699,18 @@ class SourceService(BaseService):
         except Exception as e:
             raise SourceError(f"Failed to sync source: {e}")
 
-    # TODO check
     def update(
         self,
         uuid: str,
         name: str = "",
         config: Optional[str] = None,
-        yes: bool = False,
         inline: Optional[str] = None,
         inline_stdin: bool = False,
         runner: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update an existing source.
 
-        Mirrors CLI flags for updating name, runner, dynamic config and/or inline tools.
+            Updating name, runner, dynamic config and/or inline tools.
         """
         try:
             # Get existing source
@@ -1022,13 +994,12 @@ class SourceService(BaseService):
         return emoji_map.get(tool_type, '🧰')
 
     def _add_inline_source(
-            self,
-            name: Optional[str] = None,
-            dynamic_config_file: Optional[str] = None,
-            no_confirm: bool = False,
-            inline_file: Optional[str] = None,
-            inline_tools: Optional[List[Dict[str, Any]]] = None,
-            runner: Optional[str] = None
+        self,
+        name: Optional[str] = None,
+        dynamic_config_file: Optional[str] = None,
+        inline_file: Optional[str] = None,
+        inline_tools: Optional[List[Dict[str, Any]]] = None,
+        runner: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Add an inline source with tools
@@ -1052,64 +1023,6 @@ class SourceService(BaseService):
             dynamic_config = None
             if dynamic_config_file:
                 dynamic_config = self.__load_dynamic_config(dynamic_config_file)
-
-            # Preview the tools for confirmation
-            if not no_confirm:
-                logger.info(f"\n📦 Inline Source Preview\n")
-                if name:
-                    logger.info(f"Name: {name}")
-                if runner:
-                    logger.info(f"Runner: {runner}")
-                logger.info(f"Tools found: {len(tools)}\n")
-
-                logger.info("Tools to be added:")
-                if not tools:
-                    logger.info("  No tools found or tools could not be parsed correctly.")
-                else:
-                    for i, tool in enumerate(tools):
-                        logger.info(f"• {tool.get('name', 'Unknown')}")
-                        if tool.get('description'):
-                            logger.info(f"  Description: {tool['description']}")
-                        if tool.get('type'):
-                            logger.info(f"  Type: {tool['type']}")
-
-                        # Show args if available
-                        args = tool.get('args', [])
-                        if args:
-                            logger.info("  Args:")
-                            for arg in args:
-                                arg_name = arg.get('name', 'unknown') if isinstance(arg, dict) else str(arg)
-                                logger.info(f"    - {arg_name}")
-
-                        # Show environment variables
-                        env_vars = tool.get('env', [])
-                        if env_vars:
-                            logger.info("  Environment Variables:")
-                            for env_var in env_vars:
-                                logger.info(f"    - {env_var}")
-
-                        # Show secrets
-                        secrets = tool.get('secrets', [])
-                        if secrets:
-                            logger.info("  Secrets:")
-                            for secret in secrets:
-                                logger.info(f"    - {secret}")
-
-                        # Show content (truncated)
-                        content = tool.get('content', '')
-                        if content:
-                            if len(content) > 200:
-                                logger.info(f"  Content: {content[:200]}...(truncated)")
-                            else:
-                                logger.info(f"  Content: {content}")
-
-                        # Add separator between tools except for the last one
-                        if i < len(tools) - 1:
-                            logger.info("  ---")
-
-                response = input("\nDo you want to add this source? [y/N] ")
-                if response.lower() != 'y':
-                    raise SourceError("Operation cancelled")
 
             # Create the inline source
             created = self.__create(

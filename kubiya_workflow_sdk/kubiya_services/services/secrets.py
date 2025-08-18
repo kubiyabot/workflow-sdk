@@ -16,39 +16,26 @@ logger = logging.getLogger(__name__)
 class SecretService(BaseService):
     """Service for managing secrets"""
 
-    def list(
-        self,
-        output_format: str = "text"
-    ) -> Union[List[Dict[str, Any]], str]:
+    def list(self) -> Union[List[Dict[str, Any]], str]:
         """
         List all secrets
-
-        Args:
-            output_format: Output format (text|json)
 
         Returns:
             List of secrets or formatted string
         """
         endpoint = Endpoints.SECRETS_LIST
 
-        secrets = self._get(endpoint=endpoint).json()
-
-        if output_format == "json":
-            return json.dumps(secrets, indent=2)
-
-        return secrets
+        return self._get(endpoint=endpoint).json()
 
     def get(
         self,
-        name: str,
-        output_format: str = "text"
+        name: str
     ) -> Union[Dict[str, Any], str]:
         """
         Get secret details
 
         Args:
             name: Secret name
-            output_format: Output format (text|json)
 
         Returns:
             Secret details dictionary or formatted string
@@ -56,24 +43,17 @@ class SecretService(BaseService):
 
         endpoint = self._format_endpoint(Endpoints.SECRETS_GET, secret_name=name)
 
-        secret = self._get(endpoint=endpoint).json()
-
-        if output_format == "json":
-            return json.dumps(secret, indent=2)
-
-        return secret
+        return self._get(endpoint=endpoint).json()
 
     def value(
         self,
-        name: str,
-        output_format: str = "text"
+        name: str
     ) -> Union[str, Dict[str, str]]:
         """
         Get secret value
 
         Args:
             name: Secret name
-            output_format: Output format (text|json)
 
         Returns:
             Secret value as string or dictionary with value key
@@ -81,14 +61,10 @@ class SecretService(BaseService):
         if not name:
             raise SecretValidationError("Secret name is required")
 
-        # Using the special endpoint from Go implementation
         endpoint = self._format_endpoint(Endpoints.SECRETS_GET_VALUE, secret_name=name)
 
         response = self._get(endpoint=endpoint).json()
         value = response.get('value', '')
-
-        if output_format == "json":
-            return json.dumps({"value": value}, indent=2)
 
         return value
 

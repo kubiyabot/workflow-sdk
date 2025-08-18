@@ -3,11 +3,14 @@ Tool service for managing tools
 """
 import json
 import logging
+import os
+import shutil
+import uuid
 from typing import Optional, Dict, Any, List, Union
 
 from kubiya_workflow_sdk import capture_exception
 from kubiya_workflow_sdk.kubiya_services.constants import Endpoints
-from kubiya_workflow_sdk.kubiya_services.exceptions import ToolExecutionError, ToolNotFoundError
+from kubiya_workflow_sdk.kubiya_services.exceptions import ToolExecutionError, ToolNotFoundError, ToolGenerationError
 from kubiya_workflow_sdk.kubiya_services.services.base import BaseService
 
 logger = logging.getLogger(__name__)
@@ -63,10 +66,10 @@ class ToolService(BaseService):
             raise error
 
     def search(
-            self,
-            query: str,
-            non_interactive: bool = False,
-            output_format: str = "dict"
+        self,
+        query: str,
+        non_interactive: bool = False,
+        output_format: str = "dict"
     ) -> Union[List[Dict[str, Any]], str]:
         """
         Search for tools by query
@@ -267,3 +270,208 @@ class ToolService(BaseService):
             previous_row = current_row
 
         return previous_row[-1]
+
+    def generate_tool(
+        self,
+        description: str,
+        session_id: Optional[str] = None,
+        target_dir: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generate a new tool from description
+
+        Args:
+            description: Tool description (required)
+            session_id: Session ID for continuing previous generation (auto-generated if not provided)
+            target_dir: Target directory for generated files (default: current directory)
+
+        Returns:
+            For streaming: Generator yielding event data with file creation info
+            For non-streaming: Final response data with file paths
+
+        Raises:
+            ToolGenerationError: If tool generation fails
+        """
+        if not description:
+            error = ToolGenerationError("Tool description is required")
+            capture_exception(error)
+            raise error
+
+        # Generate a session ID if not provided
+        if not session_id:
+            session_id = str(uuid.uuid4())
+
+        # If no target directory is given, use the current working directory
+        if not target_dir:
+            target_dir = os.getcwd()
+
+        # Create session directory
+        session_dir = os.path.join(target_dir, session_id)
+        try:
+            os.makedirs(session_dir, exist_ok=True)
+            logger.info(f"📁 Using session directory: {session_dir}")
+        except OSError as e:
+            error = ToolGenerationError(f"Failed to create session directory: {str(e)}")
+            capture_exception(error)
+            raise error
+
+        try:
+            logger.info(f"🎯 Generating tool from description: {description}")
+            logger.info(f"🔑 Using session ID: {session_id}")
+            logger.info("🚀 Starting tool generation...")
+
+            request_body = {
+                "message": description,
+                "session_id": session_id
+            }
+
+            endpoint = Endpoints.TOOL_GENERATE
+
+            response = self._post(
+                endpoint=endpoint,
+                data=request_body,
+                stream=True
+            )
+            events = []
+            for event in response:
+                events.append(event)
+
+            files_created = self._process_generation_events(
+                events, session_dir
+            )
+
+            return {
+                "events": events,
+                "session_id": session_id,
+                "session_dir": session_dir,
+                "files_created": files_created
+            }
+
+        except Exception as e:
+            error = ToolGenerationError(f"Failed to generate tool: {str(e)}")
+            capture_exception(error)
+            if os.path.exists(session_dir) and os.path.isdir(session_dir):
+                shutil.rmtree(session_dir)
+            raise error
+
+    def _process_generation_events(
+        self,
+        events: List[Dict[str, Any]],
+        session_dir: str,
+    ) -> List[str]:
+        """
+        Process a list of generation events and write files
+
+        Args:
+            events: List of event data
+            session_dir: Session directory path
+
+        Returns:
+            List of file paths that were created
+        """
+        file_buffers = {}
+        files_created = []
+
+        for event in events:
+            generated_content = event.get('generated_tool_content', [])
+            if not generated_content:
+                continue
+
+            if event.get('type') == 'error':
+                error_msg = generated_content[0].get('content',
+                                                     'Unknown error') if generated_content else 'Unknown error'
+                raise ToolGenerationError(f"Generation error: {error_msg}")
+
+            files_written = self._process_file_content(
+                generated_content, file_buffers, session_dir
+            )
+            files_created.extend(files_written)
+
+        if not files_created:
+            raise ToolGenerationError("No files were created during tool generation")
+
+        logger.info(f"✨ Tool generation completed successfully in: {session_dir}")
+        return files_created
+
+    def _process_file_content(
+        self,
+        generated_content: List[Dict[str, Any]],
+        file_buffers: Dict[str, Dict[str, Any]],
+        session_dir: str
+    ) -> List[str]:
+        """
+        Process generated file content and write files to disk
+
+        Args:
+            generated_content: List of generated content items
+            file_buffers: Dictionary tracking file buffers
+            session_dir: Session directory path
+
+        Returns:
+            List of file paths that were written
+        """
+        files_written = []
+
+        for content_item in generated_content:
+            file_name = content_item.get('file_name', '')
+            content = content_item.get('content', '')
+
+            # Skip if no filename or if filename is incomplete
+            if not file_name or '.' not in file_name:
+                continue
+
+            # Get or create buffer for this file
+            if file_name not in file_buffers:
+                file_buffers[file_name] = {
+                    'content': '',
+                    'file_name': file_name
+                }
+
+            # Clean up content by removing any partial message artifacts
+            clean_content = content
+            if clean_content.startswith("from kubiya_sdk"):
+                # This is a complete file content, replace existing buffer
+                file_buffers[file_name]['content'] = clean_content
+            elif clean_content.startswith(("FileName:", "Content:")):
+                # Skip metadata messages
+                continue
+            else:
+                # Append to existing content
+                file_buffers[file_name]['content'] += clean_content
+
+        # Write all buffered files that have content
+        for file_name, buffer_info in file_buffers.items():
+            content = buffer_info['content']
+
+            # Skip empty files
+            if not content:
+                continue
+
+            # Skip if content is just metadata
+            if content.startswith("FileName:"):
+                continue
+
+            full_path = os.path.join(session_dir, file_name)
+            dir_path = os.path.dirname(full_path)
+
+            logger.info(f"📥 Writing file: {file_name}")
+
+            try:
+                # Make sure the directory structure exists
+                os.makedirs(dir_path, exist_ok=True)
+
+                # Write the file content to disk
+                with open(full_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+                logger.info(f"✅ Created file: {file_name} ({len(content)} bytes)")
+                files_written.append(full_path)
+
+                # Clear the buffer after writing
+                file_buffers[file_name]['content'] = ''
+
+            except IOError as e:
+                logger.error(f"Failed to write file {full_path}: {e}")
+                continue
+
+        return files_written

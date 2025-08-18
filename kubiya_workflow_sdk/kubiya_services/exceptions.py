@@ -90,6 +90,16 @@ class KubiyaAPIError(KubiyaSDKError):
         return " | ".join(parts)
 
 
+class NotFoundError(KubiyaAPIError):
+    """Exception for resource not found errors"""
+
+    def __init__(self, resource_type: str, resource_id: str):
+        message = f"{resource_type} with ID '{resource_id}' not found"
+        super().__init__(message, status_code=404)
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+
+
 class WebhookError(KubiyaSDKError):
     """Exception for webhook-related errors"""
 
@@ -153,6 +163,14 @@ class StackStreamError(StackError):
 
 
 
+class AuthorizationError(KubiyaSDKError):
+    """Exception for authorization-related errors"""
+
+    def __init__(self, message: str = "Access denied", resource: Optional[str] = None):
+        details = {"resource": resource} if resource else None
+        super().__init__(message, details)
+
+
 # User service exceptions
 class UserError(Exception):
     """Base exception for user service operations"""
@@ -200,9 +218,8 @@ class ToolExecutionError(ToolError):
     """Exception raised when tool execution fails"""
     pass
 
-
-class IntegrationNotFoundError(ToolError):
-    """Exception raised when an integration template is not found"""
+class ToolGenerationError(ToolError):
+    """Tool generation errors"""
     pass
 
 
@@ -252,4 +269,52 @@ class RunnerHealthError(RunnerError):
 
 class ProjectExecutionError(KubiyaSDKError):
     """Project execution errors"""
+    pass
+
+# Policy-specific exceptions
+class PolicyError(KubiyaSDKError):
+    """Policy-related errors"""
+    pass
+
+class PolicyValidationError(ValidationError):
+    """Policy validation errors"""
+    pass
+
+class PolicyDeniedError(AuthorizationError):
+    """Policy denied errors"""
+    pass
+
+
+class KnowledgeError(KubiyaSDKError):
+    """Exception for knowledge-related errors"""
+
+    def __init__(self, message: str, knowledge_id: Optional[str] = None):
+        details = {"knowledge_id": knowledge_id} if knowledge_id else None
+        super().__init__(message, details)
+
+
+# Integration-specific exceptions
+class IntegrationError(KubiyaSDKError):
+    """Integration-related errors"""
+    pass
+
+class IntegrationNotFoundError(IntegrationError):
+    """Integration not found errors"""
+    pass
+
+class IntegrationValidationError(ValidationError):
+    """Integration validation errors"""
+    pass
+
+class ProjectValidationError(ValidationError):
+    """Project validation errors"""
+    pass
+
+# Documentation-specific exceptions
+class DocumentationError(KubiyaSDKError):
+    """Documentation-related errors"""
+    pass
+
+class DocumentationNotFoundError(NotFoundError):
+    """Documentation not found errors"""
     pass

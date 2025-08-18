@@ -49,7 +49,7 @@ class WebhookService(BaseService):
             capture_exception(error)
             raise error
 
-    def get(self, webhook_id: str) -> Dict[str, Any]:
+    def describe(self, webhook_id: str) -> Dict[str, Any]:
         """
         Get a specific webhook by ID
 
@@ -355,10 +355,10 @@ class WebhookService(BaseService):
             raise error
 
     def export_to_file(
-            self,
-            webhook_id: str,
-            file_path: str,
-            format: str = "json"
+        self,
+        webhook_id: str,
+        file_path: str,
+        format: str = "json"
     ) -> Dict[str, Any]:
         """
         Export webhook to JSON/YAML file
@@ -402,35 +402,6 @@ class WebhookService(BaseService):
             error = WebhookError(f"Failed to export webhook {webhook_id}: {str(e)}")
             capture_exception(error)
             raise error
-
-    def get_template(self, format: str = "json") -> str:
-        """
-        Generate a webhook template
-
-        Args:
-            format: Template format (json|yaml)
-
-        Returns:
-            Template string
-        """
-        template_data = {
-            "name": "example-webhook",
-            "source": "github",
-            "agent_id": "AGENT_ID_HERE",
-            "hide_webhook_headers": False,
-            "communication": {
-                "method": "Slack",
-                "destination": "#channel-name"
-            },
-            "filter": "pull_request[?state == 'open']",
-            "prompt": "# GitHub Pull Request\n\nPlease analyze the following PR details:\n\n- Title: {{.event.pull_request.title}}\n- Author: {{.event.pull_request.user.login}}\n- Description: {{.event.pull_request.body}}"
-        }
-
-        if format.lower() == "yaml":
-            import yaml
-            return yaml.dump(template_data, default_flow_style=False, indent=2)
-        else:
-            return json.dumps(template_data, indent=2)
 
     def _generate_test_data(self, prompt: str) -> Dict[str, Any]:
         """
@@ -514,60 +485,6 @@ class WebhookService(BaseService):
                     current = current[part]
 
         return result
-
-    def create_workflow_webhook(
-            self,
-            name: str,
-            source: str,
-            workflow_definition: Union[str, Dict[str, Any]],
-            runner: str = "kubiya-hosted",
-            method: str = "Slack",
-            destination: Optional[str] = None,
-            filter_expression: Optional[str] = None,
-            hide_headers: bool = False
-    ) -> Dict[str, Any]:
-        """
-        Create a workflow webhook with automatic inline agent creation
-
-        Args:
-            name: Webhook name
-            source: Event source
-            workflow_definition: Workflow definition (JSON string, dict, or file/URL path)
-            runner: Runner name for workflow execution
-            method: Communication method
-            destination: Communication destination
-            filter_expression: Event filter
-            hide_headers: Hide webhook headers
-
-        Returns:
-            Created webhook details
-        """
-        try:
-            # Load workflow definition if it's a file path or URL
-            if isinstance(workflow_definition, str):
-                if workflow_definition.startswith(("file://", "http://", "https://")):
-                    workflow_definition = self._load_workflow_definition(workflow_definition)
-                else:
-                    # Assume it's a JSON string
-                    workflow_definition = json.loads(workflow_definition)
-
-            # Create workflow webhook using the create method with workflow target
-            return self.create(
-                name=name,
-                source=source,
-                target="workflow",
-                workflow=json.dumps(workflow_definition),
-                runner=runner,
-                method=method,
-                destination=destination,
-                filter=filter_expression,
-                hide_webhook_headers=hide_headers
-            )
-
-        except Exception as e:
-            error = WebhookError(f"Failed to create workflow webhook: {str(e)}")
-            capture_exception(error)
-            raise error
 
     def _load_workflow_definition(self, definition_path: str) -> Dict[str, Any]:
         """

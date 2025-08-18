@@ -183,7 +183,6 @@ class TriggerService(BaseService):
         provider: str,
         webhook_id: str,
         repository: Optional[str] = None,
-        force: bool = False,
         dd_api_key: Optional[str] = None,
         dd_app_key: Optional[str] = None,
         dd_site: Optional[str] = None,
@@ -196,7 +195,6 @@ class TriggerService(BaseService):
             provider: Provider type (datadog, github)
             webhook_id: Webhook ID or name to delete
             repository: GitHub repository (required for GitHub)
-            force: Skip confirmation prompt
             dd_api_key: Datadog API key
             dd_app_key: Datadog application key
             dd_site: Datadog site

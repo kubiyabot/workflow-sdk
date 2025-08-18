@@ -100,6 +100,10 @@ class KubiyaClient:
             SecretService,
             RunnerService,
             ProjectService,
+            PolicyService,
+            KnowledgeService,
+            IntegrationService,
+            DocumentationService,
             StacksService,
         )
 
@@ -112,6 +116,10 @@ class KubiyaClient:
         self.secrets = SecretService(self)
         self.runners = RunnerService(self)
         self.projects = ProjectService(self)
+        self.policies = PolicyService(self)
+        self.knowledge = KnowledgeService(self)
+        self.integrations = IntegrationService(self)
+        self.documentations = DocumentationService(self)
         self.stacks = StacksService(self)
 
     def make_request(
@@ -120,6 +128,7 @@ class KubiyaClient:
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
         stream: bool = False,
+        base_url: Optional[str] = None,
         **kwargs,
     ) -> Union[requests.Response, Generator[str, None, None]]:
         """Make an HTTP request to the Kubiya API.
@@ -129,6 +138,7 @@ class KubiyaClient:
             endpoint: API endpoint
             data: Request data
             stream: Whether to stream the response
+            base_url: Base URL for API request. If None, uses the client's base URL.
             **kwargs: Additional request arguments
 
         Returns:
@@ -140,7 +150,9 @@ class KubiyaClient:
             KubiyaTimeoutError: For timeout errors
             KubiyaAuthenticationError: For authentication errors
         """
-        url = urljoin(self.base_url, endpoint)
+        # If no base URL is provided, use the default one.
+        base_url = base_url or self.base_url
+        url = urljoin(base_url, endpoint)
 
         # Update headers for streaming if needed
         headers = kwargs.pop("headers", {})
@@ -186,8 +198,7 @@ class KubiyaClient:
                         "response_body": error_data
                     })
                     raise error
-
-            if stream:
+            else:
                 return self._handle_stream(response)
             return response
 
@@ -220,11 +231,9 @@ class KubiyaClient:
         """
         try:
             workflow_ended = False
-            last_heartbeat = time.time()
 
             for line in response.iter_lines():
                 if line:
-                    # Decode bytes to string first
                     if isinstance(line, bytes):
                         line = line.decode("utf-8")
 
@@ -286,6 +295,11 @@ class KubiyaClient:
                         # Don't immediately close on error events - wait for explicit end
                     else:
                         yield line
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    # If line is not valid JSON, yield it as a string
+                    yield line
 
         except Exception as e:
             error = WorkflowExecutionError(f"Error processing stream: {str(e)}")
