@@ -318,3 +318,25 @@ class DocumentationError(KubiyaSDKError):
 class DocumentationNotFoundError(NotFoundError):
     """Documentation not found errors"""
     pass
+
+# Audit-specific exceptions
+class AuditError(KubiyaSDKError):
+    """Audit-related errors"""
+    pass
+
+class AuditAccessError(AuthorizationError):
+    """Audit access errors"""
+    pass
+
+# Agent-specific exceptions
+class AgentError(KubiyaSDKError):
+    """Agent-related errors"""
+    pass
+
+class AgentNotFoundError(NotFoundError):
+    """Agent not found errors"""
+    pass
+
+class AgentValidationError(ValidationError):
+    """Agent validation errors"""
+    pass

@@ -91,6 +91,18 @@ class Endpoints:
     DOCUMENTATION_LIST = "/documentation"
     DOCUMENTATION_GET = "/documentation/{doc_id}"
 
+    # Audit endpoints
+    AUDIT_LIST = "/api/v1/auditing/items"
+    AUDIT_GET = "/api/v1/auditing/items/{audit_id}"
+    AUDIT_STREAM = "/api/v1/auditing/items/stream"
+
+    # Agent endpoints
+    AGENTS_LIST = "/api/v1/agents"
+    AGENT_GET = "/api/v1/agents/{agent_uuid}"
+    AGENT_CREATE = "/api/v1/agents"
+    AGENT_UPDATE = "/api/v1/agents/{agent_uuid}"
+    AGENT_DELETE = "/api/v1/agents/{agent_uuid}"
+
     # Stacks endpoints
     STACKS_PLAN = "api/v1/tasks/inline/plan"
     STACKS_APPLY = "/api/v1/tasks/inline"

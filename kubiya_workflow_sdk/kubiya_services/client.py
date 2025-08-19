@@ -104,6 +104,8 @@ class KubiyaClient:
             KnowledgeService,
             IntegrationService,
             DocumentationService,
+            AuditService,
+            AgentService,
             StacksService,
         )
 
@@ -120,6 +122,8 @@ class KubiyaClient:
         self.knowledge = KnowledgeService(self)
         self.integrations = IntegrationService(self)
         self.documentations = DocumentationService(self)
+        self.audit = AuditService(self)
+        self.agents = AgentService(self)
         self.stacks = StacksService(self)
 
     def make_request(
