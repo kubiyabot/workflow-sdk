@@ -127,7 +127,7 @@ class AuditService(BaseService):
         verbose: bool = True,
     ) -> Generator[Dict[str, Any], None, None]:
         """
-        Stream audit logs in real-time using polling (matches GoLang implementation).
+        Stream audit logs in real-time using polling.
 
         Args:
             category_type: Filter by category type
@@ -566,7 +566,7 @@ class AuditService(BaseService):
         return filtered_items
 
     def _build_audit_endpoint(self, base_endpoint: str, query: Dict[str, Any]) -> str:
-        """Build audit endpoint with query parameters (following GoLang implementation)"""
+        """Build audit endpoint with query parameters"""
         import urllib.parse
 
         params = {}
