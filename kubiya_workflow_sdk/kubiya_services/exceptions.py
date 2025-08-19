@@ -107,6 +107,61 @@ class WebhookError(KubiyaSDKError):
         details = {"webhook_id": webhook_id} if webhook_id else None
         super().__init__(message, details)
 
+class StackError(KubiyaSDKError):
+    """Exception for stack-related errors"""
+
+    def __init__(self, message: str, stack_name: Optional[str] = None, stack_id: Optional[str] = None):
+        details = {}
+        if stack_name:
+            details["stack_name"] = stack_name
+        if stack_id:
+            details["stack_id"] = stack_id
+        super().__init__(message, details)
+
+
+class StackPlanError(StackError):
+    """Exception for stack planning errors"""
+
+    def __init__(
+        self,
+        message: str,
+        stack_name: Optional[str] = None,
+        validation_errors: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(message, stack_name)
+        if validation_errors:
+            self.details["validation_errors"] = validation_errors
+
+
+class StackApplyError(StackError):
+    """Exception for stack apply errors"""
+
+    def __init__(
+        self,
+        message: str,
+        stack_name: Optional[str] = None,
+        stack_id: Optional[str] = None,
+        terraform_errors: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(message, stack_name, stack_id)
+        if terraform_errors:
+            self.details["terraform_errors"] = terraform_errors
+
+
+class StackStreamError(StackError):
+    """Exception for stack streaming errors"""
+
+    def __init__(
+        self,
+        message: str,
+        stack_id: Optional[str] = None,
+        stream_position: Optional[int] = None
+    ):
+        super().__init__(message, stack_id=stack_id)
+        if stream_position is not None:
+            self.details["stream_position"] = stream_position
+
+
 
 class AuthorizationError(KubiyaSDKError):
     """Exception for authorization-related errors"""

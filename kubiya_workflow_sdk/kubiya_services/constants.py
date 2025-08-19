@@ -102,3 +102,8 @@ class Endpoints:
     AGENT_CREATE = "/api/v1/agents"
     AGENT_UPDATE = "/api/v1/agents/{agent_uuid}"
     AGENT_DELETE = "/api/v1/agents/{agent_uuid}"
+
+    # Stacks endpoints
+    STACKS_PLAN = "api/v1/tasks/inline/plan"
+    STACKS_APPLY = "/api/v1/tasks/inline"
+    STACKS_STREAM = "/api/v1/tasks/stream/logs/{stack_id}"
