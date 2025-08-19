@@ -90,3 +90,8 @@ class Endpoints:
     # Documentation endpoints
     DOCUMENTATION_LIST = "/documentation"
     DOCUMENTATION_GET = "/documentation/{doc_id}"
+
+    # Audit endpoints
+    AUDIT_LIST = "/api/v1/auditing/items"
+    AUDIT_GET = "/api/v1/auditing/items/{audit_id}"
+    AUDIT_STREAM = "/api/v1/auditing/items/stream"

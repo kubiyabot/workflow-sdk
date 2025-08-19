@@ -263,3 +263,12 @@ class DocumentationError(KubiyaSDKError):
 class DocumentationNotFoundError(NotFoundError):
     """Documentation not found errors"""
     pass
+
+# Audit-specific exceptions
+class AuditError(KubiyaSDKError):
+    """Audit-related errors"""
+    pass
+
+class AuditAccessError(AuthorizationError):
+    """Audit access errors"""
+    pass
