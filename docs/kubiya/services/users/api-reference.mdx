@@ -1,0 +1,589 @@
+---
+title: "Users Service API Reference"
+description: "Complete API reference for the Kubiya Users service methods and exceptions"
+icon: "code"
+tags: ["users", "api", "reference"]
+---
+
+# Users Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Users service.
+
+## Classes
+
+### UserService
+
+Main service class for managing users and groups.
+
+```python
+class UserService(BaseService):
+    """Service for managing users and groups"""
+```
+
+#### Methods
+
+##### `list_users(limit: Optional[int] = 100, page: int = 1) -> Union[List[Dict[str, Any]], str]`
+
+List all users in the organization with pagination support.
+
+**Parameters:**
+- `limit` (`Optional[int]`): Number of users to return per page (default: 100)
+- `page` (`int`): Page number for pagination (default: 1)
+
+**Returns:**
+- `Union[List[Dict[str, Any]], str]`: List of user dictionaries or formatted text output
+
+**Response Structure:**
+```python
+[
+    {
+        "id": "user-uuid",
+        "name": "John Doe",
+        "email": "john.doe@company.com",
+        "status": "active",
+        "roles": ["user", "developer"],
+        "created_at": "2023-01-15T10:30:00Z",
+        "last_login": "2024-01-15T09:15:00Z"
+    },
+    # ... more users
+]
+```
+
+**API Version:**
+- Uses `/api/v2/users` endpoint
+- Supports v2 API response format with `items` wrapper
+
+**Raises:**
+- `UserError`: For user listing errors with detailed context
+
+**Example:**
+```python
+try:
+    # Get first 50 users
+    users = client.users.list_users(limit=50, page=1)
+    
+    print(f"Retrieved {len(users)} users")
+    
+    for user in users:
+        user_id = user.get('id', 'unknown')
+        name = user.get('name', 'N/A')
+        email = user.get('email', 'N/A')
+        status = user.get('status', 'unknown')
+        
+        print(f"User {user_id}: {name} ({email}) - Status: {status}")
+        
+        # Access user roles if available
+        roles = user.get('roles', [])
+        if roles:
+            print(f"  Roles: {', '.join(roles)}")
+            
+        # Check last login
+        last_login = user.get('last_login')
+        if last_login:
+            print(f"  Last login: {last_login}")
+        
+except UserError as e:
+    print(f"Failed to list users: {e}")
+    
+    # Log error for debugging
+    logger.error(f"User listing error: {e}")
+```
+
+**Pagination Example:**
+```python
+# Get all users with pagination
+all_users = []
+page = 1
+page_size = 100
+
+while True:
+    try:
+        batch = client.users.list_users(limit=page_size, page=page)
+        
+        if not batch:
+            break
+            
+        all_users.extend(batch)
+        print(f"Loaded page {page}: {len(batch)} users")
+        page += 1
+        
+    except UserError as e:
+        print(f"Error loading page {page}: {e}")
+        break
+
+print(f"Total users loaded: {len(all_users)}")
+```
+
+**Response Format Handling:**
+```python
+# The service handles different API response formats
+response = client.users.list_users()
+
+# The method automatically handles:
+# - V2 API format: {"items": [...]}
+# - Direct list format: [...]
+# - Empty responses: [] (returns empty list)
+
+# You always get a consistent list format
+for user in response:
+    print(f"User: {user.get('name')}")
+```
+
+##### `list_groups() -> Union[List[Dict[str, Any]], str]`
+
+List all groups in the organization.
+
+**Parameters:**
+- None
+
+**Returns:**
+- `Union[List[Dict[str, Any]], str]`: List of group dictionaries or formatted text output
+
+**Response Structure:**
+```python
+[
+    {
+        "id": "group-uuid",
+        "name": "Developers",
+        "description": "Development team group",
+        "member_count": 15,
+        "created_at": "2023-01-10T08:00:00Z",
+        "permissions": ["read", "write"],
+        "members": [
+            {
+                "user_id": "user-uuid-1",
+                "name": "John Doe",
+                "email": "john.doe@company.com"
+            }
+            # ... more members
+        ]
+    },
+    # ... more groups
+]
+```
+
+**API Version:**
+- Uses `/api/v1/manage/groups` endpoint
+- V1 API format
+
+**Raises:**
+- `GroupError`: For group listing errors with detailed context
+
+**Example:**
+```python
+try:
+    groups = client.users.list_groups()
+    
+    print(f"Retrieved {len(groups)} groups")
+    
+    for group in groups:
+        group_id = group.get('id', 'unknown')
+        name = group.get('name', 'N/A')
+        description = group.get('description', 'No description')
+        member_count = group.get('member_count', 0)
+        
+        print(f"Group {group_id}: {name}")
+        print(f"  Description: {description}")
+        print(f"  Members: {member_count}")
+        
+        # Access group permissions if available
+        permissions = group.get('permissions', [])
+        if permissions:
+            print(f"  Permissions: {', '.join(permissions)}")
+        
+        # List group members if available
+        members = group.get('members', [])
+        if members:
+            print(f"  Group members:")
+            for member in members[:5]:  # Show first 5 members
+                member_name = member.get('name', 'N/A')
+                member_email = member.get('email', 'N/A')
+                print(f"    - {member_name} ({member_email})")
+            
+            if len(members) > 5:
+                print(f"    ... and {len(members) - 5} more members")
+                
+except GroupError as e:
+    print(f"Failed to list groups: {e}")
+    
+    # Log error for debugging
+    logger.error(f"Group listing error: {e}")
+```
+
+**Group Analysis Example:**
+```python
+# Analyze group structure
+try:
+    groups = client.users.list_groups()
+    
+    # Group statistics
+    total_groups = len(groups)
+    total_members = sum(group.get('member_count', 0) for group in groups)
+    
+    print(f"Organization has {total_groups} groups with {total_members} total memberships")
+    
+    # Find largest groups
+    groups_by_size = sorted(groups, key=lambda g: g.get('member_count', 0), reverse=True)
+    
+    print("\nLargest groups:")
+    for group in groups_by_size[:5]:
+        name = group.get('name', 'N/A')
+        count = group.get('member_count', 0)
+        print(f"  {name}: {count} members")
+    
+    # Find groups by permission level
+    admin_groups = [g for g in groups if 'admin' in g.get('permissions', [])]
+    print(f"\nGroups with admin permissions: {len(admin_groups)}")
+    
+except GroupError as e:
+    print(f"Failed to analyze groups: {e}")
+```
+
+**Response Format Handling:**
+```python
+# The service handles different response formats for groups
+response = client.users.list_groups()
+
+# The method automatically handles:
+# - Direct list format: [...]
+# - Wrapped format: {"groups": [...]}
+# - Empty responses: [] (returns empty list)
+
+# You always get a consistent list format
+for group in response:
+    print(f"Group: {group.get('name')}")
+```
+
+---
+
+## Exceptions
+
+### UserError (Base Exception)
+
+Base exception class for all user-related errors.
+
+```python
+class UserError(Exception):
+    """Base exception for user service operations"""
+```
+
+#### Attributes
+- Inherits standard `Exception` attributes
+- Used as base class for user-specific exceptions
+
+#### Example
+```python
+try:
+    users = client.users.list_users()
+except UserError as e:
+    print(f"User operation failed: {e}")
+    
+    # Generic error handling
+    logger.error(f"User service error: {e}")
+    
+    # Could implement retry logic
+    import time
+    time.sleep(5)
+    # retry operation...
+```
+
+---
+
+### UserNotFoundError
+
+Specialized exception for when users are not found.
+
+```python
+class UserNotFoundError(UserError):
+    """Exception raised when a user is not found"""
+```
+
+#### Attributes
+- Inherits from `UserError`
+- Indicates specific user lookup failures
+
+#### Example
+```python
+# Note: Current service only lists users, but this exception
+# is available for future user lookup methods
+try:
+    # Future method example
+    # user = client.users.get_user(user_id="some-id")
+    pass
+except UserNotFoundError as e:
+    print(f"User not found: {e}")
+    
+    # Handle missing user scenario
+    print("User may have been deleted or never existed")
+    
+except UserError as e:
+    print(f"Other user error: {e}")
+```
+
+---
+
+### GroupError (Base Exception)
+
+Base exception class for all group-related errors.
+
+```python
+class GroupError(Exception):
+    """Base exception for group service operations"""
+```
+
+#### Attributes
+- Inherits standard `Exception` attributes
+- Used as base class for group-specific exceptions
+
+#### Example
+```python
+try:
+    groups = client.users.list_groups()
+except GroupError as e:
+    print(f"Group operation failed: {e}")
+    
+    # Check for common group errors
+    error_message = str(e).lower()
+    
+    if "permission" in error_message:
+        print("Insufficient permissions to access groups")
+    elif "timeout" in error_message:
+        print("Request timed out - may retry")
+    elif "not found" in error_message:
+        print("Groups endpoint not available")
+    else:
+        print("Unknown group service error")
+    
+    # Log for debugging
+    logger.error(f"Group service error: {e}")
+```
+
+---
+
+### GroupNotFoundError
+
+Specialized exception for when groups are not found.
+
+```python
+class GroupNotFoundError(GroupError):
+    """Exception raised when a group is not found"""
+```
+
+#### Attributes
+- Inherits from `GroupError`
+- Indicates specific group lookup failures
+
+#### Example
+```python
+# Note: Current service only lists groups, but this exception
+# is available for future group lookup methods
+try:
+    # Future method example
+    # group = client.users.get_group(group_id="some-id")
+    pass
+except GroupNotFoundError as e:
+    print(f"Group not found: {e}")
+    
+    # Handle missing group scenario
+    print("Group may have been deleted or never existed")
+    
+except GroupError as e:
+    print(f"Other group error: {e}")
+```
+
+---
+
+## Error Handling Patterns
+
+### Comprehensive Error Handling
+
+```python
+import logging
+from typing import Dict, List, Any, Optional
+from kubiya_workflow_sdk.kubiya_services.exceptions import (
+    UserError, UserNotFoundError, GroupError, GroupNotFoundError
+)
+
+logger = logging.getLogger(__name__)
+
+def get_organization_data() -> Dict[str, Any]:
+    """Get comprehensive organization user and group data with error handling"""
+    
+    result = {
+        'users': [],
+        'groups': [],
+        'errors': [],
+        'success': True
+    }
+    
+    # Get users with error handling
+    try:
+        users = client.users.list_users(limit=1000)
+        result['users'] = users
+        logger.info(f"Successfully retrieved {len(users)} users")
+        
+    except UserError as e:
+        error_msg = f"Failed to retrieve users: {e}"
+        result['errors'].append(error_msg)
+        result['success'] = False
+        logger.error(error_msg)
+    
+    # Get groups with error handling
+    try:
+        groups = client.users.list_groups()
+        result['groups'] = groups
+        logger.info(f"Successfully retrieved {len(groups)} groups")
+        
+    except GroupError as e:
+        error_msg = f"Failed to retrieve groups: {e}"
+        result['errors'].append(error_msg)
+        result['success'] = False
+        logger.error(error_msg)
+    
+    # Add summary statistics
+    result['stats'] = {
+        'user_count': len(result['users']),
+        'group_count': len(result['groups']),
+        'error_count': len(result['errors'])
+    }
+    
+    return result
+
+# Usage
+org_data = get_organization_data()
+
+if org_data['success']:
+    print(f"Successfully retrieved organization data:")
+    print(f"  Users: {org_data['stats']['user_count']}")
+    print(f"  Groups: {org_data['stats']['group_count']}")
+else:
+    print(f"Partial failure retrieving organization data:")
+    print(f"  Errors: {org_data['stats']['error_count']}")
+    for error in org_data['errors']:
+        print(f"    - {error}")
+```
+
+### Retry Logic with Exponential Backoff
+
+```python
+import time
+import random
+from typing import List, Dict, Any
+
+def list_users_with_retry(
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    max_delay: float = 60.0,
+    backoff_factor: float = 2.0
+) -> List[Dict[str, Any]]:
+    """List users with exponential backoff retry logic"""
+    
+    for attempt in range(max_retries + 1):
+        try:
+            users = client.users.list_users(limit=1000)
+            
+            if attempt > 0:
+                logger.info(f"Successfully retrieved users on attempt {attempt + 1}")
+            
+            return users
+            
+        except UserError as e:
+            if attempt == max_retries:
+                logger.error(f"Failed to retrieve users after {max_retries + 1} attempts: {e}")
+                raise
+            
+            # Calculate delay with jitter
+            delay = min(base_delay * (backoff_factor ** attempt), max_delay)
+            jitter = random.uniform(0.1, 0.2) * delay
+            total_delay = delay + jitter
+            
+            logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {total_delay:.2f}s")
+            time.sleep(total_delay)
+    
+    # Should never reach here due to raise in loop
+    return []
+
+# Usage
+try:
+    users = list_users_with_retry(max_retries=3)
+    print(f"Retrieved {len(users)} users")
+except UserError as e:
+    print(f"Failed to retrieve users after all retries: {e}")
+```
+
+### Circuit Breaker Pattern
+
+```python
+import time
+from enum import Enum
+from typing import Optional, List, Dict, Any
+
+class CircuitState(Enum):
+    CLOSED = "closed"      # Normal operation
+    OPEN = "open"          # Failing, reject requests
+    HALF_OPEN = "half_open"  # Testing if service recovered
+
+class UserServiceCircuitBreaker:
+    def __init__(
+        self,
+        failure_threshold: int = 5,
+        recovery_timeout: float = 60.0,
+        expected_exception: type = UserError
+    ):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.expected_exception = expected_exception
+        
+        self.failure_count = 0
+        self.last_failure_time: Optional[float] = None
+        self.state = CircuitState.CLOSED
+    
+    def call(self, func, *args, **kwargs):
+        """Execute function with circuit breaker protection"""
+        
+        if self.state == CircuitState.OPEN:
+            if self._should_attempt_reset():
+                self.state = CircuitState.HALF_OPEN
+            else:
+                raise Exception("Circuit breaker is OPEN - service unavailable")
+        
+        try:
+            result = func(*args, **kwargs)
+            self._on_success()
+            return result
+            
+        except self.expected_exception as e:
+            self._on_failure()
+            raise
+    
+    def _should_attempt_reset(self) -> bool:
+        return (time.time() - self.last_failure_time) >= self.recovery_timeout
+    
+    def _on_success(self):
+        self.failure_count = 0
+        self.state = CircuitState.CLOSED
+    
+    def _on_failure(self):
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        
+        if self.failure_count >= self.failure_threshold:
+            self.state = CircuitState.OPEN
+
+# Usage
+user_breaker = UserServiceCircuitBreaker(
+    failure_threshold=3,
+    recovery_timeout=30.0
+)
+
+try:
+    users = user_breaker.call(client.users.list_users, limit=100)
+    print(f"Retrieved {len(users)} users")
+    
+except Exception as e:
+    print(f"Service call failed: {e}")
+    print(f"Circuit breaker state: {user_breaker.state.value}")
+```
+
+This API reference provides complete documentation for all public interfaces in the Users service. 
+Use the examples and error handling patterns to build robust user and group management workflows.
