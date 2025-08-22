@@ -1,0 +1,309 @@
+---
+title: "Integrations Service Overview"
+description: "Complete guide to the Kubiya Integrations service for managing third-party integrations"
+icon: "plug"
+tags: ["integrations", "github", "connectivity"]
+---
+
+# Integrations Service Overview
+
+The Kubiya Integrations service provides a powerful interface for managing third-party integrations through the Kubiya platform. 
+It enables you to activate, configure, and monitor integrations with external services like GitHub, allowing seamless connectivity between Kubiya and your existing tools.
+
+## Features
+
+- **Integration Management**: Activate and configure third-party integrations
+- **GitHub App Integration**: Seamless GitHub App installation and management
+- **Comprehensive Error Handling**: Detailed error reporting with integration-specific context
+- **Validation**: Built-in validation for integration requirements and conflicts
+
+## Core Components
+
+### IntegrationService
+
+The main service class provides integration management operations:
+
+- **`activate()`**: Activate and configure integrations
+- **`_get_integration()`**: Retrieve existing integration details
+- **`_github_app()`**: Handle GitHub App specific setup
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import IntegrationError, IntegrationNotFoundError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # Activate GitHub App integration
+    result = client.integrations.activate("github_app")
+    
+    if result.get("success"):
+        print("✅ GitHub App integration activated successfully!")
+        print(f"Install URL: {result.get('install_url')}")
+        print(f"Instructions: {result.get('instructions')}")
+        
+        # Open the install URL to complete GitHub App installation
+        import webbrowser
+        webbrowser.open(result["install_url"])
+    else:
+        print("❌ Integration activation failed")
+        
+except IntegrationNotFoundError as e:
+    print(f"Integration already exists: {e}")
+    
+except IntegrationError as e:
+    print(f"Integration error: {e}")
+```
+
+### Supported Integrations
+
+Currently supported integrations:
+
+#### GitHub App
+
+Enables GitHub repository access and webhook handling:
+
+```python
+try:
+    # Activate GitHub App integration
+    github_result = client.integrations.activate("github_app")
+    
+    # The result contains installation URL and instructions
+    install_url = github_result["install_url"]
+    print(f"Complete installation at: {install_url}")
+    
+except IntegrationNotFoundError as e:
+    print("GitHub App integration already exists")
+    # Integration is already configured
+    
+except IntegrationError as e:
+    print(f"Failed to activate GitHub App: {e}")
+```
+
+**Features provided by GitHub App integration:**
+- Repository access for code analysis
+- Webhook notifications for repository events
+- Pull request and issue management
+- Automated workflow triggers from GitHub events
+
+## Error Handling
+
+The Integrations service provides specialized exceptions for different failure scenarios:
+
+### IntegrationError
+
+Thrown when integration activation or configuration fails:
+
+```python
+try:
+    result = client.integrations.activate("unsupported_integration")
+except IntegrationError as e:
+    print(f"Integration failed: {e}")
+    
+    # Check for supported integrations in error message
+    if "not supported" in str(e):
+        print("💡 Tip: Check supported integrations list")
+```
+
+### IntegrationNotFoundError
+
+Thrown when an integration already exists or cannot be found:
+
+```python
+try:
+    result = client.integrations.activate("github_app")
+except IntegrationNotFoundError as e:
+    print(f"Integration already exists: {e}")
+    
+    # Integration is already configured, no action needed
+    print("💡 GitHub App integration is already active")
+```
+
+### IntegrationValidationError
+
+Thrown when integration validation fails:
+
+```python
+try:
+    result = client.integrations.activate("github_app")
+except IntegrationValidationError as e:
+    print(f"Validation failed: {e}")
+    print(f"Field: {e.details.get('field')}")
+    print(f"Value: {e.details.get('value')}")
+```
+
+## Best Practices
+
+### 1. Check Integration Status Before Activation
+
+```python
+# Good practice: Handle existing integrations gracefully
+try:
+    result = client.integrations.activate("github_app")
+    print("New integration activated successfully")
+except IntegrationNotFoundError:
+    print("Integration already exists - skipping activation")
+    # Continue with existing integration
+```
+
+### 2. Handle Installation URLs Properly
+
+```python
+# Process GitHub App installation
+try:
+    result = client.integrations.activate("github_app")
+    
+    install_url = result.get("install_url")
+    if install_url:
+        print(f"Complete GitHub App installation at: {install_url}")
+        
+        # Option 1: Automatically open browser
+        import webbrowser
+        webbrowser.open(install_url)
+        
+        # Option 2: Provide instructions to user
+        print("Please visit the URL above to complete the installation")
+        print("Grant the necessary permissions for repository access")
+        
+except IntegrationError as e:
+    print(f"GitHub App setup failed: {e}")
+```
+
+### 3. Validate Supported Integrations
+
+```python
+# Check supported integrations before attempting activation
+supported_integrations = ["github_app"]  # Current list
+
+integration_name = "slack_app"  # Example
+if integration_name not in supported_integrations:
+    print(f"Integration '{integration_name}' is not supported")
+    print(f"Supported integrations: {', '.join(supported_integrations)}")
+else:
+    try:
+        result = client.integrations.activate(integration_name)
+    except IntegrationError as e:
+        print(f"Activation failed: {e}")
+```
+
+### 4. Comprehensive Error Handling
+
+```python
+def activate_integration_safely(client, integration_name):
+    """Safely activate an integration with comprehensive error handling"""
+    try:
+        result = client.integrations.activate(integration_name)
+        
+        if result.get("success"):
+            print(f"✅ {integration_name} activated successfully")
+            
+            # Handle installation URLs
+            if result.get("install_url"):
+                print(f"📋 Installation required: {result['install_url']}")
+                print(f"📝 Instructions: {result.get('instructions', 'N/A')}")
+                
+            return result
+        else:
+            print(f"❌ {integration_name} activation returned success=False")
+            return None
+            
+    except IntegrationNotFoundError as e:
+        print(f"ℹ️  {integration_name} already exists: {e}")
+        return {"success": True, "message": "Integration already configured"}
+        
+    except IntegrationError as e:
+        print(f"❌ {integration_name} activation failed: {e}")
+        
+        # Provide helpful hints based on error
+        error_msg = str(e).lower()
+        if "not supported" in error_msg:
+            print("💡 Check the list of supported integrations")
+        elif "github app" in error_msg:
+            print("💡 Ensure proper GitHub App configuration")
+            
+        return None
+        
+    except Exception as e:
+        print(f"💥 Unexpected error: {e}")
+        return None
+
+# Usage
+result = activate_integration_safely(client, "github_app")
+if result:
+    print("Integration process completed successfully")
+```
+
+## Integration Workflows
+
+### GitHub Integration Workflow
+
+1. **Activate Integration**: Call `activate("github_app")`
+2. **Complete Installation**: Visit the provided install URL
+3. **Grant Permissions**: Approve repository access on GitHub
+4. **Verify Setup**: Integration becomes active for repository operations
+
+```python
+# Complete GitHub integration workflow
+def setup_github_integration(client):
+    """Complete GitHub App integration setup"""
+    try:
+        # Step 1: Activate integration
+        result = client.integrations.activate("github_app")
+        
+        # Step 2: Handle installation
+        install_url = result.get("install_url")
+        if install_url:
+            print(f"GitHub App Installation URL: {install_url}")
+            print("\nPlease complete these steps:")
+            print("1. Visit the installation URL")
+            print("2. Select repositories to grant access")
+            print("3. Confirm installation")
+            
+            # Wait for user to complete installation
+            input("\nPress Enter after completing GitHub App installation...")
+            
+        # Step 3: Verify integration is working
+        print("✅ GitHub App integration setup complete!")
+        print("🔗 Repository webhooks and access are now configured")
+        
+        return True
+        
+    except IntegrationNotFoundError:
+        print("✅ GitHub App integration already configured")
+        return True
+        
+    except IntegrationError as e:
+        print(f"❌ GitHub App setup failed: {e}")
+        return False
+
+# Run the workflow
+if setup_github_integration(client):
+    print("Ready to use GitHub integration features!")
+```
+
+## Integration Examples
+
+The Integrations service enables seamless connectivity with external platforms. 
+Check the API reference for detailed method signatures and the examples directory for comprehensive usage patterns.
+
+### Common Integration Patterns
+
+- **Repository Management**: Use GitHub App for code repository access
+- **Event-Driven Workflows**: Configure webhooks for automated responses
+- **Authentication**: Leverage OAuth flows for secure access
+- **Multi-Service Integration**: Combine multiple integrations for complex workflows
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Configure webhooks for event-driven automation
+- Set up repository access for code-based workflows
