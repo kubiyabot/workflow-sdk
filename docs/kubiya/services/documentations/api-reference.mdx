@@ -1,0 +1,451 @@
+---
+title: "Documentations Service API Reference"
+description: "Complete API reference for the Kubiya Documentations service methods and exceptions"
+icon: "code"
+tags: ["documentations", "api", "reference"]
+---
+
+# Documentations Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Documentations service.
+
+## Classes
+
+### DocumentationService
+
+Main service class for querying the central knowledge base using Trieve API.
+
+```python
+class DocumentationService(BaseService):
+    """
+    Service for querying documentation using Trieve API
+
+    This service provides access to the central knowledge base for documentation queries.
+    """
+```
+
+#### Methods
+
+##### `query(prompt: str, page_size: int = 10, search_type: str = "bm25", extend_results: bool = True, score_threshold: float = 1.0, render_markdown: bool = True) -> List[Dict[str, Any]]`
+
+Query the documentation knowledge base using Trieve API.
+
+**Parameters:**
+- `prompt` (`str`): The search query/prompt to look for in documentation
+- `page_size` (`int`, optional): Number of results to return (default: 10)
+- `search_type` (`str`, optional): Type of search to perform (default: "bm25")
+- `extend_results` (`bool`, optional): Whether to extend results with additional context (default: True)
+- `score_threshold` (`float`, optional): Minimum score threshold for results (default: 1.0)
+- `render_markdown` (`bool`, optional): Whether to format output as markdown (default: True)
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of search results with formatted content
+
+**Response Structure:**
+```python
+[
+    {
+        "group": "API Reference",
+        "title": "Authentication Guide",
+        "formatted_title": "# 🔐 Authentication Guide",
+        "icon": "🔐",
+        "content": "# Authentication\n\nTo authenticate...",
+        "raw_content": "To authenticate with Kubiya...",
+        "is_code": False,
+        "tags": ["auth", "security"],
+        "metadata": {
+            "title": "Authentication Guide",
+            "icon": "🔐",
+            "url": "https://docs.kubiya.ai/auth"
+        }
+    }
+]
+```
+
+**Raises:**
+- `DocumentationError`: If the query fails or configuration cannot be retrieved
+
+**Example:**
+```python
+try:
+    # Basic search
+    results = client.documentations.query("workflow authentication")
+    
+    for result in results:
+        print(f"Title: {result['title']}")
+        print(f"Group: {result['group']}")
+        print(f"Icon: {result['icon']}")
+        print(f"Is Code: {result['is_code']}")
+        print(f"Content: {result['content'][:100]}...")
+        
+        # Access metadata
+        metadata = result['metadata']
+        if metadata.get('url'):
+            print(f"Source URL: {metadata['url']}")
+        
+        print("-" * 50)
+        
+except DocumentationError as e:
+    print(f"Search failed: {e}")
+    if e.details:
+        print(f"Error details: {e.details}")
+```
+
+**Advanced Usage Examples:**
+
+```python
+# Search with custom parameters
+try:
+    results = client.documentations.query(
+        prompt="Terraform workflow configuration",
+        page_size=25,                    # Get more results
+        search_type="bm25",             # Use BM25 search algorithm
+        extend_results=True,            # Include extended context
+        score_threshold=0.8,            # Lower threshold for more results
+        render_markdown=False           # Plain text formatting
+    )
+    
+    # Filter results by content type
+    code_examples = [r for r in results if r['is_code']]
+    documentation = [r for r in results if not r['is_code']]
+    
+    print(f"Found {len(code_examples)} code examples")
+    print(f"Found {len(documentation)} documentation pages")
+    
+    # Process code examples
+    for example in code_examples:
+        print(f"\n📝 Code Example: {example['title']}")
+        print(f"Tags: {', '.join(example['tags'])}")
+        print(f"```\n{example['raw_content']}\n```")
+    
+    # Process documentation
+    for doc in documentation:
+        print(f"\n📖 Documentation: {doc['title']}")
+        print(f"Group: {doc['group']}")
+        if doc['render_markdown']:
+            print(doc['content'])  # Already formatted
+        else:
+            print(doc['raw_content'])
+            
+except DocumentationError as e:
+    print(f"Advanced search failed: {e}")
+```
+
+```python
+# Search for troubleshooting content
+try:
+    troubleshooting_results = client.documentations.query(
+        prompt="error authentication failed troubleshoot",
+        page_size=10,
+        score_threshold=1.2,
+        render_markdown=True
+    )
+    
+    if troubleshooting_results:
+        print("🔧 Troubleshooting Resources Found:")
+        for result in troubleshooting_results:
+            print(f"\n{result['formatted_title']}")
+            print(f"Group: {result['group']}")
+            
+            # Extract actionable content
+            content = result['content']
+            if 'error' in content.lower() or 'fix' in content.lower():
+                print("⚠️  Error-related content")
+            if any(word in content.lower() for word in ['step', 'solution', 'resolve']):
+                print("✅ Contains solution steps")
+                
+            print(f"Preview: {content[:200]}...")
+    else:
+        print("No troubleshooting content found")
+        
+except DocumentationError as e:
+    print(f"Troubleshooting search failed: {e}")
+```
+
+---
+
+## Exceptions
+
+### DocumentationError
+
+Base exception for all documentation-related errors.
+
+```python
+class DocumentationError(KubiyaSDKError):
+    """Documentation-related errors"""
+```
+
+#### Attributes
+- `message` (`str`): Error message describing what went wrong
+- `details` (`Dict[str, Any]`): Additional error context and metadata
+
+#### Common Error Scenarios
+
+**Configuration Errors:**
+```python
+try:
+    results = client.documentations.query("search query")
+except DocumentationError as e:
+    if "config" in str(e).lower():
+        print("⚙️  Configuration Error:")
+        print("- Check Trieve API configuration")
+        print("- Verify API keys are set correctly")
+        print("- Ensure dataset ID is valid")
+```
+
+**API Communication Errors:**
+```python
+try:
+    results = client.documentations.query("search query")
+except DocumentationError as e:
+    if "request" in str(e).lower() or "timeout" in str(e).lower():
+        print("🌐 API Communication Error:")
+        print("- Check internet connectivity")
+        print("- Verify Trieve API is accessible")
+        print("- Try again in a few moments")
+        
+        # Access specific error details
+        if e.details:
+            error_code = e.details.get("status_code")
+            if error_code:
+                print(f"HTTP Status: {error_code}")
+```
+
+**Search Processing Errors:**
+```python
+try:
+    results = client.documentations.query("search query")
+except DocumentationError as e:
+    if "search" in str(e).lower():
+        print("🔍 Search Processing Error:")
+        print("- Try simpler search terms")
+        print("- Check query syntax")
+        print("- Reduce search complexity")
+        
+        # Log error details for debugging
+        if e.details:
+            print(f"Search details: {e.details}")
+```
+
+#### Example
+```python
+try:
+    results = client.documentations.query(
+        prompt="complex search with special characters @#$%",
+        page_size=100,
+        score_threshold=0.1
+    )
+except DocumentationError as e:
+    print(f"Documentation query failed: {e}")
+    
+    # Handle different error types
+    error_message = str(e).lower()
+    
+    if "trieve config" in error_message:
+        print("\n🔧 Configuration Issue:")
+        print("- Verify Trieve API configuration")
+        print("- Check API key validity")
+        print("- Ensure dataset ID is correct")
+        
+    elif "failed to fetch" in error_message:
+        print("\n🌐 Network Issue:")
+        print("- Check internet connection")
+        print("- Verify API endpoint accessibility")
+        print("- Try again after a brief delay")
+        
+    elif "no results found" in error_message:
+        print("\n🔍 No Results:")
+        print("- Try broader search terms")
+        print("- Check spelling and syntax")
+        print("- Consider using synonyms")
+        
+    elif "invalid" in error_message:
+        print("\n❌ Invalid Request:")
+        print("- Check search parameters")
+        print("- Verify query format")
+        print("- Review parameter values")
+    
+    # Access detailed error information
+    if e.details:
+        print(f"\n📋 Error Details:")
+        for key, value in e.details.items():
+            print(f"  {key}: {value}")
+```
+
+---
+
+### DocumentationNotFoundError
+
+Specialized exception for when requested documentation cannot be found.
+
+```python
+class DocumentationNotFoundError(NotFoundError):
+    """Documentation not found errors"""
+```
+
+#### Attributes
+- `message` (`str`): Error message indicating what documentation was not found
+- `details` (`Dict[str, Any]`): Additional context about the failed search
+
+#### Example
+```python
+from kubiya_workflow_sdk.kubiya_services.exceptions import DocumentationNotFoundError
+
+try:
+    results = client.documentations.query("very specific technical term")
+    
+    # Check if results are meaningful
+    if not results or all(r['score'] < 0.5 for r in results if 'score' in r):
+        raise DocumentationNotFoundError(
+            f"No relevant documentation found for query: 'very specific technical term'"
+        )
+        
+    # Process results...
+    
+except DocumentationNotFoundError as e:
+    print(f"Documentation not found: {e}")
+    
+    print("\n💡 Suggestions:")
+    print("- Try broader search terms")
+    print("- Check spelling and terminology")
+    print("- Use common synonyms")
+    print("- Break complex queries into simpler parts")
+    
+    # Suggest alternative searches
+    original_query = "very specific technical term"
+    suggestions = [
+        original_query.split()[0],  # First word only
+        "basic " + original_query.split()[-1],  # Last word with "basic"
+        original_query.replace("technical", ""),  # Remove technical
+    ]
+    
+    print("\n🔍 Try these alternative searches:")
+    for suggestion in suggestions:
+        if suggestion.strip():
+            print(f"  • '{suggestion.strip()}'")
+```
+
+---
+
+## Usage Patterns
+
+### Error Handling Best Practices
+
+```python
+def robust_documentation_search(query, retries=3):
+    """
+    Perform documentation search with robust error handling
+    """
+    for attempt in range(retries):
+        try:
+            results = client.documentations.query(
+                prompt=query,
+                page_size=15,
+                score_threshold=1.0
+            )
+            
+            if results:
+                return results
+            else:
+                # Try with lower threshold
+                results = client.documentations.query(
+                    prompt=query,
+                    page_size=20,
+                    score_threshold=0.5
+                )
+                return results
+                
+        except DocumentationError as e:
+            if attempt < retries - 1:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                print(f"Retrying... ({retries - attempt - 1} attempts left)")
+                time.sleep(2 ** attempt)  # Exponential backoff
+            else:
+                print(f"All {retries} attempts failed")
+                raise e
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            if attempt < retries - 1:
+                time.sleep(1)
+            else:
+                raise e
+    
+    return []
+
+# Usage
+try:
+    results = robust_documentation_search("Kubiya workflow setup")
+    print(f"Found {len(results)} results after robust search")
+except DocumentationError as e:
+    print(f"Robust search still failed: {e}")
+```
+
+### Result Processing Utilities
+
+```python
+def extract_code_snippets(results):
+    """Extract and format code snippets from search results"""
+    code_snippets = []
+    
+    for result in results:
+        if result['is_code']:
+            snippet = {
+                'title': result['title'],
+                'language': 'text',  # Default
+                'code': result['raw_content'],
+                'source': result['metadata'].get('url', 'Unknown')
+            }
+            
+            # Try to detect language from tags or content
+            tags = result['tags']
+            if 'python' in tags:
+                snippet['language'] = 'python'
+            elif 'terraform' in tags:
+                snippet['language'] = 'hcl'
+            elif 'yaml' in tags:
+                snippet['language'] = 'yaml'
+            elif 'json' in tags:
+                snippet['language'] = 'json'
+            
+            code_snippets.append(snippet)
+    
+    return code_snippets
+
+def group_results_by_category(results):
+    """Group search results by their content categories"""
+    groups = {}
+    
+    for result in results:
+        group_name = result['group']
+        if group_name not in groups:
+            groups[group_name] = []
+        groups[group_name].append(result)
+    
+    return groups
+
+# Usage examples
+try:
+    results = client.documentations.query("Python workflow examples")
+    
+    # Extract code snippets
+    code_snippets = extract_code_snippets(results)
+    print(f"Found {len(code_snippets)} code snippets")
+    
+    for snippet in code_snippets:
+        print(f"\n📝 {snippet['title']}")
+        print(f"Language: {snippet['language']}")
+        print(f"```{snippet['language']}\n{snippet['code'][:200]}...\n```")
+    
+    # Group by category
+    grouped = group_results_by_category(results)
+    for group, items in grouped.items():
+        print(f"\n📁 {group} ({len(items)} items)")
+        for item in items[:3]:  # Show first 3
+            print(f"  • {item['title']}")
+            
+except DocumentationError as e:
+    print(f"Processing failed: {e}")
+```
+
+This API reference provides complete documentation for all public interfaces in the Documentations service.
+Use the examples and error handling patterns to build robust documentation search capabilities in your applications.
