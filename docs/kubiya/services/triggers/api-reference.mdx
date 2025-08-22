@@ -1,0 +1,656 @@
+---
+title: "Triggers Service API Reference"
+description: "Complete API reference for the Kubiya Triggers service methods, providers, and exceptions"
+icon: "code"
+tags: ["triggers", "api", "reference", "webhooks"]
+---
+
+# Triggers Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Triggers service.
+
+## Classes
+
+### TriggerService
+
+Main service class for managing workflow triggers with external providers.
+
+```python
+class TriggerService(BaseService):
+    """Service for managing workflow triggers"""
+```
+
+#### Methods
+
+##### `create(provider, workflow_file, name, **kwargs) -> Dict[str, Any]`
+
+Create a new workflow trigger with the specified provider.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider` | `str` | Yes | Provider type ("datadog" or "github") |
+| `workflow_file` | `str` | Yes | Path to the workflow file |
+| `name` | `str` | Yes | Human-readable name for the trigger |
+| `webhook_name` | `str` | No | Name for the webhook in the external provider |
+| `custom_headers` | `str` | No | Custom headers for the webhook |
+| `payload` | `str` | No | Custom payload template for the webhook |
+| `encode_as` | `str` | No | Encoding format ("json" or "form", default: "json") |
+| `runner` | `str` | No | Runner to use for workflow execution |
+
+**Datadog-Specific Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `dd_api_key` | `str` | No | Datadog API key (alternative to DD_API_KEY env var) |
+| `dd_app_key` | `str` | No | Datadog application key (alternative to DD_APPLICATION_KEY env var) |
+| `dd_site` | `str` | No | Datadog site (alternative to DD_SITE env var) |
+
+**GitHub-Specific Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `github_token` | `str` | No | GitHub token (alternative to GITHUB_TOKEN env var) |
+| `repository` | `str` | Yes* | GitHub repository in format 'owner/repo' |
+| `events` | `List[str]` | Yes* | GitHub events to trigger on |
+| `secret` | `str` | No | Webhook secret for GitHub verification |
+
+*Required when `provider="github"`
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing trigger creation response
+
+**Response Structure:**
+```python
+{
+    "success": True,
+    "trigger_id": "uuid-string",
+    "name": "trigger-name",
+    "provider": "datadog|github",
+    "workflow": "/path/to/workflow.py",
+    "webhook_url": "https://api.kubiya.ai/api/v1/workflow?runner=...",
+    
+    # Datadog-specific fields
+    "webhook_name": "datadog-webhook-name",
+    "runner": "runner-name",
+    
+    # GitHub-specific fields
+    "repository": "owner/repo",
+    "events": ["push", "pull_request"]
+}
+```
+
+**Raises:**
+- `ValidationError`: For input validation failures
+- `TriggerError`: For trigger creation failures
+- `ProviderError`: For external provider API failures
+
+**Example - Datadog:**
+```python
+try:
+    trigger_result = client.triggers.create(
+        provider="datadog",
+        workflow_file="./workflows/incident_response.py",
+        name="Critical Alert Handler",
+        webhook_name="kubiya-critical-alerts",
+        custom_headers="X-Priority: high\nX-Team: sre",
+        payload='{"alert": "$EVENT_MSG", "priority": "$PRIORITY"}',
+        runner="production-runner",
+        # Credentials
+        dd_api_key="your-api-key",
+        dd_app_key="your-app-key",
+        dd_site="datadoghq.com"
+    )
+    
+    print(f"✅ Trigger created: {trigger_result['trigger_id']}")
+    print(f"Webhook URL: {trigger_result['webhook_url']}")
+    print(f"Datadog webhook name: {trigger_result['webhook_name']}")
+    
+except ValidationError as e:
+    print(f"❌ Validation error: {e}")
+    # Handle validation issues (missing fields, invalid provider, etc.)
+    
+except ProviderError as e:
+    print(f"❌ Datadog API error: {e}")
+    # Handle API failures (invalid credentials, network issues, etc.)
+    
+except TriggerError as e:
+    print(f"❌ Trigger creation failed: {e}")
+    # Handle general trigger creation issues
+```
+
+**Example - GitHub:**
+```python
+try:
+    trigger_result = client.triggers.create(
+        provider="github",
+        workflow_file="./workflows/ci_cd.py",
+        name="Auto Deploy on Push",
+        repository="myorg/webapp",
+        events=["push", "pull_request"],
+        secret="webhook-verification-secret",
+        runner="ci-runner",
+        github_token="ghp_your_token_here"
+    )
+    
+    print(f"✅ GitHub trigger created: {trigger_result['trigger_id']}")
+    print(f"Repository: {trigger_result['repository']}")
+    print(f"Events: {', '.join(trigger_result['events'])}")
+    print(f"Webhook URL: {trigger_result['webhook_url']}")
+    
+except ValidationError as e:
+    print(f"❌ Validation error: {e}")
+    # Common issues: invalid repository format, invalid events
+    
+except ProviderError as e:
+    print(f"❌ GitHub API error: {e}")
+    # Handle GitHub API failures
+```
+
+---
+
+##### `list(provider=None, kubiya_only=False, repository=None, **kwargs) -> List[Dict[str, Any]]`
+
+List workflow triggers across providers with optional filtering.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider` | `str` | No | Filter by provider ("datadog" or "github") |
+| `kubiya_only` | `bool` | No | Show only webhooks pointing to Kubiya API (default: False) |
+| `repository` | `str` | No | GitHub repository (required when provider="github") |
+| `dd_api_key` | `str` | No | Datadog API key |
+| `dd_app_key` | `str` | No | Datadog application key |
+| `dd_site` | `str` | No | Datadog site |
+| `github_token` | `str` | No | GitHub token |
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of trigger information
+
+**Response Structure:**
+```python
+[
+    {
+        "name": "webhook-name",
+        "url": "https://api.kubiya.ai/api/v1/workflow?...",
+        "provider": "datadog|github",
+        "is_kubiya": True,
+        
+        # GitHub-specific fields
+        "id": "webhook-id",
+        "events": ["push", "pull_request"]
+    },
+    # ... more triggers
+]
+```
+
+**Raises:**
+- `ValidationError`: When repository is required but not provided
+- `TriggerError`: For listing failures
+
+**Example:**
+```python
+try:
+    # List all triggers
+    all_triggers = client.triggers.list()
+    print(f"Total triggers found: {len(all_triggers)}")
+    
+    # List only Datadog triggers
+    datadog_triggers = client.triggers.list(provider="datadog")
+    print(f"Datadog triggers: {len(datadog_triggers)}")
+    
+    # List only Kubiya-related webhooks
+    kubiya_triggers = client.triggers.list(kubiya_only=True)
+    for trigger in kubiya_triggers:
+        print(f"Kubiya trigger: {trigger['name']} ({trigger['provider']})")
+    
+    # List GitHub triggers for specific repository
+    github_triggers = client.triggers.list(
+        provider="github",
+        repository="myorg/myrepo"
+    )
+    
+    for trigger in github_triggers:
+        if trigger['is_kubiya']:
+            print(f"GitHub trigger: {trigger['name']}")
+            print(f"  Events: {', '.join(trigger.get('events', []))}")
+            print(f"  URL: {trigger['url']}")
+    
+except ValidationError as e:
+    print(f"❌ Validation error: {e}")
+    # Usually missing repository when filtering GitHub
+    
+except TriggerError as e:
+    print(f"❌ Failed to list triggers: {e}")
+```
+
+---
+
+##### `delete(provider, webhook_id, repository=None, **kwargs) -> Dict[str, Any]`
+
+Delete a workflow trigger from the specified provider.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider` | `str` | Yes | Provider type ("datadog" or "github") |
+| `webhook_id` | `str` | Yes | Webhook ID or name to delete |
+| `repository` | `str` | No | GitHub repository (required when provider="github") |
+| `dd_api_key` | `str` | No | Datadog API key |
+| `dd_app_key` | `str` | No | Datadog application key |
+| `dd_site` | `str` | No | Datadog site |
+| `github_token` | `str` | No | GitHub token |
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing deletion result
+
+**Response Structure:**
+```python
+{
+    "success": True,
+    "message": "Webhook {webhook_id} deleted successfully from {provider}",
+    "provider": "datadog|github",
+    "webhook_id": "webhook-identifier"
+}
+```
+
+**Raises:**
+- `ValidationError`: For invalid provider or missing repository
+- `TriggerError`: For deletion failures
+- `ProviderError`: For external provider API failures
+
+**Example:**
+```python
+try:
+    # Delete Datadog webhook
+    delete_result = client.triggers.delete(
+        provider="datadog",
+        webhook_id="kubiya-critical-alerts"
+    )
+    print(f"✅ {delete_result['message']}")
+    
+    # Delete GitHub webhook
+    delete_result = client.triggers.delete(
+        provider="github",
+        webhook_id="12345",  # GitHub webhook ID
+        repository="myorg/myrepo"
+    )
+    print(f"✅ {delete_result['message']}")
+    
+except ValidationError as e:
+    print(f"❌ Validation error: {e}")
+    
+except ProviderError as e:
+    print(f"❌ Provider API error: {e}")
+    # Handle cases like webhook not found, permission issues
+    
+except TriggerError as e:
+    print(f"❌ Deletion failed: {e}")
+```
+
+---
+
+## Provider Classes
+
+### DatadogProvider
+
+Provider implementation for Datadog webhook integration.
+
+```python
+class DatadogProvider:
+    """Datadog provider for managing webhook triggers"""
+```
+
+#### Initialization
+
+```python
+provider = DatadogProvider(
+    api_key="your-api-key",
+    app_key="your-app-key",
+    site="datadoghq.com"  # Optional
+)
+```
+
+#### Key Methods
+
+- `create_trigger(trigger)`: Create Datadog webhook
+- `delete_trigger(webhook_name)`: Delete Datadog webhook
+- `list_webhooks()`: List all Datadog webhooks
+- `validate_config(config)`: Validate Datadog configuration
+
+#### Required Environment Variables
+
+```python
+required_vars = provider.get_required_env_vars()
+# Returns: ["DD_API_KEY", "DD_APPLICATION_KEY"]
+```
+
+---
+
+### GitHubProvider
+
+Provider implementation for GitHub webhook integration.
+
+```python
+class GitHubProvider:
+    """GitHub provider for managing webhook triggers"""
+```
+
+#### Initialization
+
+```python
+provider = GitHubProvider(token="your-github-token")
+```
+
+#### Key Methods
+
+- `create_trigger(trigger)`: Create GitHub webhook
+- `delete_trigger(repository, webhook_id)`: Delete GitHub webhook
+- `list_webhooks(repository)`: List webhooks for repository
+- `validate_config(config)`: Validate GitHub configuration
+
+#### Required Environment Variables
+
+```python
+required_vars = provider.get_required_env_vars()
+# Returns: ["GITHUB_TOKEN"]
+```
+
+#### Supported Events
+
+```python
+valid_events = {
+    "push", "pull_request", "issues", "issue_comment",
+    "pull_request_review", "pull_request_review_comment",
+    "commit_comment", "create", "delete", "deployment",
+    "deployment_status", "fork", "gollum", "label",
+    "member", "membership", "milestone", "organization",
+    "org_block", "page_build", "project", "project_card",
+    "project_column", "public", "release", "repository",
+    "status", "team", "team_add", "watch"
+}
+```
+
+---
+
+## Exceptions
+
+### TriggerError (Base Exception)
+
+Base exception class for all trigger-related errors.
+
+```python
+class TriggerError(Exception):
+    """Base exception for trigger operations"""
+```
+
+#### Example
+```python
+try:
+    trigger_result = client.triggers.create(
+        provider="datadog",
+        workflow_file="./nonexistent.py",
+        name="Test Trigger"
+    )
+except TriggerError as e:
+    print(f"Trigger operation failed: {e}")
+    # This catches all trigger-related errors
+```
+
+---
+
+### ValidationError
+
+Specialized exception for input validation failures.
+
+```python
+class ValidationError(Exception):
+    """Validation error for invalid inputs"""
+```
+
+#### Common Validation Errors
+
+1. **Invalid Provider:**
+   ```python
+   # Triggers ValidationError
+   client.triggers.create(provider="unsupported", ...)
+   ```
+
+2. **Missing Required Fields:**
+   ```python
+   # Triggers ValidationError - missing name
+   client.triggers.create(provider="datadog", workflow_file="./test.py")
+   ```
+
+3. **Invalid Repository Format:**
+   ```python
+   # Triggers ValidationError - should be 'owner/repo'
+   client.triggers.create(
+       provider="github",
+       repository="invalid-format",
+       ...
+   )
+   ```
+
+4. **Invalid GitHub Events:**
+   ```python
+   # Triggers ValidationError
+   client.triggers.create(
+       provider="github",
+       repository="owner/repo",
+       events=["invalid_event"],
+       ...
+   )
+   ```
+
+5. **File Not Found:**
+   ```python
+   # Triggers ValidationError
+   client.triggers.create(
+       provider="datadog",
+       workflow_file="./nonexistent.py",
+       ...
+   )
+   ```
+
+#### Example
+```python
+try:
+    trigger_result = client.triggers.create(
+        provider="github",
+        workflow_file="./workflow.py",
+        name="Test Trigger",
+        repository="invalid-format",  # Should be 'owner/repo'
+        events=["push"]
+    )
+except ValidationError as e:
+    print(f"❌ Input validation failed: {e}")
+    
+    # Handle specific validation scenarios
+    error_msg = str(e).lower()
+    if "repository must be in format" in error_msg:
+        print("💡 Tip: Use 'owner/repo' format for repository")
+    elif "unsupported provider" in error_msg:
+        print("💡 Tip: Use 'datadog' or 'github' as provider")
+    elif "workflow file does not exist" in error_msg:
+        print("💡 Tip: Check the workflow file path")
+```
+
+---
+
+### ProviderError
+
+Specialized exception for external provider API failures.
+
+```python
+class ProviderError(Exception):
+    """Provider-specific API error"""
+```
+
+#### Common Provider Errors
+
+1. **Authentication Failures:**
+   ```python
+   # Invalid credentials
+   client.triggers.create(
+       provider="datadog",
+       dd_api_key="invalid-key",
+       ...
+   )
+   ```
+
+2. **API Rate Limits:**
+   ```python
+   # Too many requests
+   # Provider will raise ProviderError with rate limit details
+   ```
+
+3. **Network Issues:**
+   ```python
+   # Connection timeouts, DNS failures, etc.
+   ```
+
+4. **Resource Not Found:**
+   ```python
+   # Webhook doesn't exist when trying to delete
+   client.triggers.delete(provider="datadog", webhook_id="nonexistent")
+   ```
+
+#### Example
+```python
+try:
+    trigger_result = client.triggers.create(
+        provider="datadog",
+        workflow_file="./workflow.py",
+        name="Test Trigger",
+        dd_api_key="invalid-key"
+    )
+except ProviderError as e:
+    print(f"❌ Provider API failed: {e}")
+    
+    # Handle specific provider scenarios
+    error_msg = str(e).lower()
+    if "authentication" in error_msg or "unauthorized" in error_msg:
+        print("💡 Tip: Check your API credentials")
+    elif "rate limit" in error_msg:
+        print("💡 Tip: Wait before making more requests")
+    elif "not found" in error_msg:
+        print("💡 Tip: Check if the resource exists")
+    elif "network" in error_msg or "timeout" in error_msg:
+        print("💡 Tip: Check your network connection")
+```
+
+---
+
+## Payload Variables
+
+### Datadog Payload Variables
+
+When creating Datadog triggers, you can use these variables in custom payloads:
+
+| Variable | Description | Example Value |
+|----------|-------------|---------------|
+| `$EVENT_MSG` | Alert message content | "High CPU usage detected" |
+| `$EVENT_TITLE` | Alert title | "CPU Alert" |
+| `$DATE` | Alert timestamp | "2024-01-15T10:30:00Z" |
+| `$ID` | Alert ID | "12345" |
+| `$PRIORITY` | Alert priority level | "high" |
+| `$TAGS` | Alert tags | "env:prod,service:api" |
+
+#### Example Custom Payload
+
+```python
+custom_payload = '''
+{
+    "alert_data": {
+        "message": "$EVENT_MSG",
+        "title": "$EVENT_TITLE",
+        "priority": "$PRIORITY",
+        "timestamp": "$DATE",
+        "alert_id": "$ID",
+        "tags": "$TAGS"
+    },
+    "workflow_config": {
+        "environment": "production",
+        "team": "platform"
+    }
+}
+'''
+
+trigger_result = client.triggers.create(
+    provider="datadog",
+    workflow_file="./alert_processor.py",
+    name="Advanced Alert Processor",
+    payload=custom_payload
+)
+```
+
+### GitHub Payload
+
+GitHub webhooks automatically include comprehensive event data in the payload. The workflow receives the full GitHub webhook payload as defined in the [GitHub Webhooks documentation](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads).
+
+Common GitHub payload fields include:
+- Repository information
+- Commit details (for push events)
+- Pull request data (for PR events)
+- Issue information (for issue events)
+- User/author details
+- Action type (opened, closed, synchronize, etc.)
+
+---
+
+## Configuration Examples
+
+### Complete Datadog Configuration
+
+```python
+trigger_result = client.triggers.create(
+    provider="datadog",
+    workflow_file="/absolute/path/to/workflow.py",
+    name="Production Alert Handler",
+    webhook_name="kubiya-prod-alerts",
+    custom_headers="X-Environment: production\nX-Team: sre\nX-Priority: high",
+    payload='''
+    {
+        "alert": {
+            "message": "$EVENT_MSG",
+            "title": "$EVENT_TITLE",
+            "priority": "$PRIORITY",
+            "timestamp": "$DATE",
+            "id": "$ID",
+            "tags": "$TAGS"
+        },
+        "metadata": {
+            "environment": "production",
+            "team": "sre",
+            "workflow": "incident_response"
+        }
+    }
+    ''',
+    encode_as="json",
+    runner="production-runner",
+    dd_api_key="your-datadog-api-key",
+    dd_app_key="your-datadog-app-key",
+    dd_site="datadoghq.com"
+)
+```
+
+### Complete GitHub Configuration
+
+```python
+trigger_result = client.triggers.create(
+    provider="github",
+    workflow_file="/absolute/path/to/ci_workflow.py",
+    name="Complete CI/CD Pipeline",
+    repository="mycompany/web-application",
+    events=["push", "pull_request", "release"],
+    secret="super-secret-webhook-key",
+    runner="ci-cd-runner",
+    github_token="ghp_your_personal_access_token"
+)
+```
+
+This API reference provides complete documentation for all public interfaces in the Triggers service. Use the examples and error handling patterns to build robust trigger-driven automation workflows.
