@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from kubiya_workflow_sdk.kubiya_services.exceptions import KubiyaAPIError, ValidationError
 
 if TYPE_CHECKING:
-    from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+    from kubiya_workflow_sdk import KubiyaClient
 
 
 class BaseService(ABC):
