@@ -148,6 +148,123 @@
             ]
           },
           {
+            "group": "Services",
+            "pages": [
+              {
+                "group": "Agents",
+                "pages": [
+                  "services/agents/overview",
+                  "services/agents/api-reference"
+                ]
+              },
+              {
+                "group": "Audit",
+                "pages": [
+                  "services/audit/overview",
+                  "services/audit/api-reference"
+                ]
+              },
+              {
+                "group": "Documentations",
+                "pages": [
+                  "services/documentations/overview",
+                  "services/documentations/api-reference"
+                ]
+              },
+              {
+                "group": "Integrations",
+                "pages": [
+                  "services/integrations/overview",
+                  "services/integrations/api-reference"
+                ]
+              },
+              {
+                "group": "Knowledge",
+                "pages": [
+                  "services/knowledge/overview",
+                  "services/knowledge/api-reference"
+                ]
+              },
+              {
+                "group": "Policies",
+                "pages": [
+                  "services/policies/overview",
+                  "services/policies/api-reference"
+                ]
+              },
+              {
+                "group": "Projects",
+                "pages": [
+                  "services/projects/overview",
+                  "services/projects/api-reference"
+                ]
+              },
+              {
+                "group": "Runners",
+                "pages": [
+                  "services/runners/overview",
+                  "services/runners/api-reference"
+                ]
+              },
+              {
+                "group": "Secrets",
+                "pages": [
+                  "services/secrets/overview",
+                  "services/secrets/api-reference"
+                ]
+              },
+              {
+                "group": "Sources",
+                "pages": [
+                  "services/sources/overview",
+                  "services/sources/api-reference"
+                ]
+              },
+              {
+                "group": "Stacks",
+                "pages": [
+                  "services/stacks/overview",
+                  "services/stacks/api-reference"
+                ]
+              },
+              {
+                "group": "Tools",
+                "pages": [
+                  "services/tools/overview",
+                  "services/tools/api-reference"
+                ]
+              },
+              {
+                "group": "Triggers",
+                "pages": [
+                  "services/triggers/overview",
+                  "services/triggers/api-reference"
+                ]
+              },
+              {
+                "group": "Users",
+                "pages": [
+                  "services/users/overview",
+                  "services/users/api-reference"
+                ]
+              },
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "services/webhooks/overview",
+                  "services/webhooks/api-reference"
+                ]
+              },
+              {
+                "group": "Workflows",
+                "pages": [
+                  "services/workflows/overview",
+                  "services/workflows/api-reference"
+                ]
+              }
+            ]
+          },
+          {
             "group": "Resources",
             "pages": [
               "cli-reference",
