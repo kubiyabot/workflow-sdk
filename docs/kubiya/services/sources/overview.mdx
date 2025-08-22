@@ -34,7 +34,7 @@ The Sources service supports multiple source types:
 The main service class provides comprehensive source management:
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 
 # Initialize client
 client = KubiyaClient(
@@ -62,7 +62,7 @@ sources.inline.delete(source_uuid, "my-tool")
 ### Listing Sources
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.kubiya_services.exceptions import SourceError
 
 # Initialize client

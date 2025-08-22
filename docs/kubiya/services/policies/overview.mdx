@@ -27,7 +27,7 @@ It enables you to create, validate, and evaluate OPA policies for controlling ac
 The main service class provides comprehensive policy management operations:
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 
 # Initialize client
 client = KubiyaClient(
@@ -55,7 +55,7 @@ policies = client.policies
 ### Basic Policy Management
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.kubiya_services.exceptions import PolicyValidationError, PolicyError
 
 # Initialize client

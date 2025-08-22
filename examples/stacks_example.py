@@ -8,7 +8,7 @@ This example demonstrates:
 4. Proper exception handling for stack operations
 """
 
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.kubiya_services.services.stacks import StackRequest, StackFiles
 from kubiya_workflow_sdk.kubiya_services.exceptions import StackPlanError, StackApplyError, StackStreamError
 

@@ -36,7 +36,7 @@ The main service class provides three core operations:
 Connect workflows to Datadog monitors and alerts:
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 
 client = KubiyaClient(api_key="your-api-key")
 
@@ -72,7 +72,7 @@ trigger_result = client.triggers.create(
 ### Basic Usage - Datadog Integration
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.kubiya_services.exceptions import TriggerError, ValidationError
 
 # Initialize client

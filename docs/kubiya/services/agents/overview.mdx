@@ -27,7 +27,7 @@ It enables you to create, configure, and manage agents with full access control,
 The main service class provides core agent management operations:
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 
 # Initialize client
 client = KubiyaClient(
@@ -55,7 +55,7 @@ The AgentService includes specialized sub-services for managing different aspect
 ### Basic Agent Creation
 
 ```python
-from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk import KubiyaClient
 from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError
 
 # Initialize client
