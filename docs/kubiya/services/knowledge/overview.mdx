@@ -1,0 +1,364 @@
+---
+title: "Knowledge Service Overview"
+description: "Complete guide to the Kubiya Knowledge service for querying the central knowledge base"
+icon: "brain"
+tags: ["knowledge", "search", "ai", "intelligence"]
+---
+
+# Knowledge Service Overview
+
+The Kubiya Knowledge service provides a powerful interface for querying the central knowledge base with intelligent search capabilities. 
+It enables you to perform semantic searches across multiple data sources with real-time streaming support and comprehensive error handling.
+
+## Features
+
+- **Intelligent Search**: Semantic search across multiple data sources
+- **Real-time Streaming**: Stream search progress and results in real-time
+- **Multi-source Integration**: Query across all available data sources in the knowledge base
+- **Contextual Results**: Get intelligent result summarization with source tracking
+- **Related Suggestions**: Receive related query suggestions for enhanced discovery
+- **Comprehensive Error Handling**: Detailed error reporting with timeout and availability checks
+
+## Core Components
+
+### KnowledgeService
+
+The main service class provides intelligent knowledge base querying:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.services.knowledge import KnowledgeService
+
+# The service is typically accessed through the client
+knowledge_service = client.knowledge
+```
+
+The service provides one core operation:
+
+- **`query()`**: Search the knowledge base with intelligent semantic capabilities
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import KnowledgeError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # Simple knowledge base query
+    response = client.knowledge.query(
+        prompt="How do I deploy a Kubernetes application?"
+    )
+    print(f"Knowledge base response: {response}")
+    
+except KnowledgeError as e:
+    print(f"Knowledge query failed: {e}")
+```
+
+### Streaming Search Results
+
+For real-time search progress and results:
+
+```python
+# Stream search results in real-time
+try:
+    print("Searching knowledge base...")
+    
+    for event_data in client.knowledge.query(
+        prompt="What are the best practices for container security?",
+        stream=True  # Enable streaming (default)
+    ):
+        # Process streaming events
+        print(f"Search update: {event_data}")
+        
+except KnowledgeError as e:
+    print(f"Streaming search failed: {e}")
+```
+
+### Advanced Query with User Context
+
+```python
+# Query with user and organization context
+try:
+    response = client.knowledge.query(
+        prompt="Show me our team's deployment procedures",
+        user_id="user123",
+        org_id="org456",
+        stream=False  # Get complete response
+    )
+    
+    # Process the complete response
+    if response.get("results"):
+        print(f"Found {len(response['results'])} relevant documents")
+        for result in response["results"]:
+            print(f"- {result.get('title', 'Untitled')}")
+            print(f"  Source: {result.get('source', 'Unknown')}")
+            print(f"  Relevance: {result.get('score', 0):.2f}")
+    
+except KnowledgeError as e:
+    print(f"Contextual query failed: {e}")
+```
+
+## Error Handling
+
+The Knowledge service provides specialized error handling for different failure scenarios:
+
+### KnowledgeError
+
+Thrown when knowledge base queries fail:
+
+```python
+try:
+    response = client.knowledge.query(
+        prompt="Find documentation about API authentication"
+    )
+except KnowledgeError as e:
+    print(f"Query failed: {e}")
+    
+    # Check for specific error types
+    error_message = str(e).lower()
+    
+    if "timeout" in error_message:
+        print("💡 Tip: The knowledge base might be busy. Try again in a few moments.")
+    elif "unavailable" in error_message:
+        print("💡 Tip: The knowledge service might be temporarily unavailable.")
+    elif "deadline exceeded" in error_message:
+        print("💡 Tip: Your query might be too complex. Try simplifying it.")
+    else:
+        print("💡 Tip: Check your query format and try again.")
+```
+
+## Best Practices
+
+### 1. Use Descriptive Queries
+
+```python
+# Good: Specific, contextual queries
+response = client.knowledge.query(
+    prompt="How do I configure SSL certificates for NGINX in production?"
+)
+
+# Better: Include context and specifics
+response = client.knowledge.query(
+    prompt="Step-by-step guide for configuring SSL certificates in NGINX for a production web application with automatic renewal"
+)
+```
+
+### 2. Handle Streaming Gracefully
+
+```python
+# Stream with proper error handling and timeout
+import time
+
+try:
+    search_start = time.time()
+    results_found = False
+    
+    for event_data in client.knowledge.query(
+        prompt="Kubernetes troubleshooting guide",
+        stream=True
+    ):
+        results_found = True
+        
+        # Process each streaming event
+        if isinstance(event_data, dict):
+            if event_data.get("type") == "progress":
+                print(f"Search progress: {event_data.get('percentage', 0)}%")
+            elif event_data.get("type") == "result":
+                print(f"Found: {event_data.get('title', 'Document')}")
+        
+        # Implement client-side timeout if needed
+        if time.time() - search_start > 30:  # 30-second timeout
+            print("Search taking too long, stopping...")
+            break
+    
+    if not results_found:
+        print("No results found. Try refining your query.")
+        
+except KnowledgeError as e:
+    print(f"Streaming search interrupted: {e}")
+    # Consider implementing retry logic for transient errors
+```
+
+### 3. Provide User Context When Available
+
+```python
+# Include user context for personalized results
+def search_team_knowledge(query, user_info):
+    try:
+        response = client.knowledge.query(
+            prompt=query,
+            user_id=user_info.get("user_id"),
+            org_id=user_info.get("org_id")
+        )
+        return response
+        
+    except KnowledgeError as e:
+        # Log the error with context
+        print(f"Knowledge search failed for user {user_info.get('user_id')}: {e}")
+        return None
+```
+
+### 4. Validate and Process Results
+
+```python
+# Validate response structure before processing
+try:
+    response = client.knowledge.query(
+        prompt="Docker best practices",
+        stream=False
+    )
+    
+    # Validate response structure
+    if not isinstance(response, dict):
+        print("Unexpected response format")
+        return
+    
+    # Process results safely
+    results = response.get("results", [])
+    if not results:
+        print("No results found in knowledge base")
+        return
+    
+    # Extract and display information
+    for idx, result in enumerate(results, 1):
+        title = result.get("title", f"Document {idx}")
+        source = result.get("source", "Unknown source")
+        summary = result.get("summary", "No summary available")
+        
+        print(f"{idx}. {title}")
+        print(f"   Source: {source}")
+        print(f"   Summary: {summary[:100]}...")
+        print()
+        
+except KnowledgeError as e:
+    print(f"Failed to process knowledge results: {e}")
+except Exception as e:
+    print(f"Unexpected error processing results: {e}")
+```
+
+## Configuration
+
+### Environment Variables
+
+The Knowledge service respects several environment variables for configuration:
+
+- **`KUBIYA_ORCHESTRATOR_URL`**: Custom orchestrator endpoint URL
+- **`KUBIYA_USE_SAME_API`**: Use the same base URL as the main API (boolean)
+
+```python
+import os
+
+# Configure orchestrator URL
+os.environ["KUBIYA_ORCHESTRATOR_URL"] = "https://your-orchestrator.domain.com"
+
+# Or use the same API endpoint
+os.environ["KUBIYA_USE_SAME_API"] = "true"
+
+# Now queries will use the configured endpoint
+response = client.knowledge.query("Your search query")
+```
+
+## Integration Examples
+
+The Knowledge service integrates seamlessly with other Kubiya services and workflows:
+
+### Workflow Integration
+
+```python
+# Use knowledge queries in workflow steps
+from kubiya_workflow_sdk.dsl import Workflow, Step
+
+def knowledge_assisted_workflow():
+    workflow = Workflow(name="knowledge-assisted-deployment")
+    
+    # Query knowledge base for deployment best practices
+    knowledge_step = Step(
+        name="get_deployment_guidance",
+        action=lambda: client.knowledge.query(
+            prompt="Best practices for deploying microservices to Kubernetes",
+            stream=False
+        )
+    )
+    
+    workflow.add_step(knowledge_step)
+    return workflow
+```
+
+### Agent Integration
+
+```python
+# Enhance agent responses with knowledge base information
+def enhanced_agent_response(user_query):
+    try:
+        # Query knowledge base for relevant information
+        knowledge_response = client.knowledge.query(
+            prompt=f"Context for: {user_query}",
+            stream=False
+        )
+        
+        # Use knowledge to enhance agent response
+        context = knowledge_response.get("summary", "")
+        return f"Based on our knowledge base: {context}"
+        
+    except KnowledgeError:
+        return "I don't have additional context for that query."
+```
+
+## Use Cases
+
+### 1. Documentation Search
+
+Perfect for finding specific documentation, procedures, and guides:
+
+```python
+# Search for specific procedures
+docs = client.knowledge.query(
+    prompt="How to set up CI/CD pipeline with GitHub Actions"
+)
+```
+
+### 2. Troubleshooting Assistance
+
+Get intelligent suggestions for problem resolution:
+
+```python
+# Query for troubleshooting help
+solutions = client.knowledge.query(
+    prompt="Pod failing to start with ImagePullBackOff error in Kubernetes"
+)
+```
+
+### 3. Best Practices Discovery
+
+Find established patterns and best practices:
+
+```python
+# Discover best practices
+practices = client.knowledge.query(
+    prompt="Security best practices for containerized applications"
+)
+```
+
+### 4. Contextual Learning
+
+Get explanations and learning resources:
+
+```python
+# Learn about concepts
+explanation = client.knowledge.query(
+    prompt="Explain the difference between StatefulSets and Deployments in Kubernetes"
+)
+```
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check out integration patterns with other Kubiya services
