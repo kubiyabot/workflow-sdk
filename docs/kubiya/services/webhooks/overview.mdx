@@ -1,0 +1,387 @@
+---
+title: "Webhooks Service Overview"
+description: "Complete guide to the Kubiya Webhooks service for managing webhook integrations"
+icon: "webhook"
+tags: ["webhooks", "integrations", "automation"]
+---
+
+# Webhooks Service Overview
+
+The Kubiya Webhooks service provides a powerful interface for managing webhook integrations within the Kubiya platform. 
+It enables you to create, configure, and monitor webhooks that connect external systems to your Kubiya agents and workflows with comprehensive error handling and flexible configuration options.
+
+## Features
+
+- **Webhook Management**: Create, update, delete, and list webhooks
+- **Multiple Targets**: Support for both agent and workflow webhook targets
+- **Communication Methods**: Support for Slack, Teams, and HTTP notifications
+- **Event Filtering**: Advanced JMESPath-based event filtering
+- **File Operations**: Import and export webhook configurations
+- **Testing**: Built-in webhook testing with auto-generated test data
+- **Comprehensive Error Handling**: Detailed error reporting with validation context
+
+## Core Components
+
+### Webhook Targets
+
+The service supports two primary webhook target types:
+
+- **Agent Target**: Webhook triggers a specific Kubiya agent with a custom prompt
+- **Workflow Target**: Webhook executes a predefined workflow definition
+
+### Communication Methods
+
+Webhooks can deliver notifications through multiple channels:
+
+- **Slack**: Send notifications to Slack channels
+- **Teams**: Send notifications to Microsoft Teams channels
+- **HTTP**: Send HTTP responses or Server-Sent Events (SSE)
+
+### Event Sources
+
+Webhooks can be configured to receive events from various sources:
+
+- **GitHub**: Repository events, pull requests, issues, etc.
+- **Custom**: User-defined event sources
+- **Integration-specific**: Other platform-specific event sources
+
+## Quick Start
+
+### Basic Webhook Creation
+
+```python
+from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import WebhookError, ValidationError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Create an agent-based webhook
+try:
+    webhook = client.webhooks.create(
+        name="github-pr-webhook",
+        source="github",
+        agent_id="your-agent-id",
+        target="agent",
+        prompt="A new pull request was created: {{.pull_request.title}} by {{.pull_request.user.login}}",
+        method="Slack",
+        destination="#dev-notifications",
+        filter="pull_request.action == 'opened'"
+    )
+    
+    print(f"Webhook created successfully!")
+    print(f"Webhook ID: {webhook['id']}")
+    print(f"Webhook URL: {webhook['webhook_url']}")
+    
+except ValidationError as e:
+    print(f"Validation error: {e}")
+except WebhookError as e:
+    print(f"Failed to create webhook: {e}")
+```
+
+### Workflow-Based Webhook
+
+```python
+# Create a workflow-based webhook
+workflow_definition = {
+    "steps": [
+        {
+            "name": "process_event",
+            "action": "log",
+            "message": "Processing webhook event: {{.event.type}}"
+        }
+    ]
+}
+
+try:
+    webhook = client.webhooks.create(
+        name="deployment-webhook",
+        source="custom",
+        target="workflow",
+        workflow=workflow_definition,
+        runner="default-runner",
+        method="Teams",
+        destination="team:channel",
+        filter="deployment.status == 'success'"
+    )
+    
+    print(f"Workflow webhook created: {webhook['id']}")
+    
+except WebhookError as e:
+    print(f"Failed to create workflow webhook: {e}")
+```
+
+### Listing and Managing Webhooks
+
+```python
+# List all webhooks
+webhooks = client.webhooks.list(limit=10, output_format="text")
+print(webhooks)
+
+# Get specific webhook details
+webhook_id = "your-webhook-id"
+webhook_details = client.webhooks.describe(webhook_id)
+print(f"Webhook: {webhook_details['name']}")
+print(f"Source: {webhook_details['source']}")
+print(f"Target: {'Agent' if webhook_details.get('agent_id') else 'Workflow'}")
+
+# Update webhook
+updated_webhook = client.webhooks.update(
+    webhook_id=webhook_id,
+    name="updated-webhook-name",
+    destination="#new-channel"
+)
+
+# Delete webhook
+result = client.webhooks.delete(webhook_id)
+print(f"Webhook deleted: {result}")
+```
+
+## Testing Webhooks
+
+### Basic Testing
+
+```python
+# Test webhook with default data
+test_result = client.webhooks.test(
+    webhook_id="your-webhook-id",
+    wait_for_response=True
+)
+print(f"Test result: {test_result}")
+
+# Test with custom data
+custom_data = {
+    "pull_request": {
+        "title": "Add new feature",
+        "user": {"login": "developer"},
+        "action": "opened"
+    }
+}
+
+test_result = client.webhooks.test(
+    webhook_id="your-webhook-id",
+    test_data=custom_data,
+    wait_for_response=True
+)
+```
+
+### Auto-Generated Test Data
+
+```python
+# Auto-generate test data based on webhook prompt template variables
+test_result = client.webhooks.test(
+    webhook_id="your-webhook-id",
+    auto_generate=True
+)
+```
+
+## Import/Export Operations
+
+### Export Webhook Configuration
+
+```python
+# Export webhook to JSON file
+export_result = client.webhooks.export_to_file(
+    webhook_id="your-webhook-id",
+    file_path="./webhook-backup.json",
+    format="json"
+)
+
+# Export to YAML file
+export_result = client.webhooks.export_to_file(
+    webhook_id="your-webhook-id",
+    file_path="./webhook-backup.yaml",
+    format="yaml"
+)
+
+print(f"Exported webhook to: {export_result['file_path']}")
+```
+
+### Import Webhook Configuration
+
+```python
+# Import webhook from file
+imported_webhook = client.webhooks.import_from_file(
+    file_path="./webhook-backup.json"
+)
+
+print(f"Imported webhook: {imported_webhook['id']}")
+```
+
+## Error Handling
+
+The Webhooks service provides specialized error handling for different failure scenarios:
+
+### WebhookError
+
+General webhook operation failures:
+
+```python
+try:
+    webhook = client.webhooks.create(name="test", source="github")
+except WebhookError as e:
+    print(f"Webhook operation failed: {e}")
+    # Access additional error context if available
+    if hasattr(e, 'details'):
+        print(f"Error details: {e.details}")
+```
+
+### ValidationError
+
+Input validation failures:
+
+```python
+try:
+    # Missing required parameters for agent target
+    webhook = client.webhooks.create(
+        name="invalid-webhook",
+        source="github",
+        target="agent"  # Missing agent_id and prompt
+    )
+except ValidationError as e:
+    print(f"Validation failed: {e}")
+    # Fix validation issues before retrying
+```
+
+## Advanced Features
+
+### JMESPath Event Filtering
+
+Use JMESPath expressions to filter webhook events:
+
+```python
+# GitHub webhook that only triggers on main branch pushes
+webhook = client.webhooks.create(
+    name="main-branch-webhook",
+    source="github",
+    agent_id="deploy-agent",
+    prompt="Main branch updated with {{.commits | length}} new commits",
+    filter="ref == 'refs/heads/main' && commits"
+)
+
+# Multiple condition filtering
+complex_filter = "pull_request.base.ref == 'main' && pull_request.state == 'open' && contains(pull_request.labels[].name, 'ready-for-review')"
+```
+
+### Teams Channel Configuration
+
+Configure Microsoft Teams webhooks with proper formatting:
+
+```python
+# Teams webhook with team:channel format
+webhook = client.webhooks.create(
+    name="teams-webhook",
+    source="github",
+    agent_id="notification-agent",
+    prompt="New issue: {{.issue.title}}",
+    method="Teams",
+    destination="development-team:general"  # Automatically formatted for Teams API
+)
+```
+
+### Webhook Headers Control
+
+Control webhook header visibility in notifications:
+
+```python
+webhook = client.webhooks.create(
+    name="secure-webhook",
+    source="custom",
+    agent_id="security-agent",
+    prompt="Security event detected",
+    hide_webhook_headers=True  # Hide headers for security
+)
+```
+
+## Best Practices
+
+### 1. Use Descriptive Names and Filters
+
+```python
+# Good: Descriptive name and specific filter
+webhook = client.webhooks.create(
+    name="github-prod-release-notifications",
+    source="github", 
+    filter="release.target_commitish == 'main' && release.prerelease == false",
+    # ...
+)
+```
+
+### 2. Test Before Deployment
+
+```python
+# Always test webhooks after creation
+webhook = client.webhooks.create(...)
+
+# Test with realistic data
+test_result = client.webhooks.test(
+    webhook_id=webhook['id'],
+    auto_generate=True,
+    wait_for_response=True
+)
+
+if not test_result.get('success'):
+    print("Webhook test failed - review configuration")
+```
+
+### 3. Use Appropriate Communication Methods
+
+```python
+# Use Slack for development notifications
+dev_webhook = client.webhooks.create(
+    method="Slack",
+    destination="#dev-alerts"
+)
+
+# Use HTTP for programmatic integrations
+api_webhook = client.webhooks.create(
+    method="HTTP",
+    destination=""  # Uses SSE streaming
+)
+```
+
+### 4. Backup Webhook Configurations
+
+```python
+# Regular backup of important webhooks
+important_webhooks = client.webhooks.list()
+
+for webhook in important_webhooks:
+    if webhook.get('name', '').startswith('prod-'):
+        client.webhooks.export_to_file(
+            webhook_id=webhook['id'],
+            file_path=f"./backups/{webhook['name']}.yaml",
+            format="yaml"
+        )
+```
+
+## Integration Examples
+
+The Webhooks service integrates seamlessly with other Kubiya services and external platforms:
+
+### GitHub Integration
+
+- **Pull Request Automation**: Trigger code review workflows
+- **Deployment Notifications**: Notify teams of successful deployments
+- **Security Alerts**: Monitor for security-related events
+
+### Slack/Teams Integration
+
+- **Real-time Notifications**: Keep teams informed of important events
+- **Interactive Responses**: Use agent prompts for dynamic notifications
+- **Channel Routing**: Route different events to appropriate channels
+
+### Workflow Orchestration
+
+- **Event-Driven Workflows**: Trigger complex multi-step processes
+- **Conditional Logic**: Use filters to create sophisticated routing rules
+- **State Management**: Maintain context across webhook invocations
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore webhook integration examples in the [examples directory](../../../examples/)
+- Check out the [platform overview](../../concepts/platform-overview.mdx) for broader context
