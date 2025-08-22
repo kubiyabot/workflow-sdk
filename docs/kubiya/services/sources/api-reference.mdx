@@ -1,0 +1,723 @@
+---
+title: "Sources Service API Reference"
+description: "Complete API reference for the Kubiya Sources service methods and classes"
+icon: "code"
+tags: ["sources", "api", "reference"]
+---
+
+# Sources Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Sources service.
+
+## Classes
+
+### SourceService
+
+Main service class for managing tool sources and repositories.
+
+```python
+class SourceService(BaseService):
+    """Service for managing sources"""
+```
+
+#### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `inline` | `_InlineService` | Sub-service for managing inline tools |
+
+#### Methods
+
+##### `list(full: bool = False, debug: bool = False, fetch_metadata: bool = False, max_concurrent: int = 10) -> List[Dict[str, Any]]`
+
+List all sources with optional metadata fetching.
+
+**Parameters:**
+- `full` (`bool`): Fetch full metadata for each source (default: False)
+- `debug` (`bool`): Enable debug output during metadata fetching (default: False)  
+- `fetch_metadata` (`bool`): Whether to fetch metadata for sources (default: False)
+- `max_concurrent` (`int`): Maximum concurrent metadata requests (default: 10)
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of source objects
+
+**Response Structure:**
+```python
+[
+    {
+        "uuid": "source-uuid",
+        "name": "Source Name",
+        "type": "git",  # or "inline"
+        "url": "https://github.com/example/repo.git",
+        "tools": [...],  # if metadata fetched
+        "inline_tools": [...],  # if applicable
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+    }
+]
+```
+
+**Example:**
+```python
+# Basic listing
+sources = client.sources.list()
+
+# With full metadata (slower but comprehensive)
+sources_detailed = client.sources.list(
+    full=True,
+    debug=True,
+    max_concurrent=5
+)
+
+for source in sources_detailed:
+    print(f"Source: {source['name']}")
+    print(f"Type: {source['type']}")
+    print(f"Tools: {len(source.get('tools', []))}")
+```
+
+##### `scan(source_url: str, output_format: str = "table", dynamic_config: Optional[Dict[str, Any]] = None, runner: Optional[str] = None, local: bool = False, local_only: bool = False) -> Dict[str, Any]`
+
+Scan a source URL or local directory for available tools.
+
+**Parameters:**
+- `source_url` (`str`): URL or path to scan for tools
+- `output_format` (`str`): Output format ("table" or "json") (default: "table")
+- `dynamic_config` (`Optional[Dict[str, Any]]`): Dynamic configuration for the source
+- `runner` (`Optional[str]`): Runner name to use for scanning
+- `local` (`bool`): Whether this is a local directory scan (default: False)
+- `local_only` (`bool`): Force local-only scanning, bypass Git (default: False)
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing discovered tools and source information
+
+**Response Structure:**
+```python
+{
+    "source": {
+        "name": "Discovered Source",
+        "type": "git"
+    },
+    "tools": [
+        {
+            "name": "tool-name",
+            "description": "Tool description",
+            "type": "docker",
+            "args": [...]
+        }
+    ],
+    "errors": [],
+    "scan_successful": True,
+    "source_url": "https://github.com/example/repo.git",
+    "runner": "default-runner"
+}
+```
+
+**Raises:**
+- `SourceError`: If scanning fails
+
+**Example:**
+```python
+try:
+    # Scan a Git repository
+    result = client.sources.scan(
+        source_url="https://github.com/example/tools.git",
+        output_format="json"
+    )
+    
+    if result["scan_successful"]:
+        print(f"Found {len(result['tools'])} tools")
+        for tool in result["tools"]:
+            print(f"- {tool['name']}: {tool.get('description', 'No description')}")
+    
+    # Scan local directory
+    local_result = client.sources.scan(
+        source_url="./my-tools",
+        local=True,
+        local_only=True
+    )
+    
+except SourceError as e:
+    print(f"Scan failed: {e}")
+```
+
+##### `add(source_url: str = "", name: Optional[str] = None, dynamic_config_file: Optional[str] = None, inline_file: Optional[str] = None, inline_tools: Optional[List[Dict[str, Any]]] = None, runner: Optional[str] = None) -> Dict[str, Any]`
+
+Add a new source to the platform.
+
+**Parameters:**
+- `source_url` (`str`): Source URL (empty for inline sources) (default: "")
+- `name` (`Optional[str]`): Source name
+- `dynamic_config_file` (`Optional[str]`): Path to JSON configuration file
+- `inline_file` (`Optional[str]`): Path to file containing inline tool definitions (YAML or JSON)
+- `inline_tools` (`Optional[List[Dict[str, Any]]]`): List of inline tools (alternative to inline_file)
+- `runner` (`Optional[str]`): Runner name for the source
+
+**Returns:**
+- `Dict[str, Any]`: Created source information
+
+**Response Structure:**
+```python
+{
+    "uuid": "new-source-uuid",
+    "name": "Source Name",
+    "type": "git",
+    "url": "https://github.com/example/repo.git",
+    "tools": [
+        {
+            "name": "discovered-tool",
+            "description": "Tool description"
+        }
+    ]
+}
+```
+
+**Raises:**
+- `SourceError`: If source creation fails
+
+**Example:**
+```python
+try:
+    # Add Git repository source
+    git_source = client.sources.add(
+        source_url="https://github.com/example/tools.git",
+        name="Example Tools",
+        runner="default-runner"
+    )
+    print(f"Git source added: {git_source['uuid']}")
+    
+    # Add inline source with tools
+    inline_tools = [
+        {
+            "name": "hello-world",
+            "description": "Simple hello world",
+            "type": "docker",
+            "image": "alpine:latest",
+            "content": "#!/bin/sh\necho 'Hello World!'"
+        }
+    ]
+    
+    inline_source = client.sources.add(
+        name="My Inline Tools",
+        inline_tools=inline_tools
+    )
+    print(f"Inline source added: {inline_source['uuid']}")
+    
+    # Add source from file
+    file_source = client.sources.add(
+        name="Tools from File",
+        inline_file="./tools.yaml",
+        dynamic_config_file="./config.json"
+    )
+    
+except SourceError as e:
+    print(f"Failed to add source: {e}")
+```
+
+##### `describe(uuid: str, output: str = "text") -> Union[Dict[str, Any], str]`
+
+Show detailed information about a source (metadata).
+
+**Parameters:**
+- `uuid` (`str`): Source UUID
+- `output` (`str`): Output format ("text" or "json") (default: "text")
+
+**Returns:**
+- `Union[Dict[str, Any], str]`: Source metadata in requested format
+
+**Raises:**
+- `SourceNotFoundError`: If source is not found
+
+**Example:**
+```python
+try:
+    # Get source details as dictionary
+    source_info = client.sources.describe("source-uuid")
+    print(f"Source: {source_info['name']}")
+    print(f"Tools: {len(source_info.get('tools', []))}")
+    
+    # Get as JSON string
+    json_info = client.sources.describe("source-uuid", output="json")
+    print(json_info)
+    
+except SourceNotFoundError as e:
+    print(f"Source not found: {e}")
+```
+
+##### `delete(uuid: str, runner: Optional[str] = None) -> Dict[str, Any]`
+
+Delete a source by UUID.
+
+**Parameters:**
+- `uuid` (`str`): UUID of the source to delete
+- `runner` (`Optional[str]`): Optional runner name to use for deletion
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary with result status
+
+**Raises:**
+- `SourceError`: If deletion fails
+
+**Example:**
+```python
+try:
+    result = client.sources.delete("source-uuid")
+    print(f"Source deleted: {result}")
+    
+    # Delete with specific runner
+    result = client.sources.delete(
+        uuid="source-uuid",
+        runner="specific-runner"
+    )
+    
+except SourceError as e:
+    print(f"Failed to delete source: {e}")
+```
+
+##### `sync(uuid: str, mode: str = "interactive", branch: str = "", force: bool = False, auto_commit: bool = False, no_diff: bool = False, runner: Optional[str] = None) -> Dict[str, Any]`
+
+Sync a source by UUID to get latest changes.
+
+**Parameters:**
+- `uuid` (`str`): Source UUID to sync
+- `mode` (`str`): Sync mode ("interactive" or other modes) (default: "interactive")
+- `branch` (`str`): Git branch to sync (default: "")
+- `force` (`bool`): Force sync even with conflicts (default: False)
+- `auto_commit` (`bool`): Automatically commit changes (default: False)
+- `no_diff` (`bool`): Skip diff generation (default: False)
+- `runner` (`Optional[str]`): Runner name to use for sync
+
+**Returns:**
+- `Dict[str, Any]`: Sync operation result
+
+**Raises:**
+- `SourceError`: If sync fails
+
+**Example:**
+```python
+try:
+    # Basic sync
+    result = client.sources.sync("source-uuid")
+    
+    # Advanced sync with options
+    result = client.sources.sync(
+        uuid="source-uuid",
+        mode="interactive",
+        branch="main",
+        force=False,
+        auto_commit=True,
+        runner="sync-runner"
+    )
+    
+    print(f"Sync completed: {result}")
+    
+except SourceError as e:
+    print(f"Sync failed: {e}")
+```
+
+##### `update(uuid: str, name: str = "", config: Optional[str] = None, inline: Optional[str] = None, inline_stdin: bool = False, runner: Optional[str] = None) -> Dict[str, Any]`
+
+Update an existing source.
+
+**Parameters:**
+- `uuid` (`str`): Source UUID to update
+- `name` (`str`): New source name (default: "")
+- `config` (`Optional[str]`): Path to JSON configuration file
+- `inline` (`Optional[str]`): Path to file with inline tool definitions
+- `inline_stdin` (`bool`): Read inline tools from stdin (default: False)
+- `runner` (`Optional[str]`): New runner name
+
+**Returns:**
+- `Dict[str, Any]`: Updated source information
+
+**Raises:**
+- `SourceError`: If update fails
+- `SourceNotFoundError`: If source is not found
+
+**Example:**
+```python
+try:
+    # Update source name
+    result = client.sources.update(
+        uuid="source-uuid",
+        name="Updated Source Name"
+    )
+    
+    # Update with new configuration
+    result = client.sources.update(
+        uuid="source-uuid",
+        name="New Name",
+        config="./new-config.json",
+        runner="new-runner"
+    )
+    
+    # Update inline tools from file
+    result = client.sources.update(
+        uuid="source-uuid",
+        inline="./updated-tools.yaml"
+    )
+    
+    print(f"Source updated: {result}")
+    
+except (SourceError, SourceNotFoundError) as e:
+    print(f"Update failed: {e}")
+```
+
+##### `debug(uuid: str, full: bool = False, output: str = "text", raw: bool = False) -> Union[Dict[str, Any], str]`
+
+Debug source metadata with comprehensive information display.
+
+**Parameters:**
+- `uuid` (`str`): Source UUID to debug
+- `full` (`bool`): Enable full debugging with detailed information (default: False)
+- `output` (`str`): Output format ("text" or "json") (default: "text")
+- `raw` (`bool`): Show raw API response (default: False)
+
+**Returns:**
+- `Union[Dict[str, Any], str]`: Debug information in requested format
+
+**Raises:**
+- `SourceError`: If debug operation fails
+
+**Example:**
+```python
+try:
+    # Basic debug output
+    debug_info = client.sources.debug("source-uuid")
+    print(debug_info)
+    
+    # Full debug with detailed information
+    full_debug = client.sources.debug(
+        uuid="source-uuid",
+        full=True,
+        output="text"
+    )
+    
+    # Raw API response
+    raw_debug = client.sources.debug(
+        uuid="source-uuid",
+        raw=True,
+        output="json"
+    )
+    
+except SourceError as e:
+    print(f"Debug failed: {e}")
+```
+
+---
+
+### _InlineService
+
+Sub-service for managing inline tools within sources.
+
+```python
+class _InlineService(BaseService):
+    """Service for managing inline tools in sources"""
+```
+
+#### Methods
+
+##### `add(source_uuid: str, file: Optional[str] = None, url: Optional[str] = None, name: Optional[str] = None, description: Optional[str] = None, type: str = "docker", image: Optional[str] = None, content: Optional[str] = None, arg: Optional[List[str]] = None, env: Optional[List[str]] = None, editor: bool = False) -> Dict[str, Any]`
+
+Add a tool to an inline source.
+
+**Parameters:**
+- `source_uuid` (`str`): UUID of the source to add tool to
+- `file` (`Optional[str]`): Path to tool definition file
+- `url` (`Optional[str]`): URL to tool definition
+- `name` (`Optional[str]`): Tool name
+- `description` (`Optional[str]`): Tool description
+- `type` (`str`): Tool type (default: "docker")
+- `image` (`Optional[str]`): Docker image for the tool
+- `content` (`Optional[str]`): Tool script content
+- `arg` (`Optional[List[str]]`): Tool arguments in format "name:type:description:required"
+- `env` (`Optional[List[str]]`): Environment variables
+- `editor` (`bool`): Use editor for tool creation (not supported in service context)
+
+**Returns:**
+- `Dict[str, Any]`: Updated source with new tool
+
+**Raises:**
+- `SourceError`: If tool addition fails
+- `SourceNotFoundError`: If source is not found
+- `SourceValidationError`: If tool validation fails
+
+**Example:**
+```python
+try:
+    # Add tool from file
+    result = client.sources.inline.add(
+        source_uuid="source-uuid",
+        file="./tool-definition.yaml"
+    )
+    
+    # Add tool from URL
+    result = client.sources.inline.add(
+        source_uuid="source-uuid",
+        url="https://example.com/tool.yaml"
+    )
+    
+    # Add tool with parameters
+    result = client.sources.inline.add(
+        source_uuid="source-uuid",
+        name="my-tool",
+        description="Custom tool",
+        type="docker",
+        image="python:3.9",
+        content="print('Hello from Python!')",
+        arg=[
+            "input:string:Input message:true",
+            "count:integer:Number of times:false"
+        ],
+        env=["ENV_VAR=value"]
+    )
+    
+    print(f"Tool added to source: {result['uuid']}")
+    
+except (SourceError, SourceNotFoundError, SourceValidationError) as e:
+    print(f"Failed to add inline tool: {e}")
+```
+
+##### `delete(source_uuid: str, tool_name: str) -> Dict[str, Any]`
+
+Delete a tool from an inline source by name.
+
+**Parameters:**
+- `source_uuid` (`str`): UUID of the source
+- `tool_name` (`str`): Name of the tool to delete
+
+**Returns:**
+- `Dict[str, Any]`: Updated source without the deleted tool
+
+**Raises:**
+- `SourceError`: If deletion fails
+- `SourceNotFoundError`: If source is not found
+- `SourceValidationError`: If tool is not found
+
+**Example:**
+```python
+try:
+    result = client.sources.inline.delete(
+        source_uuid="source-uuid",
+        tool_name="tool-to-delete"
+    )
+    
+    print(f"Tool deleted from source: {result['uuid']}")
+    
+except (SourceError, SourceNotFoundError, SourceValidationError) as e:
+    print(f"Failed to delete inline tool: {e}")
+```
+
+##### `update(source_uuid: str, tool_name: str, file: Optional[str] = None, url: Optional[str] = None) -> Dict[str, Any]`
+
+Update a specific tool in an inline source from file or URL.
+
+**Parameters:**
+- `source_uuid` (`str`): UUID of the source
+- `tool_name` (`str`): Name of the tool to update
+- `file` (`Optional[str]`): Path to updated tool definition file
+- `url` (`Optional[str]`): URL to updated tool definition
+
+**Returns:**
+- `Dict[str, Any]`: Updated source with modified tool
+
+**Raises:**
+- `SourceError`: If update fails
+- `SourceNotFoundError`: If source is not found
+- `SourceValidationError`: If tool is not found or validation fails
+
+**Example:**
+```python
+try:
+    # Update tool from file
+    result = client.sources.inline.update(
+        source_uuid="source-uuid",
+        tool_name="existing-tool",
+        file="./updated-tool.yaml"
+    )
+    
+    # Update tool from URL
+    result = client.sources.inline.update(
+        source_uuid="source-uuid",
+        tool_name="existing-tool",
+        url="https://example.com/updated-tool.yaml"
+    )
+    
+    print(f"Tool updated in source: {result['uuid']}")
+    
+except (SourceError, SourceNotFoundError, SourceValidationError) as e:
+    print(f"Failed to update inline tool: {e}")
+```
+
+##### `list(source_uuid: str) -> Union[List[Dict[str, Any]], str]`
+
+List tools in an inline source.
+
+**Parameters:**
+- `source_uuid` (`str`): UUID of the source
+
+**Returns:**
+- `Union[List[Dict[str, Any]], str]`: List of inline tools
+
+**Raises:**
+- `SourceError`: If listing fails
+
+**Example:**
+```python
+try:
+    tools = client.sources.inline.list("source-uuid")
+    
+    print(f"Found {len(tools)} inline tools:")
+    for tool in tools:
+        print(f"- {tool.get('name')}: {tool.get('description', 'No description')}")
+        print(f"  Type: {tool.get('type')}")
+        print(f"  Args: {len(tool.get('args', []))}")
+        
+except SourceError as e:
+    print(f"Failed to list inline tools: {e}")
+```
+
+---
+
+## Exceptions
+
+### SourceError (Base Exception)
+
+Base exception class for all source-related errors.
+
+```python
+class SourceError(Exception):
+    """Base exception for source operations"""
+```
+
+#### Example
+```python
+try:
+    sources = client.sources.list()
+except SourceError as e:
+    print(f"Source operation failed: {e}")
+```
+
+---
+
+### SourceNotFoundError
+
+Specialized exception for when a requested source cannot be found.
+
+```python
+class SourceNotFoundError(SourceError):
+    """Exception raised when source is not found"""
+```
+
+#### Example
+```python
+try:
+    source = client.sources.describe("non-existent-uuid")
+except SourceNotFoundError as e:
+    print(f"Source not found: {e}")
+    # Handle missing source case
+```
+
+---
+
+### SourceValidationError
+
+Specialized exception for source validation failures.
+
+```python
+class SourceValidationError(SourceError):
+    """Exception raised when source validation fails"""
+```
+
+#### Example
+```python
+try:
+    client.sources.inline.add(
+        source_uuid="source-uuid",
+        # Missing required parameters
+    )
+except SourceValidationError as e:
+    print(f"Validation failed: {e}")
+    # Fix validation issues and retry
+```
+
+## Usage Patterns
+
+### Batch Source Management
+
+```python
+# Efficiently manage multiple sources
+sources = client.sources.list(full=True, max_concurrent=10)
+
+for source in sources:
+    try:
+        # Check source health
+        debug_info = client.sources.debug(source['uuid'], output="json")
+        
+        # Sync if needed
+        if 'metadata_error' in debug_info:
+            client.sources.sync(source['uuid'])
+            
+    except SourceError as e:
+        print(f"Issue with source {source['name']}: {e}")
+```
+
+### Tool Discovery Workflow
+
+```python
+# Discover and add tools from repository
+repo_url = "https://github.com/example/tools.git"
+
+try:
+    # First scan to see what's available
+    scan_result = client.sources.scan(repo_url)
+    
+    if scan_result['scan_successful']:
+        tool_count = len(scan_result['tools'])
+        print(f"Repository contains {tool_count} tools")
+        
+        # Add the source if tools were found
+        if tool_count > 0:
+            source = client.sources.add(
+                source_url=repo_url,
+                name=f"Tools from {repo_url.split('/')[-1]}"
+            )
+            print(f"Source added: {source['uuid']}")
+            
+except SourceError as e:
+    print(f"Discovery workflow failed: {e}")
+```
+
+### Dynamic Tool Management
+
+```python
+# Dynamically manage inline tools
+source_uuid = "your-inline-source-uuid"
+
+# Add multiple tools programmatically
+tools_to_add = [
+    {
+        "name": "backup-db",
+        "description": "Database backup tool",
+        "content": "#!/bin/bash\npg_dump $DB_NAME > backup.sql"
+    },
+    {
+        "name": "deploy-app", 
+        "description": "Application deployment",
+        "content": "#!/bin/bash\ndocker deploy $APP_IMAGE"
+    }
+]
+
+for tool_config in tools_to_add:
+    try:
+        client.sources.inline.add(
+            source_uuid=source_uuid,
+            **tool_config
+        )
+        print(f"Added tool: {tool_config['name']}")
+        
+    except SourceError as e:
+        print(f"Failed to add {tool_config['name']}: {e}")
+```
+
+This API reference provides complete documentation for all public interfaces in the Sources service. 
+Use the examples and error handling patterns to build robust tool source management workflows.

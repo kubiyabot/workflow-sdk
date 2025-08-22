@@ -1,0 +1,366 @@
+---
+title: "Sources Service Overview"
+description: "Complete guide to the Kubiya Sources service for managing tool sources and repositories"
+icon: "folder-open"
+tags: ["sources", "tools", "repositories"]
+---
+
+# Sources Service Overview
+
+The Kubiya Sources service provides a powerful interface for managing tool sources and repositories through the Kubiya platform. 
+It enables you to discover, add, update, and monitor tool sources with support for both Git repositories and inline tool definitions.
+
+## Features
+
+- **Repository Management**: Add and manage Git-based tool repositories
+- **Inline Tool Support**: Create and manage inline tool definitions directly
+- **Tool Discovery**: Scan and discover tools from various source types
+- **Concurrent Operations**: High-performance operations with concurrent metadata fetching
+- **Real-time Debugging**: Comprehensive debugging and troubleshooting capabilities
+- **Flexible Configuration**: Support for dynamic configurations and multiple source types
+
+## Core Components
+
+### Source Types
+
+The Sources service supports multiple source types:
+
+1. **Git Sources**: Tool repositories hosted on Git platforms
+2. **Inline Sources**: Tools defined directly within the source
+3. **Local Sources**: Local directory scanning for development workflows
+
+### SourceService
+
+The main service class provides comprehensive source management:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Access sources service
+sources = client.sources
+```
+
+### Inline Tools Management
+
+Access to inline tool management through the `inline` sub-service:
+
+```python
+# Manage inline tools
+sources.inline.add(source_uuid, name="my-tool", content="#!/bin/bash\necho 'Hello'")
+sources.inline.list(source_uuid)
+sources.inline.delete(source_uuid, "my-tool")
+```
+
+## Quick Start
+
+### Listing Sources
+
+```python
+from kubiya_workflow_sdk.kubiya_services.client import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import SourceError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # List all sources
+    sources = client.sources.list()
+    print(f"Found {len(sources)} sources")
+    
+    # List with full metadata (slower but comprehensive)
+    sources_with_metadata = client.sources.list(full=True, max_concurrent=5)
+    
+    for source in sources_with_metadata:
+        print(f"Source: {source.get('name')} ({source.get('type')})")
+        print(f"Tools: {len(source.get('tools', []))}")
+        print(f"UUID: {source.get('uuid')}")
+        
+except SourceError as e:
+    print(f"Failed to list sources: {e}")
+```
+
+### Adding a Git Source
+
+```python
+try:
+    # Add a Git repository source
+    result = client.sources.add(
+        source_url="https://github.com/example/tools-repo.git",
+        name="Example Tools Repository",
+        runner="default-runner"
+    )
+    
+    print(f"✅ Source added successfully!")
+    print(f"UUID: {result.get('uuid')}")
+    print(f"Tools discovered: {len(result.get('tools', []))}")
+    
+except SourceError as e:
+    print(f"Failed to add source: {e}")
+```
+
+### Scanning a Source
+
+```python
+try:
+    # Scan a source for available tools
+    scan_result = client.sources.scan(
+        source_url="https://github.com/example/tools-repo.git",
+        output_format="table"
+    )
+    
+    print(f"Scan successful: {scan_result.get('scan_successful')}")
+    print(f"Tools found: {len(scan_result.get('tools', []))}")
+    
+    for tool in scan_result.get('tools', []):
+        print(f"- {tool.get('name')}: {tool.get('description', 'No description')}")
+        
+except SourceError as e:
+    print(f"Scan failed: {e}")
+```
+
+### Creating Inline Sources
+
+```python
+try:
+    # Create inline tools
+    inline_tools = [
+        {
+            "name": "hello-world",
+            "description": "Simple hello world tool",
+            "type": "docker",
+            "image": "alpine:latest",
+            "content": "#!/bin/sh\necho 'Hello, World!'",
+            "args": [
+                {
+                    "name": "message",
+                    "type": "string",
+                    "description": "Custom message to display",
+                    "required": False
+                }
+            ]
+        }
+    ]
+    
+    # Add inline source
+    result = client.sources.add(
+        name="My Inline Tools",
+        inline_tools=inline_tools,
+        runner="default-runner"
+    )
+    
+    print(f"✅ Inline source created!")
+    print(f"UUID: {result.get('uuid')}")
+    
+except SourceError as e:
+    print(f"Failed to create inline source: {e}")
+```
+
+## Advanced Usage
+
+### Managing Inline Tools
+
+```python
+# Get source UUID from previous operations
+source_uuid = "your-source-uuid"
+
+try:
+    # Add a new tool to existing inline source
+    client.sources.inline.add(
+        source_uuid=source_uuid,
+        name="new-tool",
+        description="A new tool",
+        type="docker",
+        image="python:3.9",
+        content="print('Hello from Python!')",
+        arg=["input:string:Input message:true"]
+    )
+    
+    # List all tools in the source
+    tools = client.sources.inline.list(source_uuid)
+    print(f"Inline tools: {len(tools)}")
+    
+    # Update a specific tool
+    client.sources.inline.update(
+        source_uuid=source_uuid,
+        tool_name="new-tool",
+        file="./updated-tool.yaml"
+    )
+    
+    # Delete a tool
+    client.sources.inline.delete(source_uuid, "old-tool")
+    
+except SourceError as e:
+    print(f"Inline tool operation failed: {e}")
+```
+
+### Source Synchronization
+
+```python
+try:
+    # Sync a source to get latest changes
+    sync_result = client.sources.sync(
+        uuid=source_uuid,
+        mode="interactive",
+        force=False,
+        auto_commit=True
+    )
+    
+    print(f"Sync completed: {sync_result}")
+    
+except SourceError as e:
+    print(f"Sync failed: {e}")
+```
+
+### Debugging Sources
+
+```python
+try:
+    # Debug source with comprehensive information
+    debug_info = client.sources.debug(
+        uuid=source_uuid,
+        full=True,
+        output="text"
+    )
+    
+    print(debug_info)
+    
+    # Get raw debug output
+    raw_debug = client.sources.debug(
+        uuid=source_uuid,
+        raw=True,
+        output="json"
+    )
+    
+except SourceError as e:
+    print(f"Debug failed: {e}")
+```
+
+## Error Handling
+
+The Sources service provides specialized exceptions for different failure scenarios:
+
+### SourceError
+
+Base exception for all source-related errors:
+
+```python
+try:
+    sources = client.sources.list()
+except SourceError as e:
+    print(f"Source operation failed: {e}")
+```
+
+### SourceNotFoundError
+
+Thrown when a requested source cannot be found:
+
+```python
+try:
+    source = client.sources.describe("non-existent-uuid")
+except SourceNotFoundError as e:
+    print(f"Source not found: {e}")
+```
+
+### SourceValidationError
+
+Thrown when source validation fails:
+
+```python
+try:
+    client.sources.add(
+        source_url="",  # Invalid empty URL
+        name="Test Source"
+    )
+except SourceValidationError as e:
+    print(f"Validation error: {e}")
+```
+
+## Best Practices
+
+### 1. Use Meaningful Names
+
+```python
+# Good: Descriptive source names
+source_name = f"{team}-{project}-tools-{environment}"
+
+client.sources.add(
+    source_url="https://github.com/team/project-tools.git",
+    name=source_name  # e.g., "platform-webapp-tools-prod"
+)
+```
+
+### 2. Handle Concurrent Operations
+
+```python
+# Use appropriate concurrency for metadata fetching
+sources = client.sources.list(
+    full=True,
+    max_concurrent=10,  # Balance between speed and API limits
+    debug=True  # Enable debug logging for troubleshooting
+)
+```
+
+### 3. Validate Before Adding
+
+```python
+# Scan first to validate source
+try:
+    scan_result = client.sources.scan(source_url)
+    
+    if scan_result.get('scan_successful'):
+        print(f"Found {len(scan_result.get('tools', []))} tools")
+        
+        # Now add the source
+        result = client.sources.add(source_url=source_url, name="Validated Source")
+    else:
+        print("Source scan failed, not adding")
+        
+except SourceError as e:
+    print(f"Validation failed: {e}")
+```
+
+### 4. Monitor Source Health
+
+```python
+# Regular health checks
+for source in client.sources.list():
+    try:
+        debug_info = client.sources.debug(source['uuid'], output="json")
+        
+        # Parse debug info and check for issues
+        if 'metadata_error' in debug_info:
+            print(f"⚠️ Source {source['name']} has metadata issues")
+            
+    except SourceError:
+        print(f"❌ Source {source['name']} is not accessible")
+```
+
+## Integration Examples
+
+The Sources service integrates seamlessly with other Kubiya services:
+
+- **Tools Service**: Sources provide tools that can be executed
+- **Agents Service**: Agents can use tools from managed sources  
+- **Workflows Service**: Workflow steps can reference tools from sources
+
+### Common Patterns
+
+- **Multi-environment sources**: Use different sources for dev/staging/prod
+- **Tool discovery**: Automatically discover and catalog available tools
+- **Version management**: Use Git tags/branches for tool versioning
+- **Inline prototyping**: Quick tool development with inline sources
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check the [Tools Service](../tools/overview.mdx) for executing discovered tools
