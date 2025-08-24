@@ -118,7 +118,7 @@ except WebhookError as e:
 
 ```python
 # List all webhooks
-webhooks = client.webhooks.list(limit=10, output_format="text")
+webhooks = client.webhooks.list(limit=10)
 print(webhooks)
 
 # Get specific webhook details

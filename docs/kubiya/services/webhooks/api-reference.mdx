@@ -22,54 +22,28 @@ class WebhookService(BaseService):
 
 #### Methods
 
-##### `list(limit: Optional[int] = None, output_format: str = "json") -> Union[Dict[str, Any], List[Dict[str, Any]]]`
+##### `list(limit: Optional[int] = None) -> List[Dict[str, Any]]`
 
-List all webhooks with optional formatting and limiting.
+List all webhooks with optional limiting.
 
 **Parameters:**
 - `limit` (`Optional[int]`): Limit the number of webhooks to display
-- `output_format` (`str`): Output format - `"json"`, `"yaml"`, `"text"`, or `"wide"`
 
 **Returns:**
-- `Union[Dict[str, Any], List[Dict[str, Any]]]`: List of webhooks or formatted response
-
-**Response Structure (JSON format):**
-```python
-[
-    {
-        "id": "webhook-uuid",
-        "name": "webhook-name",
-        "source": "github",
-        "agent_id": "agent-uuid",
-        "prompt": "Webhook prompt template",
-        "filter": "event.type == 'push'",
-        "communication": {
-            "method": "Slack",
-            "destination": "#channel"
-        },
-        "webhook_url": "https://api.kubiya.ai/webhooks/...",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
-]
-```
+- `List[Dict[str, Any]]`: List of webhooks
 
 **Raises:**
 - `WebhookError`: For general webhook listing errors
 
 **Example:**
 ```python
-# List all webhooks in JSON format
+# List all webhooks
 webhooks = client.webhooks.list()
 print(f"Found {len(webhooks)} webhooks")
 
-# List with limit and text formatting
-webhooks_text = client.webhooks.list(limit=5, output_format="text")
-print(webhooks_text)
-
-# Wide format for detailed view
-detailed_view = client.webhooks.list(output_format="wide")
-print(detailed_view)
+# List with limit
+webhooks_limited = client.webhooks.list(limit=5)
+print(webhooks_limited)
 ```
 
 ##### `describe(webhook_id: str) -> Dict[str, Any]`
@@ -81,30 +55,6 @@ Get detailed information about a specific webhook.
 
 **Returns:**
 - `Dict[str, Any]`: Complete webhook details
-
-**Response Structure:**
-```python
-{
-    "id": "webhook-uuid",
-    "name": "webhook-name",
-    "source": "github",
-    "agent_id": "agent-uuid",
-    "prompt": "Webhook prompt with {{.template.variables}}",
-    "filter": "pull_request.action == 'opened'",
-    "communication": {
-        "method": "Slack",
-        "destination": "#dev-notifications"
-    },
-    "webhook_url": "https://api.kubiya.ai/webhooks/...",
-    "hide_webhook_headers": false,
-    "workflow": null,  # For workflow webhooks
-    "runner": null,    # For workflow webhooks
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z",
-    "created_by": "user@example.com",
-    "org": "organization-name"
-}
-```
 
 **Raises:**
 - `WebhookError`: If webhook not found or access denied
@@ -133,7 +83,7 @@ Create a new webhook with specified configuration.
 
 **Parameters:**
 - `name` (`str`): Webhook name
-- `source` (`str`): Event source (e.g., "github", "slack", "custom")
+- `source` (`str`): Event source (e.g., "github", "JIRA", "slack", "custom")
 - `agent_id` (`Optional[str]`): Agent ID (required for agent target)
 - `target` (`str`): Webhook target - `"agent"` or `"workflow"` (default: "agent")
 - `workflow` (`Optional[str]`): Workflow definition (required for workflow target)
@@ -154,8 +104,20 @@ Create a new webhook with specified configuration.
 
 **Example:**
 ```python
-# Agent-based webhook
-webhook = client.webhooks.create(
+# JIRA webhook
+jira_webhook = client.webhooks.create(
+    name="jira-sprint-summarizer",
+    source="JIRA",
+    agent_id="sprint-analysis-agent-id",
+    target="agent",
+    prompt="Please summarize the sprint details according to {{.event.sprint}}",
+    method="Slack",
+    destination="#sprint-updates",
+    filter="event.webhookEvent == 'sprint_closed'"
+)
+
+# GitHub webhook
+github_webhook = client.webhooks.create(
     name="github-pr-notifications",
     source="github",
     agent_id="pr-review-agent-id",
@@ -174,7 +136,7 @@ workflow_def = {
     ]
 }
 
-webhook = client.webhooks.create(
+workflow_webhook = client.webhooks.create(
     name="deployment-webhook",
     source="custom",
     target="workflow",
@@ -184,8 +146,9 @@ webhook = client.webhooks.create(
     destination="devops:alerts"
 )
 
-print(f"Webhook created: {webhook['id']}")
-print(f"Webhook URL: {webhook['webhook_url']}")
+print(f"JIRA webhook created: {jira_webhook['id']}")
+print(f"GitHub webhook created: {github_webhook['id']}")
+print(f"Workflow webhook created: {workflow_webhook['id']}")
 ```
 
 ##### `update(webhook_id: str, ...) -> Dict[str, Any]`
@@ -384,7 +347,7 @@ class WebhookError(Exception):
 
 **Attributes:**
 - `message` (`str`): Error message describing the failure
-- `details` (`Optional[Dict[str, Any]]`): Additional error context
+- `details` (`Optional[Dict[str, Any]]`: Additional error context
 
 **Example:**
 ```python
@@ -439,55 +402,6 @@ except ValidationError as e:
 
 ---
 
-## Output Formats
-
-The `list()` method supports multiple output formats for different use cases:
-
-### JSON Format (`output_format="json"`)
-
-Returns structured data as Python dictionaries/lists:
-
-```python
-webhooks = client.webhooks.list(output_format="json")
-# Returns: List[Dict[str, Any]]
-```
-
-### YAML Format (`output_format="yaml"`)
-
-Returns YAML-formatted string:
-
-```python
-webhooks_yaml = client.webhooks.list(output_format="yaml")
-# Returns: str (YAML content)
-```
-
-### Text Format (`output_format="text"`)
-
-Returns human-readable table format:
-
-```python
-webhooks_table = client.webhooks.list(output_format="text")
-# Returns formatted table string:
-# ╭────────────────────────────────────────────────────────────────────────────────────╮
-# │ 🔗 WEBHOOKS                                                                         │
-# ╰────────────────────────────────────────────────────────────────────────────────────╯
-#
-#  ID                            NAME                    SOURCE     DESTINATION           METHOD    
-#  ───────────────────────────── ─────────────────────── ────────── ─────────────────────── ──────────
-#  webhook-uuid-123...           github-pr-webhook      github     #dev-notifications    💬 Slack
-```
-
-### Wide Format (`output_format="wide"`)
-
-Returns detailed table with additional columns:
-
-```python
-webhooks_wide = client.webhooks.list(output_format="wide")
-# Returns detailed table with TYPE, FILTER, CREATED BY, MANAGED BY columns
-```
-
----
-
 ## Template Variables
 
 Webhook prompts support template variables using `{{.path.to.variable}}` syntax:
@@ -509,6 +423,28 @@ Issue {{.action}}: {{.issue.title}}
 Reporter: {{.issue.user.login}}
 Labels: {{.issue.labels[].name | join(', ')}}
 """
+```
+
+### Common JIRA Variables
+
+```python
+# Sprint closed webhook prompt
+prompt = """
+Sprint Closed: {{.sprint.name}}
+State: {{.sprint.state}}
+Start Date: {{.sprint.startDate}}
+End Date: {{.sprint.endDate}}
+"""
+
+# Issue updated webhook prompt
+prompt = """
+Issue Updated: {{.issue.key}} - {{.issue.fields.summary}}
+Status: {{.issue.fields.status.name}}
+Assignee: {{.issue.fields.assignee.displayName}}
+"""
+
+# Epic link example
+prompt = "Epic Link: {{.issue.fields.customfield_10008}}"
 ```
 
 ### Custom Event Variables
@@ -543,6 +479,3 @@ The `test()` method with `auto_generate=True` analyzes prompt templates and crea
     }
 }
 ```
-
-This API reference provides complete documentation for all public interfaces in the Webhooks service. 
-Use the examples and error handling patterns to build robust webhook integrations.

@@ -19,15 +19,13 @@ class WebhookService(BaseService):
 
     def list(
         self,
-        limit: Optional[int] = None,
-        output_format: str = "json"
+        limit: Optional[int] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         List all webhooks
 
         Args:
             limit: Limit the number of webhooks to display
-            output_format: Output format (json, yaml, text, wide)
 
         Returns:
             List of webhooks or formatted response
@@ -42,7 +40,7 @@ class WebhookService(BaseService):
             if limit and 0 < limit < len(webhooks):
                 webhooks = webhooks[:limit]
 
-            return self._format_webhook_list(webhooks, output_format)
+            return webhooks
 
         except Exception as e:
             error = WebhookError(f"Failed to list webhooks: {str(e)}")
@@ -187,7 +185,7 @@ class WebhookService(BaseService):
         """
         try:
             # Get existing webhook
-            existing = self.get(webhook_id)
+            existing = self._get(webhook_id)
 
             # Update fields if provided
             if name is not None:
@@ -247,12 +245,12 @@ class WebhookService(BaseService):
             raise error
 
     def test(
-            self,
-            webhook_id: Optional[str] = None,
-            webhook_url: Optional[str] = None,
-            test_data: Optional[Dict[str, Any]] = None,
-            wait_for_response: bool = False,
-            auto_generate: bool = False
+        self,
+        webhook_id: Optional[str] = None,
+        webhook_url: Optional[str] = None,
+        test_data: Optional[Dict[str, Any]] = None,
+        wait_for_response: bool = False,
+        auto_generate: bool = False
     ) -> Union[Dict[str, Any], str]:
         """
         Test a webhook
@@ -270,7 +268,7 @@ class WebhookService(BaseService):
         try:
             # Get webhook URL if ID is provided
             if webhook_id and not webhook_url:
-                webhook = self.get(webhook_id)
+                webhook = self._get(webhook_id)
                 webhook_url = webhook.get("webhook_url")
 
                 if auto_generate and not test_data:
@@ -374,7 +372,7 @@ class WebhookService(BaseService):
         try:
             import yaml
 
-            webhook = self.get(webhook_id)
+            webhook = self._get(webhook_id)
 
             # Remove server-specific fields for export
             export_data = webhook.copy()
@@ -485,222 +483,3 @@ class WebhookService(BaseService):
                     current = current[part]
 
         return result
-
-    def _load_workflow_definition(self, definition_path: str) -> Dict[str, Any]:
-        """
-        Load workflow definition from file or URL
-
-        Args:
-            definition_path: File path (file://) or URL (http(s)://)
-
-        Returns:
-            Parsed workflow definition
-        """
-        import os
-        import requests
-        import yaml
-
-        if definition_path.startswith("file://"):
-            file_path = definition_path[7:]  # Remove file:// prefix
-            if not os.path.exists(file_path):
-                raise ValidationError(f"Workflow file not found: {file_path}")
-
-            with open(file_path, 'r') as f:
-                content = f.read()
-
-        elif definition_path.startswith(("http://", "https://")):
-            response = requests.get(definition_path)
-            response.raise_for_status()
-            content = response.text
-
-        else:
-            raise ValidationError(f"Invalid workflow definition path: {definition_path}")
-
-        # Parse YAML or JSON
-        try:
-            return yaml.safe_load(content)
-        except yaml.YAMLError:
-            return json.loads(content)
-
-    def _format_webhook_list(self, webhooks: List[Dict[str, Any]], output_format: str) -> Union[
-        List[Dict[str, Any]], Dict[str, Any], str]:
-        """
-        Format webhook list according to the specified output format
-
-        Args:
-            webhooks: List of webhook dictionaries
-            output_format: Output format (json, yaml, text, wide)
-
-        Returns:
-            Formatted webhook list
-        """
-        if output_format == "json":
-            return webhooks
-
-        elif output_format == "yaml":
-            import yaml
-            return yaml.dump(webhooks, default_flow_style=False, indent=2)
-
-        elif output_format == "wide":
-            return self._format_webhooks_wide(webhooks)
-
-        elif output_format == "text":
-            return self._format_webhooks_text(webhooks)
-
-        else:
-            # Default to json for unknown formats
-            return webhooks
-
-    def _format_webhooks_text(self, webhooks: List[Dict[str, Any]]) -> str:
-        """
-        Format webhooks in default text/tabular format
-
-        Args:
-            webhooks: List of webhook dictionaries
-
-        Returns:
-            Formatted text string
-        """
-        if not webhooks:
-            return "No webhooks found."
-
-        # Create header
-        output = []
-        output.append("╭" + "─" * 88 + "╮")
-        output.append("│ 🔗 WEBHOOKS" + " " * 75 + "│")
-        output.append("╰" + "─" * 88 + "╯")
-        output.append("")
-
-        # Create table headers
-        headers = ["ID", "NAME", "SOURCE", "DESTINATION", "METHOD"]
-        separators = ["─" * 29, "─" * 23, "─" * 10, "─" * 23, "─" * 10]
-
-        output.append(f" {headers[0]:<29} {headers[1]:<23} {headers[2]:<10} {headers[3]:<23} {headers[4]:<10}")
-        output.append(f" {separators[0]} {separators[1]} {separators[2]} {separators[3]} {separators[4]}")
-
-        # Add webhook rows
-        for webhook in webhooks:
-            webhook_id = self._truncate_string(webhook.get("id", ""), 29)
-            name = self._truncate_string(webhook.get("name", ""), 23)
-            source = self._truncate_string(webhook.get("source", ""), 10)
-
-            comm = webhook.get("communication", {})
-            method = comm.get("method", "")
-            destination = self._format_destination_for_display(comm.get("destination", ""), method, 23)
-            method_display = self._get_method_display(method)
-
-            output.append(f" {webhook_id:<29} {name:<23} {source:<10} {destination:<23} {method_display:<10}")
-
-        output.append("")
-        output.append("💡 Tips:")
-        output.append(f"  • Use webhook_service.get('<id>') to see detailed information")
-        output.append(f"  • Use output_format='wide' to see additional fields")
-        output.append(f"  • Use output_format='yaml' for machine-readable output")
-
-        if len(webhooks) > 10:
-            output.append(f"  • Use limit parameter to limit the displayed results")
-
-        return "\n".join(output)
-
-    def _format_webhooks_wide(self, webhooks: List[Dict[str, Any]]) -> str:
-        """
-        Format webhooks in wide/detailed format
-
-        Args:
-            webhooks: List of webhook dictionaries
-
-        Returns:
-            Formatted text string with detailed information
-        """
-        if not webhooks:
-            return "No webhooks found."
-
-        # Create header
-        output = []
-        output.append("╭" + "─" * 130 + "╮")
-        output.append("│ 🔗 WEBHOOKS - DETAILED VIEW" + " " * 100 + "│")
-        output.append("╰" + "─" * 130 + "╯")
-        output.append("")
-
-        # Create detailed table headers
-        headers = ["ID", "NAME", "TYPE", "SOURCE", "DESTINATION", "METHOD", "FILTER", "CREATED BY", "MANAGED BY"]
-        separators = ["─" * 31, "─" * 23, "─" * 11, "─" * 11, "─" * 23, "─" * 11, "─" * 11, "─" * 11, "─" * 11]
-
-        header_line = f" {headers[0]:<31} {headers[1]:<23} {headers[2]:<11} {headers[3]:<11} {headers[4]:<23} {headers[5]:<11} {headers[6]:<11} {headers[7]:<11} {headers[8]:<11}"
-        separator_line = f" {separators[0]} {separators[1]} {separators[2]} {separators[3]} {separators[4]} {separators[5]} {separators[6]} {separators[7]} {separators[8]}"
-
-        output.append(header_line)
-        output.append(separator_line)
-
-        # Add webhook rows
-        for webhook in webhooks:
-            webhook_id = self._truncate_string(webhook.get("id", ""), 31)
-            name = self._truncate_string(webhook.get("name", ""), 23)
-
-            # Determine webhook type
-            webhook_type = "🤖 Agent"
-            if webhook.get("workflow"):
-                webhook_type = "📋 Workflow"
-
-            source = self._truncate_string(webhook.get("source", ""), 11)
-
-            comm = webhook.get("communication", {})
-            method = comm.get("method", "")
-            destination = self._format_destination_for_display(comm.get("destination", ""), method, 23)
-            method_display = self._get_method_display(method)
-
-            filter_text = self._truncate_string(webhook.get("filter", "") or "<none>", 11)
-            created_by = self._truncate_string(webhook.get("created_by", "") or "<none>", 11)
-            managed_by = self._truncate_string(webhook.get("managed_by", "") or "<none>", 11)
-
-            row = f" {webhook_id:<31} {name:<23} {webhook_type:<11} {source:<11} {destination:<23} {method_display:<11} {filter_text:<11} {created_by:<11} {managed_by:<11}"
-            output.append(row)
-
-        output.append("")
-        output.append("💡 Tips:")
-        output.append(f"  • Use webhook_service.get('<id>') to see detailed information")
-        output.append(f"  • Use output_format='json' or 'yaml' for machine-readable output")
-
-        return "\n".join(output)
-
-    def _truncate_string(self, s: str, max_len: int) -> str:
-        """Truncate string to max length with ellipsis"""
-        if len(s) <= max_len:
-            return s
-        return s[:max_len - 3] + "..."
-
-    def _format_destination_for_display(self, destination: str, method: str, max_len: int) -> str:
-        """Format destination for display based on method type"""
-        if not destination:
-            return "<none>"
-
-        if method.lower() == "teams":
-            if destination.startswith("#{") and destination.endswith("}"):
-                # Parse Teams JSON format
-                try:
-                    import json
-                    teams_config = json.loads(destination[1:])  # Remove leading #
-                    team_name = teams_config.get("team_name", "")
-                    channel_name = teams_config.get("channel_name", "")
-                    if team_name and channel_name:
-                        formatted = f"{team_name}:{channel_name}"
-                        return self._truncate_string(formatted, max_len)
-                except:
-                    pass
-        elif method.lower() == "http" and not destination:
-            return "HTTP SSE Stream"
-
-        return self._truncate_string(destination, max_len)
-
-    def _get_method_display(self, method: str) -> str:
-        """Get display name for communication method"""
-        if not method:
-            return ""
-
-        method_icons = {
-            "slack": "💬 Slack",
-            "teams": "👥 Teams",
-            "http": "🌐 HTTP"
-        }
-
-        return method_icons.get(method.lower(), method)
