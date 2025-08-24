@@ -33,26 +33,6 @@ List all users in the organization with pagination support.
 **Returns:**
 - `Union[List[Dict[str, Any]], str]`: List of user dictionaries or formatted text output
 
-**Response Structure:**
-```python
-[
-    {
-        "id": "user-uuid",
-        "name": "John Doe",
-        "email": "john.doe@company.com",
-        "status": "active",
-        "roles": ["user", "developer"],
-        "created_at": "2023-01-15T10:30:00Z",
-        "last_login": "2024-01-15T09:15:00Z"
-    },
-    # ... more users
-]
-```
-
-**API Version:**
-- Uses `/api/v2/users` endpoint
-- Supports v2 API response format with `items` wrapper
-
 **Raises:**
 - `UserError`: For user listing errors with detailed context
 
@@ -71,16 +51,6 @@ try:
         status = user.get('status', 'unknown')
         
         print(f"User {user_id}: {name} ({email}) - Status: {status}")
-        
-        # Access user roles if available
-        roles = user.get('roles', [])
-        if roles:
-            print(f"  Roles: {', '.join(roles)}")
-            
-        # Check last login
-        last_login = user.get('last_login')
-        if last_login:
-            print(f"  Last login: {last_login}")
         
 except UserError as e:
     print(f"Failed to list users: {e}")
@@ -114,21 +84,6 @@ while True:
 print(f"Total users loaded: {len(all_users)}")
 ```
 
-**Response Format Handling:**
-```python
-# The service handles different API response formats
-response = client.users.list_users()
-
-# The method automatically handles:
-# - V2 API format: {"items": [...]}
-# - Direct list format: [...]
-# - Empty responses: [] (returns empty list)
-
-# You always get a consistent list format
-for user in response:
-    print(f"User: {user.get('name')}")
-```
-
 ##### `list_groups() -> Union[List[Dict[str, Any]], str]`
 
 List all groups in the organization.
@@ -138,33 +93,6 @@ List all groups in the organization.
 
 **Returns:**
 - `Union[List[Dict[str, Any]], str]`: List of group dictionaries or formatted text output
-
-**Response Structure:**
-```python
-[
-    {
-        "id": "group-uuid",
-        "name": "Developers",
-        "description": "Development team group",
-        "member_count": 15,
-        "created_at": "2023-01-10T08:00:00Z",
-        "permissions": ["read", "write"],
-        "members": [
-            {
-                "user_id": "user-uuid-1",
-                "name": "John Doe",
-                "email": "john.doe@company.com"
-            }
-            # ... more members
-        ]
-    },
-    # ... more groups
-]
-```
-
-**API Version:**
-- Uses `/api/v1/manage/groups` endpoint
-- V1 API format
 
 **Raises:**
 - `GroupError`: For group listing errors with detailed context
@@ -237,21 +165,6 @@ try:
     
 except GroupError as e:
     print(f"Failed to analyze groups: {e}")
-```
-
-**Response Format Handling:**
-```python
-# The service handles different response formats for groups
-response = client.users.list_groups()
-
-# The method automatically handles:
-# - Direct list format: [...]
-# - Wrapped format: {"groups": [...]}
-# - Empty responses: [] (returns empty list)
-
-# You always get a consistent list format
-for group in response:
-    print(f"Group: {group.get('name')}")
 ```
 
 ---

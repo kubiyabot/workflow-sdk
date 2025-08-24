@@ -16,7 +16,6 @@ It enables you to list users and groups with pagination support and comprehensiv
 - **Group Management**: List all groups in your organization  
 - **Pagination Support**: Built-in pagination for large datasets
 - **Comprehensive Error Handling**: Detailed error reporting with user-specific context
-- **Flexible Response Handling**: Support for different API response formats
 
 ## Core Components
 
@@ -117,10 +116,6 @@ print(f"Active users: {len(active_users)}")
 # Filter by email domain
 company_users = [user for user in users if user.get('email', '').endswith('@company.com')]
 print(f"Company users: {len(company_users)}")
-
-# Filter by role if available
-admin_users = [user for user in users if 'admin' in user.get('roles', [])]
-print(f"Admin users: {len(admin_users)}")
 ```
 
 ## Error Handling
@@ -239,31 +234,7 @@ def get_all_users_efficiently():
     return all_users
 ```
 
-### 2. Handle Different Response Formats
-
-```python
-# Handle different API response structures
-def process_users_response(users_response):
-    """Process users response handling different formats"""
-    
-    if isinstance(users_response, list):
-        # Direct list format
-        return users_response
-    elif isinstance(users_response, dict):
-        # Check for different dict formats
-        if "items" in users_response:
-            return users_response["items"]
-        elif "users" in users_response:
-            return users_response["users"]
-        elif "data" in users_response:
-            return users_response["data"]
-    
-    # Fallback to empty list
-    logger.warning(f"Unexpected response format: {type(users_response)}")
-    return []
-```
-
-### 3. Cache Results for Performance
+### 2. Cache Results for Performance
 
 ```python
 import time
@@ -322,7 +293,7 @@ users = cache.get_users()
 groups = cache.get_groups()
 ```
 
-### 4. Implement Robust Search and Filtering
+### 3. Implement Robust Search and Filtering
 
 ```python
 def find_users_by_criteria(
