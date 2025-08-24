@@ -20,16 +20,14 @@ class ToolService(BaseService):
     """Service for managing tools"""
 
     def list(
-            self,
-            source_uuid: Optional[str] = None,
-            output_format: str = "dict"
+        self,
+        source_uuid: Optional[str] = None,
     ) -> Union[List[Dict[str, Any]], str]:
         """
         List tools from all sources or a specific source
 
         Args:
             source_uuid: Optional source UUID to list tools from specific source
-            output_format: Output format ("dict" or "json")
 
         Returns:
             List of tools or JSON string
@@ -55,9 +53,6 @@ class ToolService(BaseService):
                         # Continue if one source fails
                         continue
 
-            if output_format == "json":
-                return json.dumps(tools, indent=2)
-
             return tools
 
         except Exception as e:
@@ -67,17 +62,13 @@ class ToolService(BaseService):
 
     def search(
         self,
-        query: str,
-        non_interactive: bool = False,
-        output_format: str = "dict"
+        query: str
     ) -> Union[List[Dict[str, Any]], str]:
         """
         Search for tools by query
 
         Args:
             query: Search query
-            non_interactive: Non-interactive search mode
-            output_format: Output format ("dict" or "json")
 
         Returns:
             List of matching tools with scores or JSON string
@@ -139,9 +130,6 @@ class ToolService(BaseService):
             # Limit to top 10 matches
             matches = matches[:10]
 
-            if output_format == "json":
-                return json.dumps(matches, indent=2)
-
             return matches
 
         except Exception as e:
@@ -150,10 +138,9 @@ class ToolService(BaseService):
             raise error
 
     def describe(
-            self,
-            tool_name: str,
-            source_uuid: Optional[str] = None,
-            output_format: str = "dict"
+        self,
+        tool_name: str,
+        source_uuid: Optional[str] = None
     ) -> Union[Dict[str, Any], str]:
         """
         Show detailed information about a tool
@@ -161,7 +148,6 @@ class ToolService(BaseService):
         Args:
             tool_name: Name of the tool to describe
             source_uuid: Optional source UUID to search in specific source
-            output_format: Output format ("dict" or "json")
 
         Returns:
             Tool details or JSON string
@@ -225,9 +211,6 @@ class ToolService(BaseService):
                 "tool": tool,
                 "source_name": source_name
             }
-
-            if output_format == "json":
-                return json.dumps(result, indent=2)
 
             return result
 

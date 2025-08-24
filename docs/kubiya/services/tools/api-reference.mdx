@@ -22,16 +22,15 @@ class ToolService(BaseService):
 
 #### Methods
 
-##### `list(source_uuid: Optional[str] = None, output_format: str = "dict") -> Union[List[Dict[str, Any]], str]`
+##### `list(source_uuid: Optional[str] = None) -> List[Dict[str, Any]]`
 
 List tools from all sources or a specific source.
 
 **Parameters:**
 - `source_uuid` (`Optional[str]`): Optional source UUID to list tools from specific source. If not provided, lists tools from all sources
-- `output_format` (`str`): Output format - either "dict" for Python dictionaries or "json" for JSON string. Defaults to "dict"
 
 **Returns:**
-- `Union[List[Dict[str, Any]], str]`: List of tool dictionaries or JSON string representation
+- `List[Dict[str, Any]]`: List of tool dictionaries
 
 **Response Structure:**
 ```python
@@ -63,10 +62,6 @@ print(f"Found {len(all_tools)} tools total")
 source_tools = client.tools.list(source_uuid="source-123")
 print(f"Found {len(source_tools)} tools in source")
 
-# Get JSON output
-tools_json = client.tools.list(output_format="json")
-print(tools_json)  # Pretty-printed JSON
-
 # Handle errors
 try:
     tools = client.tools.list(source_uuid="invalid-uuid")
@@ -74,17 +69,15 @@ except ToolExecutionError as e:
     print(f"Failed to list tools: {e}")
 ```
 
-##### `search(query: str, non_interactive: bool = False, output_format: str = "dict") -> Union[List[Dict[str, Any]], str]`
+##### `search(query: str) -> List[Dict[str, Any]]`
 
 Search for tools using intelligent fuzzy matching.
 
 **Parameters:**
 - `query` (`str`): Search query string to match against tool names and descriptions
-- `non_interactive` (`bool`): Non-interactive search mode. Defaults to False
-- `output_format` (`str`): Output format - either "dict" or "json". Defaults to "dict"
 
 **Returns:**
-- `Union[List[Dict[str, Any]], str]`: List of search result dictionaries or JSON string
+- `List[Dict[str, Any]]`: List of search result dictionaries
 
 **Response Structure:**
 ```python
@@ -127,20 +120,6 @@ for result in results:
     match_quality = "Exact" if distance == 0 else f"Fuzzy ({distance})"
     print(f"{tool['name']} - {match_quality}")
 
-# Non-interactive search for automation
-results = client.tools.search(
-    query="database backup",
-    non_interactive=True
-)
-
-# JSON output for external processing
-search_json = client.tools.search(
-    query="monitoring", 
-    output_format="json"
-)
-import json
-parsed_results = json.loads(search_json)
-
 # Handle no results
 results = client.tools.search("nonexistent-tool")
 if not results:
@@ -149,17 +128,16 @@ else:
     print(f"Found {len(results)} matching tools")
 ```
 
-##### `describe(tool_name: str, source_uuid: Optional[str] = None, output_format: str = "dict") -> Union[Dict[str, Any], str]`
+##### `describe(tool_name: str, source_uuid: Optional[str] = None) -> Dict[str, Any]`
 
 Get detailed information about a specific tool.
 
 **Parameters:**
 - `tool_name` (`str`): Name of the tool to describe
 - `source_uuid` (`Optional[str]`): Optional source UUID to search in specific source. If not provided, searches all sources
-- `output_format` (`str`): Output format - either "dict" or "json". Defaults to "dict"
 
 **Returns:**
-- `Union[Dict[str, Any], str]`: Tool details dictionary or JSON string
+- `Dict[str, Any]`: Tool details dictionary
 
 **Response Structure:**
 ```python
@@ -224,9 +202,6 @@ try:
     )
 except ToolNotFoundError:
     print("Tool not found in specified source")
-
-# JSON output
-tool_json = client.tools.describe("my-tool", output_format="json")
 ```
 
 ##### `generate_tool(description: str, session_id: Optional[str] = None, target_dir: Optional[str] = None) -> Dict[str, Any]`

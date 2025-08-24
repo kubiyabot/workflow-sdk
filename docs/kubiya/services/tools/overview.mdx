@@ -8,7 +8,7 @@ tags: ["tools", "sources", "discovery", "generation"]
 # Tools Service Overview
 
 The Kubiya Tools service provides a comprehensive interface for discovering, managing, and generating tools across your organization's sources. 
-It enables you to list, search, describe, and even generate new tools with AI assistance, all with comprehensive error handling and flexible output formats.
+It enables you to list, search, describe, and even generate new tools with AI assistance, all with comprehensive error handling.
 
 ## Features
 
@@ -16,7 +16,6 @@ It enables you to list, search, describe, and even generate new tools with AI as
 - **Intelligent Search**: Fuzzy matching with Levenshtein distance for close matches
 - **Detailed Descriptions**: Get comprehensive information about any tool
 - **AI-Powered Generation**: Generate new tools from natural language descriptions
-- **Flexible Output**: Support for both dictionary and JSON output formats
 - **Real-time Streaming**: Stream tool generation process in real-time
 - **Comprehensive Error Handling**: Specialized exceptions for different failure scenarios
 
@@ -115,10 +114,7 @@ for result in results:
     print()
 
 # Non-interactive search (for automated systems)
-results = client.tools.search(
-    query="monitoring alert", 
-    non_interactive=True
-)
+results = client.tools.search("monitoring alert")
 ```
 
 ### Tool Generation
@@ -166,25 +162,6 @@ try:
     
 except ToolGenerationError as e:
     print(f"Generation failed: {e}")
-```
-
-### Output Format Options
-
-All methods support flexible output formats:
-
-```python
-# Dictionary format (default)
-tools_dict = client.tools.list()
-print(f"Type: {type(tools_dict)}")  # <class 'list'>
-
-# JSON string format
-tools_json = client.tools.list(output_format="json")
-print(f"Type: {type(tools_json)}")  # <class 'str'>
-print(tools_json)  # Pretty-printed JSON
-
-# Same applies to search and describe
-search_json = client.tools.search("backup", output_format="json")
-tool_json = client.tools.describe("my-tool", output_format="json")
 ```
 
 ## Error Handling
