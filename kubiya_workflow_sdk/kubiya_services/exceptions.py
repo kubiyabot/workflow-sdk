@@ -324,10 +324,6 @@ class AuditError(KubiyaSDKError):
     """Audit-related errors"""
     pass
 
-class AuditAccessError(AuthorizationError):
-    """Audit access errors"""
-    pass
-
 # Agent-specific exceptions
 class AgentError(KubiyaSDKError):
     """Agent-related errors"""

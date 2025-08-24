@@ -38,7 +38,7 @@ The main service class provides four core operations:
 
 ```python
 from kubiya_workflow_sdk import KubiyaClient
-from kubiya_workflow_sdk.kubiya_services.exceptions import AuditError, AuditAccessError
+from kubiya_workflow_sdk.kubiya_services.exceptions import AuditError
 
 # Initialize client
 client = KubiyaClient(
@@ -67,8 +67,6 @@ try:
     
 except AuditError as e:
     print(f"Audit query failed: {e}")
-except AuditAccessError as e:
-    print(f"Access denied: {e}")
 ```
 
 ### Time-based Filtering
@@ -249,17 +247,7 @@ except AuditError as e:
         print("Use RFC3339 format: 2024-01-01T00:00:00Z")
 ```
 
-### AuditAccessError
 
-Thrown when access to audit logs is denied:
-
-```python
-try:
-    restricted_logs = client.audit.list(category_type="admin")
-except AuditAccessError as e:
-    print(f"Access denied to audit logs: {e}")
-    print("Check your permissions and authentication")
-```
 
 ## Best Practices
 

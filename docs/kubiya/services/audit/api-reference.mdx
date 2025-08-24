@@ -22,7 +22,7 @@ class AuditService(BaseService):
 
 #### Methods
 
-##### `list(category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc", limit=None) -> Union[Dict[str, Any], str]`
+##### `list(category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc", limit=None) -> List[Dict[str, Any]]`
 
 List audit logs with filtering and pagination support.
 
@@ -43,52 +43,48 @@ List audit logs with filtering and pagination support.
 | `limit` | `Optional[int]` | `None` | Maximum number of items to return |
 
 **Returns:**
-- `Union[Dict[str, Any], str]`: Dictionary containing items, pagination info, and success status
+- `List[Dict[str, Any]]`: List of audit log entries directly
 
 **Response Structure:**
 ```python
-{
-    "items": [
-        {
-            "timestamp": "2024-01-01T12:00:00Z",
-            "category_type": "agents",
-            "category_name": "my-agent",
-            "action_type": "invoke",
-            "action_successful": True,
-            "session_id": "session-123",
-            "resource_type": "agent",
-            "metadata": {...}
-        }
-    ],
-    "pagination": {
-        "page": 1,
-        "page_size": 50,
-        "total_pages": 5,
-        "total_items": 245
+[
+    {
+        "timestamp": "2024-01-01T12:00:00Z",
+        "category_type": "agents",
+        "category_name": "my-agent",
+        "action_type": "invoke",
+        "action_successful": True,
+        "session_id": "session-123",
+        "resource_type": "agent",
+        "metadata": {...}
     },
-    "success": True
-}
+    {
+        "timestamp": "2024-01-01T11:45:00Z",
+        "category_type": "workflows",
+        "category_name": "data-processor",
+        "action_type": "execute",
+        "action_successful": True,
+        "session_id": "session-456",
+        "resource_type": "workflow",
+        "metadata": {...}
+    }
+]
 ```
 
 **Raises:**
 - `AuditError`: If the audit query fails
-- `AuditAccessError`: If access is denied
 
 **Example:**
 ```python
 try:
     # List recent agent logs
-    result = client.audit.list(
+    items = client.audit.list(
         category_type="agents",
         start_time="2024-01-01T00:00:00Z",
         page_size=25
     )
     
-    items = result.get('items', [])
-    pagination = result.get('pagination', {})
-    
     print(f"Found {len(items)} audit events")
-    print(f"Page {pagination.get('page', 1)} of {pagination.get('total_pages', 1)}")
     
     for item in items:
         status = "✅" if item.get('action_successful') else "❌"
@@ -96,8 +92,6 @@ try:
         
 except AuditError as e:
     print(f"Query failed: {e}")
-except AuditAccessError as e:
-    print(f"Access denied: {e}")
 ```
 
 ---
@@ -141,7 +135,6 @@ Stream audit logs in real-time using polling.
 
 **Raises:**
 - `AuditError`: If the audit stream fails to start
-- `AuditAccessError`: If access is denied
 
 **Example:**
 ```python
@@ -261,7 +254,7 @@ except AuditError as e:
 
 ---
 
-##### `search(text=None, category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, status=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc") -> Union[Dict[str, Any], str]`
+##### `search(text=None, category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, status=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc") -> List[Dict[str, Any]]`
 
 Search for audit logs containing specific text or matching criteria.
 
@@ -283,38 +276,32 @@ Search for audit logs containing specific text or matching criteria.
 | `sort_direction` | `str` | `"desc"` | Sort direction ('asc' or 'desc') |
 
 **Returns:**
-- `Union[Dict[str, Any], str]`: Dictionary containing matching audit entries and search summary
+- `List[Dict[str, Any]]`: List of matching audit log entries
 
 **Response Structure:**
 ```python
-{
-    "items": [
-        {
-            "timestamp": "2024-01-01T12:00:00Z",
-            "category_type": "users",
-            "action_type": "authentication",
-            "action_successful": False,
-            "metadata": {
-                "error_message": "Invalid credentials",
-                "username": "john.doe"
-            }
-        }
-    ],
-    "search_summary": {
-        "text": "authentication",
-        "status": "failed",
+[
+    {
+        "timestamp": "2024-01-01T12:00:00Z",
         "category_type": "users",
-        "time_range": {
-            "start": "2024-01-01T00:00:00Z",
-            "end": "2024-01-02T00:00:00Z"
+        "action_type": "authentication",
+        "action_successful": False,
+        "metadata": {
+            "error_message": "Invalid credentials",
+            "username": "john.doe"
         }
     },
-    "pagination": {
-        "page": 1,
-        "page_size": 50,
-        "total_items": 15
+    {
+        "timestamp": "2024-01-01T11:55:00Z",
+        "category_type": "users",
+        "action_type": "authentication",
+        "action_successful": False,
+        "metadata": {
+            "error_message": "Account locked",
+            "username": "jane.smith"
+        }
     }
-}
+]
 ```
 
 **Raises:**
@@ -325,17 +312,13 @@ Search for audit logs containing specific text or matching criteria.
 ```python
 try:
     # Search for error-related events
-    error_results = client.audit.search(
+    items = client.audit.search(
         text="error",
         status="failed",
         start_time="2024-01-01T00:00:00Z",
         page_size=20
     )
     
-    items = error_results.get('items', [])
-    summary = error_results.get('search_summary', {})
-    
-    print(f"Search: '{summary.get('text')}' in {summary.get('category_type', 'all categories')}")
     print(f"Found {len(items)} matching events")
     
     for item in items:
@@ -352,7 +335,7 @@ try:
             print(f"   Error: {error_msg}")
     
     # Complex search with multiple filters
-    complex_search = client.audit.search(
+    complex_items = client.audit.search(
         text="timeout",
         category_type="workflows",
         action_type="execute",
@@ -360,7 +343,7 @@ try:
         start_time="2024-01-01T00:00:00Z"
     )
     
-    print(f"\nComplex search found {len(complex_search.get('items', []))} workflow timeout events")
+    print(f"\nComplex search found {len(complex_items)} workflow timeout events")
     
 except ValueError as e:
     print(f"Invalid search parameters: {e}")
@@ -400,31 +383,7 @@ except AuditError as e:
         print("💡 Tip: Service may be temporarily unavailable")
 ```
 
----
 
-### AuditAccessError
-
-Specialized exception for access-related audit failures.
-
-```python
-class AuditAccessError(Exception):
-    """Exception raised when access to audit logs is denied"""
-```
-
-#### Attributes
-- `message` (`str`): Error message describing the access denial
-
-#### Example
-```python
-try:
-    admin_logs = client.audit.list(category_type="system")
-except AuditAccessError as e:
-    print(f"Access denied to audit logs: {e}")
-    print("💡 Check your permissions and API key")
-    print("💡 Contact your administrator if you need access to system logs")
-    
-    # Suggest alternative approach
-    print("💡 Try querying logs for your own activities:")
     print("   client.audit.list(category_type='agents')")
 ```
 
@@ -458,7 +417,7 @@ hour_ago = (datetime.now(UTC) - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%SZ
 today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 # Use in queries
-recent_logs = client.audit.list(
+items = client.audit.list(
     start_time=hour_ago,
     end_time=now
 )
@@ -506,26 +465,26 @@ Common values for filtering audit logs:
 ### 1. Use Specific Filters
 ```python
 # Good: Specific filters reduce data transfer
-logs = client.audit.list(
+items = client.audit.list(
     category_type="agents",
     action_type="invoke",
     start_time="2024-01-01T00:00:00Z"
 )
 
 # Less efficient: Broad query with large result set
-all_logs = client.audit.list(start_time="2024-01-01T00:00:00Z")
+all_items = client.audit.list(start_time="2024-01-01T00:00:00Z")
 ```
 
 ### 2. Optimal Page Sizes
 ```python
 # Good: Balanced page size
-logs = client.audit.list(page_size=50)  # Default, good balance
+items = client.audit.list(page_size=50)  # Default, good balance
 
 # For bulk processing: Larger page size
-bulk_logs = client.audit.list(page_size=200)  # Fewer requests
+bulk_items = client.audit.list(page_size=200)  # Fewer requests
 
 # For real-time monitoring: Smaller page size
-monitor_logs = client.audit.list(page_size=10)  # More responsive
+monitor_items = client.audit.list(page_size=10)  # More responsive
 ```
 
 ### 3. Streaming vs. Polling
@@ -535,7 +494,7 @@ for event in client.audit.stream(timeout_minutes=60):
     process_event(event)
 
 # Use list() for historical analysis
-historical_logs = client.audit.list(
+historical_items = client.audit.list(
     start_time="2024-01-01T00:00:00Z",
     end_time="2024-01-02T00:00:00Z"
 )

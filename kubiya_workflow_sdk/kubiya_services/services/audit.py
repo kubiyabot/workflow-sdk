@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, UTC
 
 from kubiya_workflow_sdk import capture_exception
 from kubiya_workflow_sdk.kubiya_services.constants import Endpoints
-from kubiya_workflow_sdk.kubiya_services.exceptions import AuditError, AuditAccessError
+from kubiya_workflow_sdk.kubiya_services.exceptions import AuditError
 from kubiya_workflow_sdk.kubiya_services.services.base import BaseService
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,6 @@ class AuditService(BaseService):
 
         Raises:
             AuditError: If the audit query fails
-            AuditAccessError: If access is denied
         """
         try:
             # Set default time range if not provided (last 24 hours)
@@ -109,8 +108,6 @@ class AuditService(BaseService):
             return result
 
         except Exception as e:
-            if isinstance(e, (AuditError, AuditAccessError)):
-                raise e
             error = AuditError(f"Failed to list audit logs: {str(e)}")
             capture_exception(error)
             raise error
@@ -144,7 +141,6 @@ class AuditService(BaseService):
 
         Raises:
             AuditError: If the audit stream fails to start
-            AuditAccessError: If access is denied
         """
         import time
 
@@ -269,8 +265,6 @@ class AuditService(BaseService):
                 logger.info("Streaming interrupted by user")
             return
         except Exception as e:
-            if isinstance(e, (AuditError, AuditAccessError)):
-                raise e
             error = AuditError(f"Failed to stream audit logs: {str(e)}")
             capture_exception(error)
             raise error
