@@ -160,23 +160,7 @@ except DocumentationError as e:
             print("🔍 No results found - try broader search terms")
 ```
 
-### DocumentationNotFoundError
 
-Thrown when specific documentation cannot be found:
-
-```python
-from kubiya_workflow_sdk.kubiya_services.exceptions import DocumentationNotFoundError
-
-try:
-    results = client.documentations.query("very specific technical term")
-    
-    if not results:
-        raise DocumentationNotFoundError("No documentation found for query")
-        
-except DocumentationNotFoundError as e:
-    print(f"Documentation not found: {e}")
-    print("💡 Try using broader search terms or check spelling")
-```
 
 ## Best Practices
 

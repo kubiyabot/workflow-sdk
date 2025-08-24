@@ -274,59 +274,6 @@ except DocumentationError as e:
 
 ---
 
-### DocumentationNotFoundError
-
-Specialized exception for when requested documentation cannot be found.
-
-```python
-class DocumentationNotFoundError(NotFoundError):
-    """Documentation not found errors"""
-```
-
-#### Attributes
-- `message` (`str`): Error message indicating what documentation was not found
-- `details` (`Dict[str, Any]`): Additional context about the failed search
-
-#### Example
-```python
-from kubiya_workflow_sdk.kubiya_services.exceptions import DocumentationNotFoundError
-
-try:
-    results = client.documentations.query("very specific technical term")
-    
-    # Check if results are meaningful
-    if not results or all(r['score'] < 0.5 for r in results if 'score' in r):
-        raise DocumentationNotFoundError(
-            f"No relevant documentation found for query: 'very specific technical term'"
-        )
-        
-    # Process results...
-    
-except DocumentationNotFoundError as e:
-    print(f"Documentation not found: {e}")
-    
-    print("\n💡 Suggestions:")
-    print("- Try broader search terms")
-    print("- Check spelling and terminology")
-    print("- Use common synonyms")
-    print("- Break complex queries into simpler parts")
-    
-    # Suggest alternative searches
-    original_query = "very specific technical term"
-    suggestions = [
-        original_query.split()[0],  # First word only
-        "basic " + original_query.split()[-1],  # Last word with "basic"
-        original_query.replace("technical", ""),  # Remove technical
-    ]
-    
-    print("\n🔍 Try these alternative searches:")
-    for suggestion in suggestions:
-        if suggestion.strip():
-            print(f"  • '{suggestion.strip()}'")
-```
-
----
-
 ## Usage Patterns
 
 ### Error Handling Best Practices
