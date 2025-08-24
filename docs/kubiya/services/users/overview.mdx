@@ -109,10 +109,6 @@ print(f"Total users loaded: {len(all_users)}")
 # Get users and filter by attributes
 users = client.users.list_users(limit=1000)
 
-# Filter active users
-active_users = [user for user in users if user.get('status') == 'active']
-print(f"Active users: {len(active_users)}")
-
 # Filter by email domain
 company_users = [user for user in users if user.get('email', '').endswith('@company.com')]
 print(f"Company users: {len(company_users)}")
@@ -323,13 +319,6 @@ def find_users_by_criteria(
                    pattern in user.get('email', '').lower()
             ]
         
-        # Filter by status
-        if status:
-            filtered_users = [
-                user for user in filtered_users
-                if user.get('status', '').lower() == status.lower()
-            ]
-        
         return filtered_users
         
     except UserError as e:
@@ -338,7 +327,7 @@ def find_users_by_criteria(
 
 # Usage examples
 company_users = find_users_by_criteria(email_domain="company.com")
-active_johns = find_users_by_criteria(name_pattern="john", status="active")
+johns = find_users_by_criteria(name_pattern="john")
 ```
 
 ## Integration Examples

@@ -49,9 +49,9 @@ try:
         name = user.get('name', 'N/A')
         email = user.get('email', 'N/A')
         status = user.get('status', 'unknown')
-        
+
         print(f"User {user_id}: {name} ({email}) - Status: {status}")
-        
+
 except UserError as e:
     print(f"Failed to list users: {e}")
     
@@ -105,32 +105,13 @@ try:
     print(f"Retrieved {len(groups)} groups")
     
     for group in groups:
-        group_id = group.get('id', 'unknown')
+        group_uuid = group.get('uuid', 'unknown')
         name = group.get('name', 'N/A')
         description = group.get('description', 'No description')
-        member_count = group.get('member_count', 0)
-        
-        print(f"Group {group_id}: {name}")
+
+        print(f"Group {group_uuid}: {name}")
         print(f"  Description: {description}")
-        print(f"  Members: {member_count}")
-        
-        # Access group permissions if available
-        permissions = group.get('permissions', [])
-        if permissions:
-            print(f"  Permissions: {', '.join(permissions)}")
-        
-        # List group members if available
-        members = group.get('members', [])
-        if members:
-            print(f"  Group members:")
-            for member in members[:5]:  # Show first 5 members
-                member_name = member.get('name', 'N/A')
-                member_email = member.get('email', 'N/A')
-                print(f"    - {member_name} ({member_email})")
-            
-            if len(members) > 5:
-                print(f"    ... and {len(members) - 5} more members")
-                
+
 except GroupError as e:
     print(f"Failed to list groups: {e}")
     
@@ -144,25 +125,23 @@ except GroupError as e:
 try:
     groups = client.users.list_groups()
     
-    # Group statistics
-    total_groups = len(groups)
-    total_members = sum(group.get('member_count', 0) for group in groups)
-    
-    print(f"Organization has {total_groups} groups with {total_members} total memberships")
-    
-    # Find largest groups
-    groups_by_size = sorted(groups, key=lambda g: g.get('member_count', 0), reverse=True)
-    
-    print("\nLargest groups:")
-    for group in groups_by_size[:5]:
+    print(f"Organization has {len(groups)} groups")
+
+    # Separate system and custom groups
+    system_groups = [g for g in groups if g.get('system', False)]
+    custom_groups = [g for g in groups if not g.get('system', False)]
+
+    print(f"  System groups: {len(system_groups)}")
+    print(f"  Custom groups: {len(custom_groups)}")
+
+    # Display group information
+    for group in groups:
         name = group.get('name', 'N/A')
-        count = group.get('member_count', 0)
-        print(f"  {name}: {count} members")
-    
-    # Find groups by permission level
-    admin_groups = [g for g in groups if 'admin' in g.get('permissions', [])]
-    print(f"\nGroups with admin permissions: {len(admin_groups)}")
-    
+        description = group.get('description', 'No description')
+        system = group.get('system', False)
+        group_type = "System" if system else "Custom"
+        print(f"  {name} ({group_type}): {description}")
+
 except GroupError as e:
     print(f"Failed to analyze groups: {e}")
 ```
