@@ -24,8 +24,10 @@ class SecretService(BaseService):
             List of secrets or formatted string
         """
         endpoint = Endpoints.SECRETS_LIST
-
-        return self._get(endpoint=endpoint).json()
+        try:
+            return self._get(endpoint=endpoint).json()
+        except Exception as e:
+            raise SecretError("Failed to list secrets") from e
 
     def get(
         self,
@@ -42,8 +44,10 @@ class SecretService(BaseService):
         """
 
         endpoint = self._format_endpoint(Endpoints.SECRETS_GET, secret_name=name)
-
-        return self._get(endpoint=endpoint).json()
+        try:
+            return self._get(endpoint=endpoint).json()
+        except Exception as e:
+            raise SecretError(f"Failed to retrieve secret '{name}'") from e
 
     def value(
         self,
@@ -63,10 +67,11 @@ class SecretService(BaseService):
 
         endpoint = self._format_endpoint(Endpoints.SECRETS_GET_VALUE, secret_name=name)
 
-        response = self._get(endpoint=endpoint).json()
-        value = response.get('value', '')
+        try:
+            return self._get(endpoint=endpoint).json()
+        except Exception as e:
+            raise SecretError(f"Failed to retrieve value for secret '{name}'") from e
 
-        return value
 
     def create(
         self,
@@ -157,8 +162,10 @@ class SecretService(BaseService):
             request_body["description"] = description
 
         endpoint = self._format_endpoint(Endpoints.SECRETS_UPDATE, secret_name=name)
-
-        return self._put(endpoint=endpoint, data=request_body).json()
+        try:
+            return self._put(endpoint=endpoint, data=request_body).json()
+        except Exception as e:
+            raise SecretError(f"Failed to update secret '{name}'") from e
 
     def delete(
         self,
@@ -175,5 +182,7 @@ class SecretService(BaseService):
         """
 
         endpoint = self._format_endpoint(Endpoints.SECRETS_DELETE, secret_name=name)
-
-        return self._delete(endpoint=endpoint).json()
+        try:
+            return self._delete(endpoint=endpoint).json()
+        except Exception as e:
+            raise SecretError(f"Failed to delete secret '{name}'") from e
