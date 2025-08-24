@@ -422,7 +422,7 @@ class ValidationError(Exception):
 2. **Missing Required Fields:**
    ```python
    # Triggers ValidationError - missing name
-   client.triggers.create(provider="datadog", workflow_file="./test.py")
+   client.triggers.create(provider="datadog", workflow_file="./test.py", name="Test")
    ```
 
 3. **Invalid Repository Format:**
