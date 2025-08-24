@@ -67,17 +67,22 @@ class WorkflowService(BaseService):
         if stream:
             endpoint += "&native_sse=true"
 
-        response = self._post(endpoint=endpoint, data=request_body, stream=stream)
+        try:
 
-        if stream:
-            # Return the generator directly to make it iterable
-            return response
-        else:
-            # For non-streaming, collect all data
-            result = []
-            for event in response:
-                result.append(event)
-            return {"events": result}
+            response = self._post(endpoint=endpoint, data=request_body, stream=stream)
+            if stream:
+                # Return the generator directly to make it iterable
+                return response
+            else:
+                # For non-streaming, collect all data
+                result = []
+                for event in response:
+                    result.append(event)
+                return {"events": result}
+        except Exception as e:
+            error = WorkflowExecutionError(f"Error during workflow execution: {str(e)}")
+            capture_exception(error)
+            raise error
 
     def list(
         self,

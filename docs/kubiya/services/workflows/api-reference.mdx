@@ -63,9 +63,12 @@ workflow_def = {
     "name": "example-workflow",
     "steps": [
         {
-            "name": "hello",
-            "action": "echo",
-            "parameters": {"message": "Hello {{ name }}!"}
+            "name": "example-step",
+            "command": "echo date",
+            "executor": {
+                "type": "command",
+                "config": {}
+            }
         }
     ]
 }

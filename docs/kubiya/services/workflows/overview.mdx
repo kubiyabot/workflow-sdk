@@ -42,15 +42,15 @@ client = KubiyaClient(
 )
 
 # Define workflow
-workflow_definition = {
-    "name": "hello-world-workflow",
-    "description": "A simple hello world workflow",
+workflow_def = {
+    "name": "example-workflow",
     "steps": [
         {
-            "name": "greeting",
-            "action": "echo",
-            "parameters": {
-                "message": "Hello, {{ name }}!"
+            "name": "example-step",
+            "command": "echo date",
+            "executor": {
+                "type": "command",
+                "config": {}
             }
         }
     ]
