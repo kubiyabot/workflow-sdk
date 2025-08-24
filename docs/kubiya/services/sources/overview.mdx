@@ -113,8 +113,7 @@ except SourceError as e:
 try:
     # Scan a source for available tools
     scan_result = client.sources.scan(
-        source_url="https://github.com/example/tools-repo.git",
-        output_format="table"
+        source_url="https://github.com/example/tools-repo.git"
     )
     
     print(f"Scan successful: {scan_result.get('scan_successful')}")

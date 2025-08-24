@@ -75,13 +75,12 @@ for source in sources_detailed:
     print(f"Tools: {len(source.get('tools', []))}")
 ```
 
-##### `scan(source_url: str, output_format: str = "table", dynamic_config: Optional[Dict[str, Any]] = None, runner: Optional[str] = None, local: bool = False, local_only: bool = False) -> Dict[str, Any]`
+##### `scan(source_url: str, dynamic_config: Optional[Dict[str, Any]] = None, runner: Optional[str] = None, local: bool = False, local_only: bool = False) -> Dict[str, Any]`
 
 Scan a source URL or local directory for available tools.
 
 **Parameters:**
 - `source_url` (`str`): URL or path to scan for tools
-- `output_format` (`str`): Output format ("table" or "json") (default: "table")
 - `dynamic_config` (`Optional[Dict[str, Any]]`): Dynamic configuration for the source
 - `runner` (`Optional[str]`): Runner name to use for scanning
 - `local` (`bool`): Whether this is a local directory scan (default: False)
@@ -120,8 +119,7 @@ Scan a source URL or local directory for available tools.
 try:
     # Scan a Git repository
     result = client.sources.scan(
-        source_url="https://github.com/example/tools.git",
-        output_format="json"
+        source_url="https://github.com/example/tools.git"
     )
 
     for tool in result["tools"]:
