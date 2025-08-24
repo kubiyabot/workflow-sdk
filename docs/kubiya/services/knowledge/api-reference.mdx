@@ -114,8 +114,7 @@ try:
     if response.get("results"):
         print(f"Found {len(response['results'])} results")
         for result in response["results"]:
-            print(f"- {result['title']} (score: {result['score']:.2f})")
-            print(f"  {result['summary'][:100]}...")
+            print(result)
     
     # Show related suggestions
     suggestions = response.get("suggestions", [])

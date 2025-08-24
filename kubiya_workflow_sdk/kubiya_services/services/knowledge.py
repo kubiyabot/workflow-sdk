@@ -74,12 +74,20 @@ class KnowledgeService(BaseService):
         # Make the POST request - use orchestrator URL directly
         # Note: The actual HTTP client implementation would handle auth headers
         try:
-            return self._post(
+            response = self._post(
                 endpoint=endpoint,
                 data=request_body,
                 stream=stream,
                 base_url=orchestrator_url
-            ).json()
+            )
+            
+            # For streaming responses, return the generator directly
+            if stream:
+                return response
+            else:
+                # For non-streaming responses, parse the JSON
+                return response.json()
+                
         except Exception as e:
             if "timeout" in str(e).lower() or "deadline exceeded" in str(e).lower():
                 raise KnowledgeError(
