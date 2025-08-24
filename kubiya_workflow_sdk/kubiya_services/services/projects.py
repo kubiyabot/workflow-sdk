@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ProjectService(BaseService):
     """Service for managing projects"""
 
-    def list(self) -> Union[List[Dict[str, Any]], str]:
+    def list(self) -> Dict[str, Any]:
         """
         List all projects
 
@@ -389,7 +389,7 @@ class ProjectService(BaseService):
     def templates(
         self,
         repository: Optional[str] = None
-    ) -> Union[List[Dict[str, Any]], str]:
+    ) -> Dict[str, Any]:
         """
         List available project templates
 

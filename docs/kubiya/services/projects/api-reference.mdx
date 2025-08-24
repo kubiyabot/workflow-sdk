@@ -57,7 +57,7 @@ List all projects in the organization.
 ```python
 projects = client.projects.list()
 
-for project in projects:
+for project in projects.get("usecases", []):
     print(f"Project: {project['name']} (ID: {project['id']})")
     print(f"Template: {project.get('template_id', 'N/A')}")
     print(f"Variables: {len(project.get('variables', []))}")
@@ -107,7 +107,7 @@ List available project templates.
 # List all available templates
 templates = client.projects.templates()
 
-for template in templates:
+for template in templates.get("usecases", []):
     print(f"Template: {template['name']}")
     print(f"Description: {template['description']}")
     
@@ -183,7 +183,6 @@ Get detailed information about a specific project template.
 template_info = client.projects.template_info("webapp-template-v1")
 
 print(f"Template: {template_info['name']}")
-print(f"Version: {template_info['version']}")
 
 # Show required variables
 required_vars = [

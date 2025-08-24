@@ -85,7 +85,7 @@ except ProjectValidationError as e:
 # 1. List available templates
 templates = client.projects.templates()
 print("Available templates:")
-for template in templates:
+for template in templates.get("usecases", []):
     print(f"- {template['name']}: {template['description']}")
 
 # 2. Get template details
@@ -210,7 +210,7 @@ else:
 ```python
 # List all projects
 projects = client.projects.list()
-for project in projects:
+for project in projects.get("usecases", []):
     print(f"Project: {project['name']} (ID: {project['id']})")
 
 # Get detailed project information
