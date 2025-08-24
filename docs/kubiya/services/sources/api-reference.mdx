@@ -123,11 +123,9 @@ try:
         source_url="https://github.com/example/tools.git",
         output_format="json"
     )
-    
-    if result["scan_successful"]:
-        print(f"Found {len(result['tools'])} tools")
-        for tool in result["tools"]:
-            print(f"- {tool['name']}: {tool.get('description', 'No description')}")
+
+    for tool in result["tools"]:
+        print(f"- {tool['name']}: {tool.get('description', 'No description')}")
     
     # Scan local directory
     local_result = client.sources.scan(
