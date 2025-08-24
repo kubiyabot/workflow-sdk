@@ -238,17 +238,6 @@ if result and result.get("success"):
     print("Integration is ready for use")
 ```
 
----
-
-### IntegrationValidationError
-
-Specialized exception for integration validation failures.
-
-```python
-class IntegrationValidationError(ValidationError):
-    """Integration validation errors"""
-```
-
 #### Attributes
 - `message` (`str`): Validation error message
 - `field` (`Optional[str]`): Field that failed validation
@@ -268,7 +257,7 @@ class IntegrationValidationError(ValidationError):
 ```python
 try:
     result = client.integrations.activate("invalid_integration")
-except IntegrationValidationError as e:
+except IntegrationError as e:
     print(f"Validation failed: {e}")
     print(f"Field: {e.details.get('field')}")
     print(f"Invalid value: {e.details.get('value')}")
@@ -369,37 +358,6 @@ if result and result.get("success"):
     print("🎉 Integration setup complete!")
 else:
     print("💔 Integration setup failed")
-```
-
-### Integration Status Check
-
-```python
-def check_integration_status(client, integration_name):
-    """Check if an integration is already active"""
-    try:
-        # Attempt activation to check status
-        result = client.integrations.activate(integration_name)
-        return {"status": "newly_activated", "result": result}
-        
-    except IntegrationNotFoundError as e:
-        if "already exist" in str(e):
-            return {"status": "already_active", "message": str(e)}
-        else:
-            return {"status": "error", "message": str(e)}
-            
-    except IntegrationError as e:
-        return {"status": "error", "message": str(e)}
-
-# Usage
-status = check_integration_status(client, "github_app")
-print(f"GitHub App integration status: {status['status']}")
-
-if status["status"] == "already_active":
-    print("✅ Integration is ready to use")
-elif status["status"] == "newly_activated":
-    print("🔧 Complete the installation process")
-else:
-    print(f"❌ Integration error: {status['message']}")
 ```
 
 ### Batch Integration Setup

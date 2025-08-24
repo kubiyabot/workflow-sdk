@@ -107,29 +107,6 @@ class IntegrationService(BaseService):
         endpoint = self._format_endpoint(Endpoints.INTEGRATIONS_GITHUB, integration_name="github_app")
 
         try:
-            response = self._get(endpoint=endpoint)
-
-            # Handle the response based on its type
-            if hasattr(response, 'json'):
-                try:
-                    result = response.json()
-                except:
-                    raise IntegrationError("Failed to parse response from GitHub integration endpoint")
-            elif isinstance(response, dict):
-                result = response
-            else:
-                raise IntegrationError(f"Unexpected response: {response}")
-
-            # Extract URL from response
-            if isinstance(result, dict) and "url" in result:
-                url = result["url"]
-                if not url:
-                    raise IntegrationError(f"Unexpected response: {result}")
-                return url
-            else:
-                raise IntegrationError(f"Unexpected response: {result}")
-
-        except IntegrationError:
-            raise
+            return self._get(endpoint=endpoint).json()
         except Exception as e:
             raise IntegrationError(f"Failed to create install url. unexpected error: {str(e)}")

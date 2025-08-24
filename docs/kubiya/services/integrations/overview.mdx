@@ -127,14 +127,14 @@ except IntegrationNotFoundError as e:
     print("💡 GitHub App integration is already active")
 ```
 
-### IntegrationValidationError
+### IntegrationError
 
 Thrown when integration validation fails:
 
 ```python
 try:
     result = client.integrations.activate("github_app")
-except IntegrationValidationError as e:
+except IntegrationError as e:
     print(f"Validation failed: {e}")
     print(f"Field: {e.details.get('field')}")
     print(f"Value: {e.details.get('value')}")
