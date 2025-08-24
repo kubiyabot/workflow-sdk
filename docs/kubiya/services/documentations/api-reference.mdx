@@ -41,26 +41,7 @@ Query the documentation knowledge base using Trieve API.
 **Returns:**
 - `List[Dict[str, Any]]`: List of search results with formatted content
 
-**Response Structure:**
-```python
-[
-    {
-        "group": "API Reference",
-        "title": "Authentication Guide",
-        "formatted_title": "# 🔐 Authentication Guide",
-        "icon": "🔐",
-        "content": "# Authentication\n\nTo authenticate...",
-        "raw_content": "To authenticate with Kubiya...",
-        "is_code": False,
-        "tags": ["auth", "security"],
-        "metadata": {
-            "title": "Authentication Guide",
-            "icon": "🔐",
-            "url": "https://docs.kubiya.ai/auth"
-        }
-    }
-]
-```
+
 
 **Raises:**
 - `DocumentationError`: If the query fails or configuration cannot be retrieved

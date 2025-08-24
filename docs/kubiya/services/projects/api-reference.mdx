@@ -32,27 +32,6 @@ List all projects in the organization.
 **Returns:**
 - `List[Dict[str, Any]]`: List of project objects
 
-**Response Structure:**
-```python
-[
-    {
-        "id": "proj-uuid-123",
-        "name": "my-project",
-        "description": "Project description",
-        "template_id": "template-uuid",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z",
-        "variables": [
-            {
-                "name": "environment",
-                "value": "production",
-                "type": "string"
-            }
-        ]
-    }
-]
-```
-
 **Example:**
 ```python
 projects = client.projects.list()
@@ -74,33 +53,6 @@ List available project templates.
 
 **Returns:**
 - `List[Dict[str, Any]]`: List of available templates
-
-**Response Structure:**
-```python
-[
-    {
-        "id": "template-uuid-123",
-        "name": "webapp-template",
-        "description": "Web application infrastructure template",
-        "version": "v1.0.0",
-        "variables": [
-            {
-                "name": "app_name",
-                "type": "string",
-                "required": True,
-                "description": "Application name"
-            }
-        ],
-        "secrets": [
-            {
-                "name": "DATABASE_PASSWORD",
-                "to_env": "DATABASE_PASSWORD",
-                "description": "Database password"
-            }
-        ]
-    }
-]
-```
 
 **Example:**
 ```python
@@ -132,51 +84,6 @@ Get detailed information about a specific project template.
 **Returns:**
 - `Dict[str, Any]`: Detailed template information
 
-**Response Structure:**
-```python
-{
-    "id": "template-uuid-123",
-    "name": "webapp-template",
-    "description": "Web application infrastructure template",
-    "version": "v1.0.0",
-    "variables": [
-        {
-            "name": "app_name",
-            "type": "string",
-            "required": True,
-            "description": "Application name",
-            "default": None
-        },
-        {
-            "name": "environment",
-            "type": "string",
-            "required": False,
-            "description": "Deployment environment",
-            "default": "dev"
-        }
-    ],
-    "secrets": [
-        {
-            "name": "DATABASE_PASSWORD",
-            "to_env": "DATABASE_PASSWORD",
-            "description": "Database connection password"
-        }
-    ],
-    "resources": [
-        {
-            "name": "database",
-            "type": "aws_rds_instance",
-            "variables": [
-                {
-                    "name": "db_instance_class",
-                    "type": "string",
-                    "description": "RDS instance class"
-                }
-            ]
-        }
-    ]
-}
-```
 
 **Example:**
 ```python
@@ -219,24 +126,6 @@ Create a new project from a template with comprehensive validation.
 
 **Returns:**
 - `Dict[str, Any]`: Created project details
-
-**Response Structure:**
-```python
-{
-    "id": "proj-uuid-123",
-    "name": "my-project",
-    "description": "Project description",
-    "template_id": "template-uuid",
-    "created_at": "2024-01-01T00:00:00Z",
-    "variables": [
-        {
-            "name": "app_name",
-            "value": "my-app",
-            "type": "string"
-        }
-    ]
-}
-```
 
 **Raises:**
 - `ProjectValidationError`: For validation failures including missing variables, type errors, or missing environment variables
@@ -324,32 +213,6 @@ Get detailed information about a specific project.
 **Returns:**
 - `Dict[str, Any]`: Detailed project information
 
-**Response Structure:**
-```python
-{
-    "id": "proj-uuid-123",
-    "name": "my-project",
-    "description": "Project description",
-    "template_id": "template-uuid",
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z",
-    "variables": [
-        {
-            "name": "app_name",
-            "value": "my-app",
-            "type": "string"
-        }
-    ],
-    "plans": [
-        {
-            "id": "plan-uuid",
-            "status": "approved",
-            "created_at": "2024-01-01T12:00:00Z"
-        }
-    ]
-}
-```
-
 **Example:**
 ```python
 project_details = client.projects.describe("proj-uuid-123")
@@ -385,24 +248,6 @@ Update an existing project's configuration.
 
 **Returns:**
 - `Dict[str, Any]`: Updated project details
-
-**Response Structure:**
-```python
-{
-    "id": "proj-uuid-123",
-    "name": "updated-project-name",
-    "description": "Updated description",
-    "template_id": "template-uuid",
-    "updated_at": "2024-01-01T12:00:00Z",
-    "variables": [
-        {
-            "name": "app_name",
-            "value": "updated-app-name",
-            "type": "string"
-        }
-    ]
-}
-```
 
 **Example:**
 ```python
@@ -440,15 +285,6 @@ Delete a project permanently.
 **Returns:**
 - `Dict[str, Any]`: Deletion result
 
-**Response Structure:**
-```python
-{
-    "success": True,
-    "message": "Project deleted successfully",
-    "project_id": "proj-uuid-123"
-}
-```
-
 **Example:**
 ```python
 # Delete a project
@@ -479,27 +315,6 @@ Create a deployment plan for a project.
 
 **Returns:**
 - `Dict[str, Any]`: Plan details or execution details if auto-approved
-
-**Response Structure:**
-```python
-# Without auto_approve
-{
-    "plan_id": "plan-uuid-123",
-    "project_id": "proj-uuid-123",
-    "changes": "Detailed change description",
-    "created_at": "2024-01-01T12:00:00Z",
-    "status": "pending"
-}
-
-# With auto_approve and changes detected
-{
-    "execution_id": "exec-uuid-123",
-    "plan_id": "plan-uuid-123",
-    "project_id": "proj-uuid-123",
-    "status": "running",
-    "started_at": "2024-01-01T12:00:00Z"
-}
-```
 
 **Example:**
 ```python
@@ -541,18 +356,6 @@ Approve a project deployment plan and start execution.
 
 **Returns:**
 - `Dict[str, Any]`: Execution details
-
-**Response Structure:**
-```python
-{
-    "execution_id": "exec-uuid-123",
-    "plan_id": "plan-uuid-123",
-    "project_id": "proj-uuid-123",
-    "status": "running",
-    "started_at": "2024-01-01T12:00:00Z",
-    "estimated_duration": "5-10 minutes"
-}
-```
 
 **Example:**
 ```python

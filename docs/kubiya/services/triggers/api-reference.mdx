@@ -61,25 +61,8 @@ Create a new workflow trigger with the specified provider.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing trigger creation response
 
-**Response Structure:**
-```python
-{
-    "success": True,
-    "trigger_id": "uuid-string",
-    "name": "trigger-name",
-    "provider": "datadog|github",
-    "workflow": "/path/to/workflow.py",
-    "webhook_url": "https://api.kubiya.ai/api/v1/workflow?runner=...",
-    
-    # Datadog-specific fields
-    "webhook_name": "datadog-webhook-name",
-    "runner": "runner-name",
-    
-    # GitHub-specific fields
-    "repository": "owner/repo",
-    "events": ["push", "pull_request"]
-}
-```
+
+
 
 **Raises:**
 - `ValidationError`: For input validation failures
@@ -169,23 +152,6 @@ List workflow triggers across providers with optional filtering.
 **Returns:**
 - `List[Dict[str, Any]]`: List of trigger information
 
-**Response Structure:**
-```python
-[
-    {
-        "name": "webhook-name",
-        "url": "https://api.kubiya.ai/api/v1/workflow?...",
-        "provider": "datadog|github",
-        "is_kubiya": True,
-        
-        # GitHub-specific fields
-        "id": "webhook-id",
-        "events": ["push", "pull_request"]
-    },
-    # ... more triggers
-]
-```
-
 **Raises:**
 - `ValidationError`: When repository is required but not provided
 - `TriggerError`: For listing failures
@@ -246,16 +212,6 @@ Delete a workflow trigger from the specified provider.
 
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing deletion result
-
-**Response Structure:**
-```python
-{
-    "success": True,
-    "message": "Webhook {webhook_id} deleted successfully from {provider}",
-    "provider": "datadog|github",
-    "webhook_id": "webhook-identifier"
-}
-```
 
 **Raises:**
 - `ValidationError`: For invalid provider or missing repository

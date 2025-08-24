@@ -45,31 +45,6 @@ List audit logs with filtering and pagination support.
 **Returns:**
 - `List[Dict[str, Any]]`: List of audit log entries directly
 
-**Response Structure:**
-```python
-[
-    {
-        "timestamp": "2024-01-01T12:00:00Z",
-        "category_type": "agents",
-        "category_name": "my-agent",
-        "action_type": "invoke",
-        "action_successful": True,
-        "session_id": "session-123",
-        "resource_type": "agent",
-        "metadata": {...}
-    },
-    {
-        "timestamp": "2024-01-01T11:45:00Z",
-        "category_type": "workflows",
-        "category_name": "data-processor",
-        "action_type": "execute",
-        "action_successful": True,
-        "session_id": "session-456",
-        "resource_type": "workflow",
-        "metadata": {...}
-    }
-]
-```
 
 **Raises:**
 - `AuditError`: If the audit query fails
@@ -190,31 +165,7 @@ Show detailed information about a specific audit event.
 **Returns:**
 - `Union[Dict[str, Any], str]`: Dictionary containing detailed audit event information
 
-**Response Structure:**
-```python
-{
-    "id": "audit-event-123",
-    "timestamp": "2024-01-01T12:00:00Z",
-    "category_type": "agents",
-    "category_name": "data-processor",
-    "action_type": "invoke",
-    "action_successful": True,
-    "session_id": "session-789",
-    "resource_type": "agent",
-    "user_id": "user-456",
-    "metadata": {
-        "execution_time": 1.25,
-        "input_size": 1024,
-        "output_size": 2048,
-        "error_message": None
-    },
-    "context": {
-        "request_id": "req-123",
-        "source_ip": "192.168.1.100",
-        "user_agent": "kubiya-sdk/1.0.0"
-    }
-}
-```
+
 
 **Raises:**
 - `AuditError`: If the audit event cannot be retrieved
@@ -278,31 +229,7 @@ Search for audit logs containing specific text or matching criteria.
 **Returns:**
 - `List[Dict[str, Any]]`: List of matching audit log entries
 
-**Response Structure:**
-```python
-[
-    {
-        "timestamp": "2024-01-01T12:00:00Z",
-        "category_type": "users",
-        "action_type": "authentication",
-        "action_successful": False,
-        "metadata": {
-            "error_message": "Invalid credentials",
-            "username": "john.doe"
-        }
-    },
-    {
-        "timestamp": "2024-01-01T11:55:00Z",
-        "category_type": "users",
-        "action_type": "authentication",
-        "action_successful": False,
-        "metadata": {
-            "error_message": "Account locked",
-            "username": "jane.smith"
-        }
-    }
-]
-```
+
 
 **Raises:**
 - `AuditError`: If the search fails

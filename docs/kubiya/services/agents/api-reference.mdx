@@ -317,21 +317,6 @@ Show current access control settings for an agent.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing access control information
 
-**Response Structure:**
-```python
-{
-    "access_control": {
-        "agent_uuid": "agent-uuid",
-        "agent_name": "agent-name",
-        "owners": ["owner1@company.com"],
-        "allowed_users": ["user1@company.com", "user2@company.com"],
-        "allowed_groups": ["team1", "team2"],
-        "is_open_access": False
-    },
-    "success": True
-}
-```
-
 **Example:**
 ```python
 try:
@@ -487,18 +472,6 @@ List environment variables for an agent.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing environment variables
 
-**Response Structure:**
-```python
-{
-    "environment_variables": {
-        "VAR1": "value1",
-        "VAR2": "value2"
-    },
-    "count": 2,
-    "success": True
-}
-```
-
 **Example:**
 ```python
 try:
@@ -581,15 +554,6 @@ List integrations for an agent.
 
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing integrations
-
-**Response Structure:**
-```python
-{
-    "integrations": ["slack", "github", "jira"],
-    "count": 3,
-    "success": True
-}
-```
 
 **Example:**
 ```python
@@ -675,16 +639,6 @@ Get AI instructions for an agent.
 
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing AI instructions
-
-**Response Structure:**
-```python
-{
-    "ai_instructions": "Your AI instructions text...",
-    "has_instructions": True,
-    "instruction_length": 256,
-    "success": True
-}
-```
 
 **Example:**
 ```python
@@ -827,15 +781,6 @@ List secrets for an agent.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing secrets
 
-**Response Structure:**
-```python
-{
-    "secrets": ["api-key", "database-password", "github-token"],
-    "count": 3,
-    "success": True
-}
-```
-
 **Example:**
 ```python
 try:
@@ -920,15 +865,6 @@ List tools for an agent.
 
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing tools
-
-**Response Structure:**
-```python
-{
-    "tools": ["kubectl", "terraform", "docker", "helm"],
-    "count": 4,
-    "success": True
-}
-```
 
 **Example:**
 ```python

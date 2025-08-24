@@ -41,22 +41,6 @@ List all sources with optional metadata fetching.
 **Returns:**
 - `List[Dict[str, Any]]`: List of source objects
 
-**Response Structure:**
-```python
-[
-    {
-        "uuid": "source-uuid",
-        "name": "Source Name",
-        "type": "git",  # or "inline"
-        "url": "https://github.com/example/repo.git",
-        "tools": [...],  # if metadata fetched
-        "inline_tools": [...],  # if applicable
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
-]
-```
-
 **Example:**
 ```python
 # Basic listing
@@ -89,27 +73,8 @@ Scan a source URL or local directory for available tools.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing discovered tools and source information
 
-**Response Structure:**
-```python
-{
-    "source": {
-        "name": "Discovered Source",
-        "type": "git"
-    },
-    "tools": [
-        {
-            "name": "tool-name",
-            "description": "Tool description",
-            "type": "docker",
-            "args": [...]
-        }
-    ],
-    "errors": [],
-    "scan_successful": True,
-    "source_url": "https://github.com/example/repo.git",
-    "runner": "default-runner"
-}
-```
+
+
 
 **Raises:**
 - `SourceError`: If scanning fails
@@ -150,22 +115,6 @@ Add a new source to the platform.
 
 **Returns:**
 - `Dict[str, Any]`: Created source information
-
-**Response Structure:**
-```python
-{
-    "uuid": "new-source-uuid",
-    "name": "Source Name",
-    "type": "git",
-    "url": "https://github.com/example/repo.git",
-    "tools": [
-        {
-            "name": "discovered-tool",
-            "description": "Tool description"
-        }
-    ]
-}
-```
 
 **Raises:**
 - `SourceError`: If source creation fails

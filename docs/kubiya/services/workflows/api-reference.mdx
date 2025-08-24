@@ -175,33 +175,8 @@ List workflow executions with filtering and pagination support.
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing workflow executions and metadata
 
-**Response Structure:**
-```python
-{
-    "workflows": [
-        {
-            "id": "execution-uuid",
-            "workflow_name": "example-workflow",
-            "status": "completed",
-            "started_at": "2024-01-01T12:00:00Z",
-            "completed_at": "2024-01-01T12:05:30Z",
-            "duration": 330,  # seconds
-            "runner": "default-runner",
-            "parameters": {"name": "World"},
-            "steps_completed": 5,
-            "steps_total": 5
-        },
-        # ... more executions
-    ],
-    "pagination": {
-        "limit": 10,
-        "offset": 0,
-        "total": 45,
-        "has_more": true
-    },
-    "success": true
-}
-```
+
+
 
 **Raises:**
 - Generic exceptions for API errors

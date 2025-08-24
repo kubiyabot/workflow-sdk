@@ -32,22 +32,6 @@ List tools from all sources or a specific source.
 **Returns:**
 - `List[Dict[str, Any]]`: List of tool dictionaries
 
-**Response Structure:**
-```python
-[
-    {
-        "name": "tool-name",
-        "description": "Tool description",
-        "type": "function",
-        "parameters": {
-            # Tool parameters schema
-        },
-        # Additional tool metadata
-    },
-    # ... more tools
-]
-```
-
 **Raises:**
 - `ToolExecutionError`: For general tool operation failures
 
@@ -79,26 +63,6 @@ Search for tools using intelligent fuzzy matching.
 **Returns:**
 - `List[Dict[str, Any]]`: List of search result dictionaries
 
-**Response Structure:**
-```python
-[
-    {
-        "tool": {
-            "name": "matching-tool",
-            "description": "Tool description",
-            # ... full tool metadata
-        },
-        "source": {
-            "uuid": "source-uuid",
-            "name": "source-name",
-            "description": "Source description",
-            # ... source metadata
-        },
-        "distance": 0  # Lower distance = better match
-    },
-    # ... more results (max 10)
-]
-```
 
 **Matching Algorithm:**
 - Exact matches in tool name or description get distance = 0
@@ -139,29 +103,6 @@ Get detailed information about a specific tool.
 **Returns:**
 - `Dict[str, Any]`: Tool details dictionary
 
-**Response Structure:**
-```python
-{
-    "tool": {
-        "name": "tool-name",
-        "description": "Detailed tool description",
-        "type": "function",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "param1": {
-                    "type": "string",
-                    "description": "Parameter description"
-                }
-                # ... more parameters
-            },
-            "required": ["param1"]
-        },
-        # Additional tool metadata
-    },
-    "source_name": "source-name"
-}
-```
 
 **Raises:**
 - `ToolNotFoundError`: When the specified tool cannot be found
@@ -215,22 +156,6 @@ Generate a new tool from natural language description using AI.
 
 **Returns:**
 - `Dict[str, Any]`: Generation result with session information and created files
-
-**Response Structure:**
-```python
-{
-    "events": [
-        # List of generation events with streaming data
-    ],
-    "session_id": "generated-session-uuid",
-    "session_dir": "/path/to/session/directory",
-    "files_created": [
-        "/path/to/session/directory/tool_name.py",
-        "/path/to/session/directory/requirements.txt",
-        # ... other generated files
-    ]
-}
-```
 
 **Generation Process:**
 1. Creates a session directory within target_dir

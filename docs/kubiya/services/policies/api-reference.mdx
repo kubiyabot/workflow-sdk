@@ -32,19 +32,6 @@ List all OPA policies in the system.
 **Returns:**
 - `Union[List[Dict[str, Any]], str]`: List of policy objects or JSON string
 
-**Response Structure:**
-```python
-[
-    {
-        "name": "policy-name",
-        "env": ["production", "staging"],
-        "policy": "package example\n...",
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
-]
-```
-
 **Example:**
 ```python
 try:
@@ -71,17 +58,6 @@ Retrieve details for a specific policy.
 
 **Returns:**
 - `Union[Dict[str, Any], str]`: Policy details or JSON string
-
-**Response Structure:**
-```python
-{
-    "name": "policy-name",
-    "env": ["production", "staging"],
-    "policy": "package example\nallow { input.user.role == \"admin\" }",
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
-}
-```
 
 **Raises:**
 - `PolicyError`: If policy is not found or request fails
@@ -114,17 +90,6 @@ Create a new OPA policy with optional validation.
 
 **Returns:**
 - `Dict[str, Any]`: Created policy details
-
-**Response Structure:**
-```python
-{
-    "name": "policy-name",
-    "env": ["production"],
-    "policy": "package example\n...",
-    "created_at": "2024-01-01T00:00:00Z",
-    "status": "created"
-}
-```
 
 **Raises:**
 - `PolicyValidationError`: If policy validation fails when validate=True
@@ -196,17 +161,6 @@ Update an existing OPA policy.
 **Returns:**
 - `Dict[str, Any]`: Updated policy details
 
-**Response Structure:**
-```python
-{
-    "name": "policy-name",
-    "env": ["production", "staging"],
-    "policy": "package example\n...",
-    "updated_at": "2024-01-01T00:00:00Z",
-    "status": "updated"
-}
-```
-
 **Raises:**
 - `PolicyValidationError`: If policy validation fails when validate=True
 - `PolicyError`: If policy doesn't exist or update fails
@@ -263,15 +217,6 @@ Delete an OPA policy with confirmation requirement.
 **Returns:**
 - `Dict[str, Any]`: Deletion status
 
-**Response Structure:**
-```python
-{
-    "name": "policy-name",
-    "status": "deleted",
-    "deleted_at": "2024-01-01T00:00:00Z"
-}
-```
-
 **Raises:**
 - `PolicyError`: If confirmation is False or policy deletion fails
 
@@ -311,26 +256,6 @@ Validate an OPA policy for syntax and logical correctness.
 **Returns:**
 - `Dict[str, Any]`: Validation result with 'valid' boolean and 'errors' list
 
-**Response Structure:**
-```python
-{
-    "valid": True,
-    "errors": [],
-    "warnings": [],
-    "name": "policy-name"
-}
-
-# Or for invalid policy:
-{
-    "valid": False,
-    "errors": [
-        "line 5: rego_parse_error: unexpected token",
-        "line 8: undefined variable 'unknownvar'"
-    ],
-    "warnings": ["line 3: unused variable 'x'"],
-    "name": "policy-name"
-}
-```
 
 **Raises:**
 - `PolicyError`: If neither policy nor file parameter is provided, or file cannot be read
@@ -396,23 +321,6 @@ Evaluate a policy with input data and optional additional data context.
 **Returns:**
 - `Dict[str, Any]`: Evaluation result with 'result' field and optional 'error' field
 
-**Response Structure:**
-```python
-# Successful evaluation
-{
-    "result": True,  # or any JSON value
-    "query": "data.tools.allow",
-    "input": {...},
-    "data": {...}
-}
-
-# Evaluation with error
-{
-    "result": null,
-    "error": "evaluation error: undefined variable 'missing'",
-    "query": "data.tools.allow"
-}
-```
 
 **Raises:**
 - `PolicyError`: If policy/file cannot be read or JSON parsing fails
@@ -501,26 +409,6 @@ Test tool or workflow execution permission against configured policies.
 **Returns:**
 - `Dict[str, Any]`: Test result with 'allowed' boolean and optional 'message' or 'issues'
 
-**Response Structure:**
-```python
-# Tool permission result
-{
-    "allowed": True,
-    "message": "Permission granted",
-    "tool_name": "kubectl",
-    "runner": "production-runner"
-}
-
-# Workflow permission result
-{
-    "allowed": False,
-    "issues": [
-        "Step 'deploy': No permission to execute tool 'production-deploy'",
-        "Step 'notify': Tool name missing"
-    ],
-    "workflow_file": "./workflows/deployment.json"
-}
-```
 
 **Raises:**
 - `PolicyError`: If neither tool_name nor workflow_file is provided, or file reading fails

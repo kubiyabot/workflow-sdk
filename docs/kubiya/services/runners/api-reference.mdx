@@ -32,33 +32,6 @@ List all runners with their health status and detailed information.
 **Returns:**
 - `List[Dict[str, Any]]`: List of runner objects with health status information
 
-**Response Structure:**
-```python
-[
-    {
-        "name": "runner-name",
-        "version": "v2",
-        "namespace": "kubiya-runners",
-        "kubernetes_namespace": "kubiya-runners",
-        "runner_health": {
-            "status": "healthy",
-            "health": "ok",
-            "version": "2.1.0"
-        },
-        "tool_manager_health": {
-            "status": "healthy",
-            "version": "1.5.2",
-            "error": ""
-        },
-        "agent_manager_health": {
-            "status": "healthy", 
-            "version": "1.3.1",
-            "error": ""
-        }
-        # ... additional runner metadata
-    }
-]
-```
 
 **Features:**
 - **Concurrent Health Checks**: Fetches health status for all runners in parallel using ThreadPoolExecutor
@@ -134,14 +107,6 @@ Generate a Kubernetes manifest for deploying the specified runner.
 
 **Returns:**
 - `Dict[str, Any]`: Dictionary containing the manifest URL and metadata
-
-**Response Structure:**
-```python
-{
-    "url": "https://api.kubiya.ai/manifests/runner-name-manifest.yaml",
-    # Additional metadata may be included
-}
-```
 
 **Raises:**
 - `RunnerError`: For general manifest generation failures
