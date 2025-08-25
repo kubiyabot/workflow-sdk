@@ -258,7 +258,24 @@ class StreamingKubiyaClient:
 
 
 class KubiyaClient:
-    """Client for interacting with the Kubiya API."""
+    """
+    Main client for interacting with Kubiya API
+
+    This client provides access to all Kubiya platform functionality including
+    agents, workflows, tools, integrations, and more.
+
+    Example:
+        # Initialize with API key
+        client = KubiyaClient(api_key="your-api-key")
+
+        # Initialize with custom config.
+        config = KubiyaConfig(
+            api_key="your-api-key",
+            base_url="https://custom.kubiya.ai",
+            timeout=60
+        )
+        client = KubiyaClient(config=config)
+    """
 
     def __init__(
         self,
@@ -269,7 +286,8 @@ class KubiyaClient:
         max_retries: int = 3,
         org_name: Optional[str] = None,
     ):
-        """Initialize the Kubiya client.
+        """
+        Initialize Kubiya client
 
         Args:
             api_key: Kubiya API key
@@ -278,6 +296,10 @@ class KubiyaClient:
             timeout: Request timeout in seconds
             max_retries: Maximum number of retry attempts
             org_name: Organization name for API calls
+
+        Raises:
+            ConfigurationError: If configuration is invalid
+            AuthenticationError: If authentication setup fails
         """
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
@@ -303,13 +325,51 @@ class KubiyaClient:
             "Content-Type": "application/json",
             "User-Agent": f"kubiya_workflow_sdk@{__version__}"
         })
-    
-    def _make_request(
+
+        # Initialize all services
+        from kubiya_workflow_sdk.kubiya_services.services import (
+            WorkflowService,
+            WebhookService,
+            UserService,
+            TriggerService,
+            ToolService,
+            SourceService,
+            SecretService,
+            RunnerService,
+            ProjectService,
+            PolicyService,
+            KnowledgeService,
+            IntegrationService,
+            DocumentationService,
+            AuditService,
+            AgentService,
+            StacksService,
+        )
+
+        self.workflows = WorkflowService(self)
+        self.webhooks = WebhookService(self)
+        self.users = UserService(self)
+        self.triggers = TriggerService(self)
+        self.tools = ToolService(self)
+        self.sources = SourceService(self)
+        self.secrets = SecretService(self)
+        self.runners = RunnerService(self)
+        self.projects = ProjectService(self)
+        self.policies = PolicyService(self)
+        self.knowledge = KnowledgeService(self)
+        self.integrations = IntegrationService(self)
+        self.documentations = DocumentationService(self)
+        self.audit = AuditService(self)
+        self.agents = AgentService(self)
+        self.stacks = StacksService(self)
+
+    def make_request(
         self,
         method: str,
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
         stream: bool = False,
+        base_url: Optional[str] = None,
         **kwargs,
     ) -> Union[requests.Response, Generator[str, None, None]]:
         """Make an HTTP request to the Kubiya API.
@@ -319,6 +379,7 @@ class KubiyaClient:
             endpoint: API endpoint
             data: Request data
             stream: Whether to stream the response
+            base_url: Base URL for API request. If None, uses the client's base URL.
             **kwargs: Additional request arguments
 
         Returns:
@@ -330,13 +391,14 @@ class KubiyaClient:
             KubiyaTimeoutError: For timeout errors
             KubiyaAuthenticationError: For authentication errors
         """
-        url = urljoin(self.base_url, endpoint)
+        # If no base URL is provided, use the default one.
+        base_url = base_url or self.base_url
+        url = urljoin(base_url, endpoint)
 
         # Update headers for streaming if needed
         headers = kwargs.pop("headers", {})
         if stream:
             headers["Accept"] = "text/event-stream"
-        self.session.headers.update(headers)
 
         try:
             response = self.session.request(
@@ -345,6 +407,7 @@ class KubiyaClient:
                 json=data,
                 timeout=self.timeout,
                 stream=stream,
+                headers=headers,
                 **kwargs,
             )
 
@@ -365,7 +428,7 @@ class KubiyaClient:
                     except:
                         pass
                     error = KubiyaAPIError(
-                        f"API request failed: {str(e)}",
+                        f"API request failed: {e} {error_data}",
                         status_code=response.status_code,
                         response_body=json.dumps(error_data) if error_data else None,
                     )
@@ -376,8 +439,7 @@ class KubiyaClient:
                         "response_body": error_data
                     })
                     raise error
-
-            if stream:
+            else:
                 return self._handle_stream(response)
             return response
 
@@ -410,18 +472,15 @@ class KubiyaClient:
         """
         try:
             workflow_ended = False
-            last_heartbeat = time.time()
 
             for line in response.iter_lines():
                 if line:
-                    # Decode bytes to string first
                     if isinstance(line, bytes):
                         line = line.decode("utf-8")
 
                     if line.startswith("data: "):
                         data = line[6:]  # Remove 'data: ' prefix
                         if data.strip() == "[DONE]":
-                            workflow_ended = True
                             return
 
                         # Handle Kubiya's custom format within SSE data
@@ -476,6 +535,11 @@ class KubiyaClient:
                         # Don't immediately close on error events - wait for explicit end
                     else:
                         yield line
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    # If line is not valid JSON, yield it as a string
+                    yield line
 
         except Exception as e:
             error = WorkflowExecutionError(f"Error processing stream: {str(e)}")
@@ -538,7 +602,7 @@ class KubiyaClient:
             # Add native_sse=true for standard SSE format when streaming
             endpoint += "&native_sse=true"
 
-        response = self._make_request(
+        response = self.make_request(
             method="POST", endpoint=endpoint, data=request_body, stream=stream
         )
 
@@ -551,62 +615,6 @@ class KubiyaClient:
                 result.append(event)
             return {"events": result}
 
-    def get_workflow_status(self, workflow_id: str) -> Dict[str, Any]:
-        """Get the status of a workflow.
-
-        NOTE: This endpoint is not currently available in the API.
-
-        Args:
-            workflow_id: Workflow ID
-
-        Returns:
-            Workflow status information
-
-        Raises:
-            WorkflowNotFoundError: Always, as this endpoint doesn't exist
-        """
-        # This endpoint doesn't exist yet
-        logger.debug(f"Workflow status endpoint not available for workflow {workflow_id}")
-        raise WorkflowNotFoundError(f"Workflow status endpoint not available")
-
-    def cancel_workflow(self, workflow_id: str) -> Dict[str, Any]:
-        """Cancel a running workflow.
-
-        NOTE: This endpoint is not currently available in the API.
-
-        Args:
-            workflow_id: Workflow ID
-
-        Returns:
-            Cancellation result
-
-        Raises:
-            WorkflowNotFoundError: Always, as this endpoint doesn't exist
-        """
-        # This endpoint doesn't exist yet
-        logger.debug(f"Workflow cancel endpoint not available for workflow {workflow_id}")
-        raise WorkflowNotFoundError(f"Workflow cancel endpoint not available")
-
-    def list_workflows(
-        self, status: Optional[WorkflowStatus] = None, limit: int = 100, offset: int = 0
-    ) -> Dict[str, Any]:
-        """List workflows.
-
-        NOTE: This endpoint is not currently available in the API.
-        Returns an empty result for now.
-
-        Args:
-            status: Filter by workflow status
-            limit: Maximum number of results
-            offset: Result offset for pagination
-
-        Returns:
-            List of workflows
-        """
-        # This endpoint doesn't exist yet, return empty result
-        logger.debug("Workflows endpoint not available, returning empty list")
-        return {"workflows": [], "total": 0}
-
     # ============= NEW PLATFORM CAPABILITIES =============
 
     def get_runners(self) -> List[Dict[str, Any]]:
@@ -618,7 +626,7 @@ class KubiyaClient:
         Raises:
             KubiyaAPIError: For API errors
         """
-        response = self._make_request(method="GET", endpoint=f"/api/v1/runners")
+        response = self.make_request(method="GET", endpoint=f"/api/v1/runners")
         data = response.json()
 
         # Handle different response formats
@@ -656,7 +664,7 @@ class KubiyaClient:
         Raises:
             KubiyaAPIError: For API errors
         """
-        response = self._make_request(
+        response = self.make_request(
             method="GET", 
             endpoint=f"/api/v3/runners/{runner_name}/health"
         )
@@ -841,7 +849,7 @@ class KubiyaClient:
         Raises:
             KubiyaAPIError: For API errors
         """
-        response = self._make_request(method="GET", endpoint="/api/v2/integrations", params={"full": "true"})
+        response = self.make_request(method="GET", endpoint="/api/v2/integrations", params={"full": "true"})
         data = response.json()
 
         # Handle different response formats
@@ -863,7 +871,7 @@ class KubiyaClient:
         Raises:
             KubiyaAPIError: For API errors
         """
-        response = self._make_request(method="GET", endpoint="/api/v2/secrets")
+        response = self.make_request(method="GET", endpoint="/api/v2/secrets")
         data = response.json()
 
         # Handle different response formats
@@ -887,7 +895,7 @@ class KubiyaClient:
         Raises:
             KubiyaAPIError: For API errors
         """
-        response = self._make_request(method="GET", endpoint="/api/v1/secrets")
+        response = self.make_request(method="GET", endpoint="/api/v1/secrets")
         data = response.json()
 
         # Handle different response formats
@@ -979,7 +987,7 @@ class KubiyaClient:
             **kwargs,
         }
 
-        response = self._make_request(method="POST", endpoint="/api/v1/agents", data=agent_data)
+        response = self.make_request(method="POST", endpoint="/api/v1/agents", data=agent_data)
         return response.json()
 
     def list_agents(
@@ -1002,7 +1010,7 @@ class KubiyaClient:
         if search:
             params["search"] = search
 
-        response = self._make_request(method="GET", endpoint="/api/v1/agents", params=params)
+        response = self.make_request(method="GET", endpoint="/api/v1/agents", params=params)
         data = response.json()
 
         # Handle different response formats
@@ -1041,7 +1049,7 @@ class KubiyaClient:
         """
         execution_data = {"prompt": prompt, "session_id": session_id, **kwargs}
 
-        response = self._make_request(
+        response = self.make_request(
             method="POST",
             endpoint=f"/api/v1/agents/{agent_id}/execute",
             data=execution_data,

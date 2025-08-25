@@ -1,0 +1,593 @@
+---
+title: "Projects Service API Reference"
+description: "Complete API reference for the Kubiya Projects service methods and exceptions"
+icon: "code"
+tags: ["projects", "api", "reference"]
+---
+
+# Projects Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Projects service.
+
+## Service Class
+
+### ProjectService
+
+Main service class for managing infrastructure projects.
+
+```python
+class ProjectService(BaseService):
+    """Service for managing projects"""
+```
+
+## Methods
+
+### `list() -> Union[List[Dict[str, Any]], str]`
+
+List all projects in the organization.
+
+**Parameters:**
+- None
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of project objects
+
+**Example:**
+```python
+projects = client.projects.list()
+
+for project in projects.get("usecases", []):
+    print(f"Project: {project['name']} (ID: {project['id']})")
+    print(f"Template: {project.get('template_id', 'N/A')}")
+    print(f"Variables: {len(project.get('variables', []))}")
+```
+
+---
+
+### `templates(repository: Optional[str] = None) -> Union[List[Dict[str, Any]], str]`
+
+List available project templates.
+
+**Parameters:**
+- `repository` (`Optional[str]`): Repository URL to fetch templates from
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of available templates
+
+**Example:**
+```python
+# List all available templates
+templates = client.projects.templates()
+
+for template in templates.get("usecases", []):
+    print(f"Template: {template['name']}")
+    print(f"Description: {template['description']}")
+    
+# List templates from specific repository
+custom_templates = client.projects.templates(
+    repository="https://github.com/my-org/templates"
+)
+
+for template in custom_templates:
+    print(f"Custom template: {template['name']}")
+```
+
+---
+
+### `template_info(template_id: str) -> Union[Dict[str, Any], str]`
+
+Get detailed information about a specific project template.
+
+**Parameters:**
+- `template_id` (`str`): Template ID or UUID
+
+**Returns:**
+- `Dict[str, Any]`: Detailed template information
+
+
+**Example:**
+```python
+template_info = client.projects.template_info("webapp-template-v1")
+
+print(f"Template: {template_info['name']}")
+
+# Show required variables
+required_vars = [
+    var for var in template_info['variables'] 
+    if var.get('required') and var.get('default') is None
+]
+
+print("Required variables:")
+for var in required_vars:
+    print(f"  - {var['name']} ({var['type']}): {var['description']}")
+
+# Show required environment variables
+if template_info.get('secrets'):
+    print("Required environment variables:")
+    for secret in template_info['secrets']:
+        env_var = secret.get('to_env') or secret.get('name')
+        print(f"  - {env_var}: {secret['description']}")
+```
+
+---
+
+### `create(...) -> Union[Dict[str, Any], str]`
+
+Create a new project from a template with comprehensive validation.
+
+**Parameters:**
+- `name` (`str`): Project name (required)
+- `template_id` (`Optional[str]`): Template ID to use for the project
+- `description` (`Optional[str]`): Project description
+- `variables` (`Optional[Dict[str, str]]`): Variable values as key-value pairs
+- `sensitive_variables` (`Optional[Dict[str, str]]`): Sensitive variable values
+- `variables_file` (`Optional[str]`): Path to JSON file containing variables
+- `skip_var_validation` (`bool`): Skip validation of variables against template (default: False)
+
+**Returns:**
+- `Dict[str, Any]`: Created project details
+
+**Raises:**
+- `ProjectValidationError`: For validation failures including missing variables, type errors, or missing environment variables
+
+**Example:**
+```python
+try:
+    # Basic project creation
+    project = client.projects.create(
+        name="web-application",
+        template_id="webapp-template-v1",
+        description="Production web application",
+        variables={
+            "app_name": "my-web-app",
+            "environment": "production",
+            "replica_count": "3",
+            "enable_ssl": "true"
+        }
+    )
+    
+    print(f"Project created: {project['id']}")
+    
+    # Project with sensitive variables
+    secure_project = client.projects.create(
+        name="secure-app",
+        template_id="secure-template",
+        variables={
+            "app_name": "secure-app",
+            "environment": "production"
+        },
+        sensitive_variables={
+            "api_key": "secret-api-key",
+            "database_password": "secret-password"
+        }
+    )
+    
+    # Project using variables file
+    complex_project = client.projects.create(
+        name="complex-app",
+        template_id="full-stack-template",
+        description="Complex application with many variables",
+        variables_file="./config/production.json",
+        variables={
+            "deployment_region": "us-east-1"  # Additional variables
+        }
+    )
+    
+except ProjectValidationError as e:
+    print(f"Validation failed: {e}")
+    
+    # Handle specific validation errors
+    if "missing required variables" in str(e):
+        print("Please provide all required variables")
+    elif "Missing required environment variables" in str(e):
+        print("Please set required environment variables")
+    elif "Variable type validation" in str(e):
+        print("Please check variable types")
+```
+
+**Variable File Format:**
+```json
+{
+    "app_name": "my-application",
+    "environment": "production",
+    "replica_count": 5,
+    "enable_monitoring": true,
+    "allowed_hosts": ["api.example.com", "app.example.com"],
+    "database_config": {
+        "host": "db.example.com",
+        "port": 5432,
+        "name": "myapp_prod"
+    }
+}
+```
+
+---
+
+### `describe(project_id: str) -> Union[Dict[str, Any], str]`
+
+Get detailed information about a specific project.
+
+**Parameters:**
+- `project_id` (`str`): Project UUID or ID
+
+**Returns:**
+- `Dict[str, Any]`: Detailed project information
+
+**Example:**
+```python
+project_details = client.projects.describe("proj-uuid-123")
+
+print(f"Project: {project_details['name']}")
+print(f"Template: {project_details['template_id']}")
+print(f"Created: {project_details['created_at']}")
+
+# Display variables
+variables = project_details.get('variables', [])
+print(f"Variables ({len(variables)}):")
+for var in variables:
+    print(f"  {var['name']}: {var['value']} ({var['type']})")
+
+# Display plans
+plans = project_details.get('plans', [])
+print(f"Plans ({len(plans)}):")
+for plan in plans:
+    print(f"  {plan['id']}: {plan['status']} ({plan['created_at']})")
+```
+
+---
+
+### `update(...) -> Union[Dict[str, Any], str]`
+
+Update an existing project's configuration.
+
+**Parameters:**
+- `project_id` (`str`): Project UUID or ID
+- `name` (`Optional[str]`): New project name
+- `description` (`Optional[str]`): New project description
+- `variables` (`Optional[Dict[str, str]]`): Variable values to update
+
+**Returns:**
+- `Dict[str, Any]`: Updated project details
+
+**Example:**
+```python
+# Update project description and variables
+updated_project = client.projects.update(
+    project_id="proj-uuid-123",
+    description="Updated production web application",
+    variables={
+        "replica_count": "5",  # Scale up
+        "enable_caching": "true",  # Enable new feature
+        "log_level": "info"  # Add new variable
+    }
+)
+
+print(f"Project updated: {updated_project['name']}")
+print(f"Updated at: {updated_project['updated_at']}")
+
+# Update only specific fields
+name_updated = client.projects.update(
+    project_id="proj-uuid-123",
+    name="new-project-name"
+    # Other fields remain unchanged
+)
+```
+
+---
+
+### `delete(project_id: str) -> Dict[str, Any]`
+
+Delete a project permanently.
+
+**Parameters:**
+- `project_id` (`str`): Project UUID or ID
+
+**Returns:**
+- `Dict[str, Any]`: Deletion result
+
+**Example:**
+```python
+# Delete a project
+result = client.projects.delete("proj-uuid-123")
+
+if result.get("success"):
+    print(f"Project {result['project_id']} deleted successfully")
+else:
+    print(f"Failed to delete project: {result.get('message')}")
+
+# Confirm deletion
+try:
+    client.projects.describe("proj-uuid-123")
+    print("Project still exists")
+except Exception:
+    print("Project successfully deleted")
+```
+
+---
+
+### `plan(project_id: str, auto_approve: bool = False) -> Dict[str, Any]`
+
+Create a deployment plan for a project.
+
+**Parameters:**
+- `project_id` (`str`): Project UUID or ID
+- `auto_approve` (`bool`): Automatically approve the plan if changes are detected (default: False)
+
+**Returns:**
+- `Dict[str, Any]`: Plan details or execution details if auto-approved
+
+**Example:**
+```python
+# Create plan for review
+plan = client.projects.plan("proj-uuid-123")
+
+if plan.get('changes'):
+    print(f"Plan {plan['plan_id']} created with changes:")
+    print(plan['changes'])
+    
+    # Manual approval process
+    user_input = input("Approve this plan? (y/N): ")
+    if user_input.lower() == 'y':
+        execution = client.projects.approve(plan['plan_id'])
+        print(f"Execution started: {execution}")
+else:
+    print("No changes detected")
+
+# Auto-approve workflow
+execution = client.projects.plan(
+    project_id="proj-uuid-123",
+    auto_approve=True
+)
+
+if execution.get('execution_id'):
+    print(f"Deployment started automatically: {execution['execution_id']}")
+else:
+    print("No changes to deploy")
+```
+
+---
+
+### `approve(plan_id: str) -> Dict[str, Any]`
+
+Approve a project deployment plan and start execution.
+
+**Parameters:**
+- `plan_id` (`str`): Plan ID to approve
+
+**Returns:**
+- `Dict[str, Any]`: Execution details
+
+**Example:**
+```python
+# Approve a plan
+execution = client.projects.approve("plan-uuid-123")
+
+print(f"Execution started: {execution['execution_id']}")
+print(f"Status: {execution['status']}")
+print(f"Started at: {execution['started_at']}")
+
+# Monitor execution (if monitoring endpoints available)
+execution_id = execution['execution_id']
+# Note: Monitoring would typically involve polling or streaming
+```
+
+---
+
+## Exceptions
+
+### ProjectValidationError
+
+Specialized exception for project validation failures.
+
+```python
+class ProjectValidationError(Exception):
+    """Exception raised when project validation fails"""
+```
+
+#### Common Validation Scenarios
+
+**Missing Required Variables:**
+```python
+try:
+    client.projects.create(
+        name="incomplete-project",
+        template_id="webapp-template",
+        variables={
+            "app_name": "my-app"
+            # Missing required variables
+        }
+    )
+except ProjectValidationError as e:
+    # Error message will include:
+    # - List of missing required variables
+    # - Template help information
+    # - Required environment variables
+    print(f"Validation failed: {e}")
+```
+
+**Type Validation Errors:**
+```python
+try:
+    client.projects.create(
+        name="invalid-types",
+        template_id="webapp-template",
+        variables={
+            "replica_count": "not-a-number",  # Should be numeric
+            "enable_ssl": "maybe",  # Should be true/false
+            "config": "invalid-json"  # Should be valid JSON object
+        }
+    )
+except ProjectValidationError as e:
+    # Error message will include specific type validation failures
+    print(f"Type validation failed: {e}")
+```
+
+**Missing Environment Variables:**
+```python
+# Template requires DATABASE_PASSWORD environment variable
+try:
+    client.projects.create(
+        name="secure-app",
+        template_id="secure-template",
+        variables={"app_name": "my-app"}
+    )
+except ProjectValidationError as e:
+    # Error message will include:
+    # - List of missing environment variables
+    # - Example export commands
+    print(f"Missing environment variables: {e}")
+```
+
+**File Not Found:**
+```python
+try:
+    client.projects.create(
+        name="file-based",
+        template_id="template-id",
+        variables_file="./non-existent-file.json"
+    )
+except ProjectValidationError as e:
+    print(f"Variables file error: {e}")
+```
+
+---
+
+## Type Validation
+
+The Projects service validates variable types according to template specifications:
+
+### Supported Types
+
+| Type | Example Values | Validation |
+|------|---------------|------------|
+| `string` | `"my-app"`, `"production"` | Any string value |
+| `number`, `int`, `integer` | `"42"`, `"0"`, `"-10"` | Must be valid integer |
+| `float` | `"3.14"`, `"0.0"`, `"-2.5"` | Must be valid float |
+| `bool`, `boolean` | `"true"`, `"false"` | Must be "true" or "false" (case-insensitive) |
+| `list`, `array` | `'["a", "b", "c"]'`, `"a,b,c"` | Valid JSON array or comma-separated |
+| `map`, `object` | `'{"key": "value"}'`, `"key=value,key2=value2"` | Valid JSON object or key=value pairs |
+
+### Type Validation Examples
+
+```python
+# Valid type examples
+variables = {
+    # String types
+    "app_name": "my-application",
+    "environment": "production",
+    
+    # Numeric types  
+    "port": "8080",
+    "replica_count": "3",
+    "memory_limit": "2.5",
+    
+    # Boolean types
+    "enable_ssl": "true",
+    "debug_mode": "false",
+    
+    # Array types
+    "allowed_hosts": '["api.example.com", "app.example.com"]',
+    "environments": "dev,staging,prod",  # Comma-separated also valid
+    
+    # Object types
+    "database_config": '{"host": "localhost", "port": 5432}',
+    "labels": "env=prod,app=webapp"  # Key=value pairs also valid
+}
+
+# Invalid type examples that will raise ProjectValidationError
+invalid_variables = {
+    "port": "not-a-number",  # Expected number
+    "enable_ssl": "maybe",   # Expected boolean
+    "config": "{invalid-json",  # Expected valid JSON object
+    "tags": "[unclosed-array"   # Expected valid JSON array
+}
+```
+
+---
+
+## Variable File Format
+
+Variables can be provided via JSON files for complex configurations:
+
+### Basic Format
+
+```json
+{
+    "app_name": "my-application",
+    "environment": "production",
+    "replica_count": 3,
+    "enable_monitoring": true
+}
+```
+
+### Complex Nested Configuration
+
+```json
+{
+    "application": {
+        "name": "web-app",
+        "version": "v1.2.0",
+        "environment": "production"
+    },
+    "infrastructure": {
+        "region": "us-east-1",
+        "availability_zones": ["us-east-1a", "us-east-1b", "us-east-1c"],
+        "instance_types": {
+            "web": "t3.medium",
+            "api": "t3.large",
+            "database": "r5.xlarge"
+        }
+    },
+    "features": {
+        "enable_ssl": true,
+        "enable_monitoring": true,
+        "enable_backup": true,
+        "backup_retention_days": 30
+    },
+    "scaling": {
+        "min_replicas": 2,
+        "max_replicas": 10,
+        "target_cpu_utilization": 70
+    }
+}
+```
+
+### Environment-Specific Files
+
+Organize variables by environment:
+
+```bash
+configs/
+├── base.json        # Common variables
+├── development.json # Development overrides
+├── staging.json     # Staging overrides
+└── production.json  # Production overrides
+```
+
+```python
+import json
+
+def create_environment_project(environment):
+    # Load base configuration
+    with open("configs/base.json") as f:
+        base_config = json.load(f)
+    
+    # Load environment-specific overrides
+    env_file = f"configs/{environment}.json"
+    if os.path.exists(env_file):
+        with open(env_file) as f:
+            env_config = json.load(f)
+        
+        # Merge configurations
+        base_config.update(env_config)
+    
+    # Create project
+    return client.projects.create(
+        name=f"webapp-{environment}",
+        template_id="webapp-template",
+        variables=base_config
+    )
+```
+
+This API reference provides complete documentation for all public interfaces in the Projects service. 
+Use the examples and validation patterns to build robust infrastructure project workflows.

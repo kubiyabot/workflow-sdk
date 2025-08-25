@@ -1,0 +1,526 @@
+---
+title: "Policies Service Overview"
+description: "Complete guide to the Kubiya Policies service for managing OPA policies and access control"
+icon: "shield-check"
+tags: ["policies", "opa", "security", "authorization"]
+---
+
+# Policies Service Overview
+
+The Kubiya Policies service provides a comprehensive interface for managing Open Policy Agent (OPA) policies through the Kubiya platform. 
+It enables you to create, validate, and evaluate OPA policies for controlling access to tools, workflows, and resources with real-time policy testing capabilities.
+
+## Features
+
+- **OPA Policy Management**: Create, update, delete, and list OPA policies
+- **Policy Validation**: Built-in validation for policy syntax and logic
+- **Policy Evaluation**: Test policies with custom input data and queries
+- **Permission Testing**: Test tool and workflow execution permissions
+- **File Support**: Support for both inline policy content and file paths
+- **Environment Targeting**: Deploy policies to specific environments
+- **Comprehensive Error Handling**: Detailed error reporting with policy-specific context
+
+## Core Components
+
+### PolicyService
+
+The main service class provides comprehensive policy management operations:
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Access policies service
+policies = client.policies
+```
+
+### Key Methods
+
+- **`list()`**: List all OPA policies
+- **`get()`**: Retrieve specific policy details
+- **`create()`**: Create new OPA policies with validation
+- **`update()`**: Update existing policies
+- **`delete()`**: Remove policies with confirmation
+- **`validate()`**: Validate policy syntax and logic
+- **`evaluate()`**: Test policies with custom data
+- **`test()`**: Test tool/workflow execution permissions
+
+## Quick Start
+
+### Basic Policy Management
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import PolicyValidationError, PolicyError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Create a simple access control policy
+policy_content = '''
+package tools
+
+# Allow tool execution for admin users
+allow {
+    input.user.role == "admin"
+}
+
+# Allow specific tools for regular users
+allow {
+    input.user.role == "user"
+    input.tool_name == "read-only-tool"
+}
+'''
+
+try:
+    # Create policy with validation
+    result = client.policies.create(
+        name="basic-tool-access",
+        policy=policy_content,
+        env=["production", "staging"],
+        validate=True
+    )
+    print(f"Policy created: {result}")
+    
+except PolicyValidationError as e:
+    print(f"Policy validation failed: {e}")
+```
+
+### File-Based Policy Creation
+
+```python
+# Create policy from file
+try:
+    result = client.policies.create(
+        name="file-based-policy",
+        file="./policies/access-control.rego",
+        env=["production"],
+        validate=True
+    )
+    print(f"Policy created from file: {result}")
+    
+except PolicyError as e:
+    print(f"Failed to create policy: {e}")
+```
+
+### Policy Validation
+
+```python
+# Validate policy before creating
+try:
+    validation_result = client.policies.validate(
+        name="test-policy",
+        policy=policy_content,
+        env=["production"]
+    )
+    
+    if validation_result.get("valid"):
+        print("Policy is valid!")
+    else:
+        print(f"Validation errors: {validation_result.get('errors', [])}")
+        
+except PolicyError as e:
+    print(f"Validation failed: {e}")
+```
+
+### Policy Evaluation
+
+```python
+# Test policy with custom input
+test_input = {
+    "user": {"role": "admin", "name": "john"},
+    "tool_name": "deployment-tool",
+    "action": "tool_execution"
+}
+
+try:
+    evaluation_result = client.policies.evaluate(
+        policy=policy_content,
+        input=test_input,
+        query="data.tools.allow"
+    )
+    
+    result = evaluation_result.get("result", False)
+    if result:
+        print("Access granted!")
+    else:
+        print("Access denied!")
+        
+except PolicyError as e:
+    print(f"Evaluation failed: {e}")
+```
+
+### Permission Testing
+
+```python
+# Test tool execution permission
+try:
+    permission_result = client.policies.test(
+        tool_name="kubectl",
+        args={"namespace": "production", "action": "get pods"},
+        runner="production-runner"
+    )
+    
+    if permission_result.get("allowed"):
+        print(f"Permission granted: {permission_result.get('message')}")
+    else:
+        print(f"Permission denied: {permission_result.get('message')}")
+        
+except PolicyError as e:
+    print(f"Permission test failed: {e}")
+```
+
+### Workflow Permission Testing
+
+```python
+# Test workflow execution permission
+try:
+    permission_result = client.policies.test(
+        workflow_file="./workflows/deployment.json",
+        params={"environment": "production"},
+        runner="default"
+    )
+    
+    if permission_result.get("allowed"):
+        print("Workflow execution allowed")
+    else:
+        issues = permission_result.get("issues", [])
+        print(f"Workflow blocked. Issues: {issues}")
+        
+except PolicyError as e:
+    print(f"Workflow permission test failed: {e}")
+```
+
+## Advanced Usage
+
+### Complex Policy Evaluation
+
+```python
+# Evaluate with separate input and data files
+try:
+    evaluation_result = client.policies.evaluate(
+        policy_file="./policies/complex-policy.rego",
+        input_file="./test-data/input.json",
+        data_file="./test-data/data.json",
+        query="data.complex.access.allow"
+    )
+    
+    print(f"Evaluation result: {evaluation_result}")
+    
+except PolicyError as e:
+    print(f"Complex evaluation failed: {e}")
+```
+
+### Policy Updates
+
+```python
+# Update existing policy
+try:
+    updated_policy = '''
+    package tools
+    
+    # Updated policy with enhanced rules
+    allow {
+        input.user.role == "admin"
+        input.time.hour >= 9
+        input.time.hour <= 17
+    }
+    '''
+    
+    result = client.policies.update(
+        policy_name="basic-tool-access",
+        policy=updated_policy,
+        env=["production", "staging", "development"],
+        validate=True
+    )
+    print(f"Policy updated: {result}")
+    
+except PolicyValidationError as e:
+    print(f"Update validation failed: {e}")
+except PolicyError as e:
+    print(f"Update failed: {e}")
+```
+
+### Policy Listing and Retrieval
+
+```python
+# List all policies
+try:
+    policies_list = client.policies.list()
+    print(f"Available policies: {len(policies_list)}")
+    
+    for policy in policies_list:
+        print(f"- {policy.get('name')}: {policy.get('env', [])}")
+        
+except PolicyError as e:
+    print(f"Failed to list policies: {e}")
+
+# Get specific policy
+try:
+    policy_details = client.policies.get("basic-tool-access")
+    print(f"Policy details: {policy_details}")
+    
+except PolicyError as e:
+    print(f"Failed to get policy: {e}")
+```
+
+## Error Handling
+
+The Policies service provides specialized exceptions for different failure scenarios:
+
+### PolicyError
+
+Base exception for all policy-related errors:
+
+```python
+try:
+    result = client.policies.create(name="test", policy="invalid rego")
+except PolicyError as e:
+    print(f"Policy error: {e}")
+    print(f"Details: {e.details}")
+```
+
+### PolicyValidationError
+
+Thrown when policy validation fails:
+
+```python
+try:
+    result = client.policies.create(
+        name="invalid-policy",
+        policy="package invalid syntax",
+        validate=True
+    )
+except PolicyValidationError as e:
+    print(f"Validation failed: {e}")
+    # Contains validation errors in details
+```
+
+## Best Practices
+
+### 1. Always Validate Policies
+
+```python
+# Good practice: Always validate before creating/updating
+try:
+    validation_result = client.policies.validate(
+        name="new-policy",
+        policy=policy_content,
+        env=["staging"]
+    )
+    
+    if validation_result.get("valid"):
+        # Proceed with creation
+        client.policies.create(
+            name="new-policy",
+            policy=policy_content,
+            env=["staging"],
+            validate=False  # Skip since we already validated
+        )
+    else:
+        print("Fix validation issues first")
+        
+except PolicyError as e:
+    print(f"Validation failed: {e}")
+```
+
+### 2. Test Policies Before Deployment
+
+```python
+# Test with various scenarios
+test_cases = [
+    {"user": {"role": "admin"}, "tool_name": "kubectl"},
+    {"user": {"role": "user"}, "tool_name": "read-tool"},
+    {"user": {"role": "guest"}, "tool_name": "admin-tool"}
+]
+
+for test_case in test_cases:
+    try:
+        result = client.policies.evaluate(
+            policy=policy_content,
+            input=test_case,
+            query="data.tools.allow"
+        )
+        
+        user_role = test_case["user"]["role"]
+        tool = test_case["tool_name"]
+        allowed = result.get("result", False)
+        
+        print(f"{user_role} + {tool}: {'✅' if allowed else '❌'}")
+        
+    except PolicyError as e:
+        print(f"Test failed: {e}")
+```
+
+### 3. Use Environment-Specific Deployments
+
+```python
+# Deploy to staging first
+try:
+    client.policies.create(
+        name="new-feature-policy",
+        policy=policy_content,
+        env=["staging"],  # Test in staging first
+        validate=True
+    )
+    
+    # After testing, deploy to production
+    client.policies.update(
+        policy_name="new-feature-policy",
+        env=["staging", "production"],
+        validate=True
+    )
+    
+except PolicyError as e:
+    print(f"Deployment failed: {e}")
+```
+
+### 4. Handle Deletion Carefully
+
+```python
+# Always use confirmation for deletion
+try:
+    result = client.policies.delete(
+        policy_name="old-policy",
+        confirm=True  # Required for safety
+    )
+    print(f"Policy deleted: {result}")
+    
+except PolicyError as e:
+    print(f"Deletion failed: {e}")
+```
+
+### 5. Use Meaningful Policy Names
+
+```python
+# Use descriptive, environment-specific names
+policy_name = f"{service}-{environment}-{permission_type}-policy"
+
+# e.g., "api-production-admin-access-policy"
+client.policies.create(
+    name=policy_name,
+    policy=policy_content,
+    env=[environment]
+)
+```
+
+## Integration Examples
+
+The Policies service integrates seamlessly with other Kubiya services:
+
+### Tool Permission Integration
+
+```python
+# Check tool permission before execution
+try:
+    permission = client.policies.test(
+        tool_name="dangerous-tool",
+        args={"target": "production"},
+        runner="production-runner"
+    )
+    
+    if permission.get("allowed"):
+        # Execute tool
+        result = client.tools.execute(
+            tool_name="dangerous-tool",
+            args={"target": "production"},
+            runner="production-runner"
+        )
+    else:
+        print(f"Permission denied: {permission.get('message')}")
+        
+except PolicyError as e:
+    print(f"Permission check failed: {e}")
+```
+
+### Workflow Integration
+
+```python
+# Validate workflow permissions before execution
+try:
+    workflow_permission = client.policies.test(
+        workflow_file="./workflows/deployment.json",
+        params={"env": "production"},
+        runner="default"
+    )
+    
+    if workflow_permission.get("allowed"):
+        # Execute workflow
+        result = client.workflows.execute(
+            workflow_file="./workflows/deployment.json",
+            params={"env": "production"}
+        )
+    else:
+        issues = workflow_permission.get("issues", [])
+        print(f"Workflow validation failed: {issues}")
+        
+except PolicyError as e:
+    print(f"Workflow permission check failed: {e}")
+```
+
+## Common Policy Patterns
+
+### Time-Based Access Control
+
+```python
+time_based_policy = '''
+package tools
+
+import future.keywords.if
+import future.keywords.in
+
+# Allow access only during business hours
+allow if {
+    input.user.role == "user"
+    input.time.hour >= 9
+    input.time.hour <= 17
+    input.time.weekday in [1, 2, 3, 4, 5]  # Monday to Friday
+}
+
+# Admins have 24/7 access
+allow if {
+    input.user.role == "admin"
+}
+'''
+```
+
+### Environment-Based Restrictions
+
+```python
+environment_policy = '''
+package tools
+
+import future.keywords.if
+
+# Production access only for senior roles
+allow if {
+    input.environment == "production"
+    input.user.role in ["admin", "senior-dev"]
+}
+
+# Staging access for all developers
+allow if {
+    input.environment == "staging"
+    input.user.role in ["admin", "senior-dev", "developer"]
+}
+
+# Development environment open access
+allow if {
+    input.environment == "development"
+}
+'''
+```
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check the OPA documentation for advanced policy writing techniques

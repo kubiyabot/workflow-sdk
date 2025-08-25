@@ -1,0 +1,431 @@
+---
+title: "Audit Service API Reference"
+description: "Complete API reference for the Kubiya Audit service methods and exceptions"
+icon: "code"
+tags: ["audit", "api", "reference"]
+---
+
+# Audit Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Audit service.
+
+## Classes
+
+### AuditService
+
+Main service class for managing audit logs and monitoring.
+
+```python
+class AuditService(BaseService):
+    """Service for managing audit logs and monitoring"""
+```
+
+#### Methods
+
+##### `list(category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc", limit=None) -> List[Dict[str, Any]]`
+
+List audit logs with filtering and pagination support.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category_type` | `Optional[str]` | `None` | Filter by category type (e.g., 'agents', 'workflows') |
+| `category_name` | `Optional[str]` | `None` | Filter by category name |
+| `resource_type` | `Optional[str]` | `None` | Filter by resource type |
+| `action_type` | `Optional[str]` | `None` | Filter by action type |
+| `session_id` | `Optional[str]` | `None` | Filter by session ID |
+| `start_time` | `Optional[str]` | `None` | Start time in RFC3339 format (e.g., '2023-04-01T00:00:00Z') |
+| `end_time` | `Optional[str]` | `None` | End time in RFC3339 format (e.g., '2023-04-02T00:00:00Z') |
+| `page` | `int` | `1` | Page number for pagination |
+| `page_size` | `int` | `50` | Number of items per page |
+| `sort_direction` | `str` | `"desc"` | Sort direction ('asc' or 'desc') |
+| `limit` | `Optional[int]` | `None` | Maximum number of items to return |
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of audit log entries directly
+
+
+**Raises:**
+- `AuditError`: If the audit query fails
+
+**Example:**
+```python
+try:
+    # List recent agent logs
+    items = client.audit.list(
+        category_type="agents",
+        start_time="2024-01-01T00:00:00Z",
+        page_size=25
+    )
+    
+    print(f"Found {len(items)} audit events")
+    
+    for item in items:
+        status = "✅" if item.get('action_successful') else "❌"
+        print(f"{status} {item.get('timestamp')} - {item.get('action_type')}")
+        
+except AuditError as e:
+    print(f"Query failed: {e}")
+```
+
+---
+
+##### `stream(category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, start_time=None, timeout_minutes=None, verbose=True) -> Generator[Dict[str, Any], None, None]`
+
+Stream audit logs in real-time using polling.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `category_type` | `Optional[str]` | `None` | Filter by category type |
+| `category_name` | `Optional[str]` | `None` | Filter by category name |
+| `resource_type` | `Optional[str]` | `None` | Filter by resource type |
+| `action_type` | `Optional[str]` | `None` | Filter by action type |
+| `session_id` | `Optional[str]` | `None` | Filter by session ID |
+| `start_time` | `Optional[str]` | `None` | Start time in RFC3339 format (default: 5 minutes ago) |
+| `timeout_minutes` | `Optional[int]` | `None` | Auto-stop streaming after specified minutes |
+| `verbose` | `bool` | `True` | Include verbose logging information |
+
+**Returns:**
+- `Generator[Dict[str, Any], None, None]`: Generator yielding individual audit log entries
+
+**Yields:**
+```python
+{
+    "timestamp": "2024-01-01T12:00:00Z",
+    "category_type": "workflows",
+    "category_name": "data-processing",
+    "action_type": "execute",
+    "action_successful": True,
+    "session_id": "session-456",
+    "resource_type": "workflow",
+    "metadata": {
+        "duration": 125,
+        "user_id": "user-123"
+    }
+}
+```
+
+**Raises:**
+- `AuditError`: If the audit stream fails to start
+
+**Example:**
+```python
+import time
+from datetime import datetime, UTC
+
+try:
+    print("Starting audit log streaming...")
+    start_time = datetime.now(UTC)
+    event_count = 0
+    
+    # Stream with timeout and filtering
+    for audit_event in client.audit.stream(
+        category_type="agents",
+        timeout_minutes=30,
+        verbose=False
+    ):
+        event_count += 1
+        timestamp = audit_event.get('timestamp', 'Unknown')
+        action = audit_event.get('action_type', 'Unknown')
+        success = audit_event.get('action_successful')
+        
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} [{timestamp}] {action}")
+        
+        # Alert on failed actions
+        if not success:
+            print(f"⚠️  Failed action detected: {audit_event}")
+        
+        # Periodic stats
+        if event_count % 10 == 0:
+            elapsed = datetime.now(UTC) - start_time
+            print(f"📊 Processed {event_count} events in {elapsed.total_seconds():.1f}s")
+            
+except KeyboardInterrupt:
+    print(f"\n⏹️  Streaming stopped by user. Processed {event_count} events.")
+except AuditError as e:
+    print(f"❌ Streaming failed: {e}")
+```
+
+---
+
+##### `describe(audit_id: str) -> Union[Dict[str, Any], str]`
+
+Show detailed information about a specific audit event.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `audit_id` | `str` | The ID of the audit event to describe |
+
+**Returns:**
+- `Union[Dict[str, Any], str]`: Dictionary containing detailed audit event information
+
+
+
+**Raises:**
+- `AuditError`: If the audit event cannot be retrieved
+- `ValueError`: If audit_id is not provided
+
+**Example:**
+```python
+try:
+    # Get detailed event information
+    event_details = client.audit.describe("audit-event-123")
+    
+    print(f"Event ID: {event_details.get('id')}")
+    print(f"Timestamp: {event_details.get('timestamp')}")
+    print(f"Category: {event_details.get('category_type')}")
+    print(f"Action: {event_details.get('action_type')}")
+    print(f"Success: {event_details.get('action_successful')}")
+    
+    # Display metadata if available
+    metadata = event_details.get('metadata', {})
+    if metadata:
+        print("\nMetadata:")
+        for key, value in metadata.items():
+            print(f"  {key}: {value}")
+    
+    # Display context if available
+    context = event_details.get('context', {})
+    if context:
+        print("\nContext:")
+        for key, value in context.items():
+            print(f"  {key}: {value}")
+            
+except ValueError as e:
+    print(f"Invalid input: {e}")
+except AuditError as e:
+    print(f"Could not retrieve event: {e}")
+```
+
+---
+
+##### `search(text=None, category_type=None, category_name=None, resource_type=None, action_type=None, session_id=None, status=None, start_time=None, end_time=None, page=1, page_size=50, sort_direction="desc") -> List[Dict[str, Any]]`
+
+Search for audit logs containing specific text or matching criteria.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `text` | `Optional[str]` | `None` | Text to search for in audit logs |
+| `category_type` | `Optional[str]` | `None` | Filter by category type |
+| `category_name` | `Optional[str]` | `None` | Filter by category name |
+| `resource_type` | `Optional[str]` | `None` | Filter by resource type |
+| `action_type` | `Optional[str]` | `None` | Filter by action type |
+| `session_id` | `Optional[str]` | `None` | Filter by session ID |
+| `status` | `Optional[str]` | `None` | Filter by status ('success', 'failed', or None) |
+| `start_time` | `Optional[str]` | `None` | Start time in RFC3339 format (default: 24 hours ago) |
+| `end_time` | `Optional[str]` | `None` | End time in RFC3339 format |
+| `page` | `int` | `1` | Page number for pagination |
+| `page_size` | `int` | `50` | Number of items per page |
+| `sort_direction` | `str` | `"desc"` | Sort direction ('asc' or 'desc') |
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of matching audit log entries
+
+
+
+**Raises:**
+- `AuditError`: If the search fails
+- `ValueError`: If status is not 'success' or 'failed'
+
+**Example:**
+```python
+try:
+    # Search for error-related events
+    items = client.audit.search(
+        text="error",
+        status="failed",
+        start_time="2024-01-01T00:00:00Z",
+        page_size=20
+    )
+    
+    print(f"Found {len(items)} matching events")
+    
+    for item in items:
+        timestamp = item.get('timestamp', 'Unknown')
+        action = item.get('action_type', 'Unknown')
+        category = item.get('category_type', 'Unknown')
+        
+        print(f"❌ [{timestamp}] {category}: {action}")
+        
+        # Show error details if available
+        metadata = item.get('metadata', {})
+        error_msg = metadata.get('error_message')
+        if error_msg:
+            print(f"   Error: {error_msg}")
+    
+    # Complex search with multiple filters
+    complex_items = client.audit.search(
+        text="timeout",
+        category_type="workflows",
+        action_type="execute",
+        status="failed",
+        start_time="2024-01-01T00:00:00Z"
+    )
+    
+    print(f"\nComplex search found {len(complex_items)} workflow timeout events")
+    
+except ValueError as e:
+    print(f"Invalid search parameters: {e}")
+except AuditError as e:
+    print(f"Search failed: {e}")
+```
+
+---
+
+## Exceptions
+
+### AuditError (Base Exception)
+
+Base exception class for all audit-related errors.
+
+```python
+class AuditError(Exception):
+    """Base exception for audit operations"""
+```
+
+#### Attributes
+- `message` (`str`): Error message describing what went wrong
+
+#### Example
+```python
+try:
+    logs = client.audit.list(start_time="invalid-format")
+except AuditError as e:
+    print(f"Audit operation failed: {e}")
+    
+    # Check for specific error types
+    if "time format" in str(e).lower():
+        print("💡 Tip: Use RFC3339 format like '2024-01-01T00:00:00Z'")
+    elif "query" in str(e).lower():
+        print("💡 Tip: Check your query parameters")
+    elif "response" in str(e).lower():
+        print("💡 Tip: Service may be temporarily unavailable")
+```
+
+
+    print("   client.audit.list(category_type='agents')")
+```
+
+---
+
+## Time Format Reference
+
+All time parameters in the Audit service use RFC3339 format:
+
+### Valid Time Formats
+```python
+# ISO 8601 / RFC3339 formats
+"2024-01-01T00:00:00Z"          # UTC timezone
+"2024-01-01T12:30:45Z"          # With hours, minutes, seconds
+"2024-01-01T12:30:45.123Z"      # With milliseconds
+"2024-01-01T12:30:45+00:00"     # Explicit UTC offset
+"2024-01-01T12:30:45-05:00"     # Eastern timezone
+```
+
+### Time Helper Functions
+```python
+from datetime import datetime, timedelta, UTC
+
+# Current time
+now = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+# 1 hour ago
+hour_ago = (datetime.now(UTC) - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+# Start of today
+today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+# Use in queries
+items = client.audit.list(
+    start_time=hour_ago,
+    end_time=now
+)
+```
+
+---
+
+## Filter Categories Reference
+
+Common values for filtering audit logs:
+
+### Category Types
+- `"agents"` - Agent-related activities
+- `"workflows"` - Workflow executions
+- `"users"` - User authentication and management
+- `"tools"` - Tool invocations
+- `"integrations"` - Integration activities
+- `"system"` - System-level events
+
+### Action Types
+- `"invoke"` - Invoking agents or tools
+- `"execute"` - Executing workflows
+- `"create"` - Creating resources
+- `"update"` - Updating resources
+- `"delete"` - Deleting resources
+- `"authentication"` - Authentication attempts
+- `"authorization"` - Authorization checks
+
+### Resource Types
+- `"agent"` - Agent resources
+- `"workflow"` - Workflow resources
+- `"tool"` - Tool resources
+- `"user"` - User resources
+- `"integration"` - Integration resources
+
+### Status Values
+- `"success"` - Successful operations only
+- `"failed"` - Failed operations only
+- `None` - All operations (default)
+
+---
+
+## Performance Tips
+
+### 1. Use Specific Filters
+```python
+# Good: Specific filters reduce data transfer
+items = client.audit.list(
+    category_type="agents",
+    action_type="invoke",
+    start_time="2024-01-01T00:00:00Z"
+)
+
+# Less efficient: Broad query with large result set
+all_items = client.audit.list(start_time="2024-01-01T00:00:00Z")
+```
+
+### 2. Optimal Page Sizes
+```python
+# Good: Balanced page size
+items = client.audit.list(page_size=50)  # Default, good balance
+
+# For bulk processing: Larger page size
+bulk_items = client.audit.list(page_size=200)  # Fewer requests
+
+# For real-time monitoring: Smaller page size
+monitor_items = client.audit.list(page_size=10)  # More responsive
+```
+
+### 3. Streaming vs. Polling
+```python
+# Use streaming for real-time monitoring
+for event in client.audit.stream(timeout_minutes=60):
+    process_event(event)
+
+# Use list() for historical analysis
+historical_items = client.audit.list(
+    start_time="2024-01-01T00:00:00Z",
+    end_time="2024-01-02T00:00:00Z"
+)
+```
+
+This API reference provides complete documentation for all public interfaces in the Audit service. 
+Use the examples and error handling patterns to build robust audit monitoring and analysis workflows.

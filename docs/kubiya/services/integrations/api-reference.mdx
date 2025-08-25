@@ -1,0 +1,418 @@
+---
+title: "Integrations Service API Reference"
+description: "Complete API reference for the Kubiya Integrations service methods and classes"
+icon: "code"
+tags: ["integrations", "api", "reference"]
+---
+
+# Integrations Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Integrations service.
+
+## Classes
+
+### IntegrationService
+
+Main service class for managing third-party integrations.
+
+```python
+class IntegrationService(BaseService):
+    """Service for managing integrations"""
+```
+
+#### Methods
+
+##### `activate(name: str) -> Dict[str, Any]`
+
+Activate an integration by name and return configuration details.
+
+**Parameters:**
+- `name` (`str`): Name of the integration to activate
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing activation result and configuration
+
+**Supported Integrations:**
+- `"github_app"`: GitHub App integration for repository access
+
+
+
+**Raises:**
+- `IntegrationError`: If integration type is not supported or activation fails
+- `IntegrationNotFoundError`: If integration already exists
+
+**Example:**
+```python
+try:
+    result = client.integrations.activate("github_app")
+    
+    if result.get("success"):
+        print(f"✅ Integration activated: {result.get('message')}")
+        
+        # Handle installation URL
+        install_url = result.get("install_url")
+        if install_url:
+            print(f"📋 Complete installation at: {install_url}")
+            print(f"📝 {result.get('instructions')}")
+            
+            # Open URL for user to complete installation
+            import webbrowser
+            webbrowser.open(install_url)
+    else:
+        print("❌ Integration activation failed")
+        
+except IntegrationNotFoundError as e:
+    print(f"Integration already exists: {e}")
+    # Integration is already configured, no further action needed
+    
+except IntegrationError as e:
+    print(f"Activation failed: {e}")
+    
+    # Check for specific error types
+    if "not supported" in str(e):
+        print("💡 Tip: Check supported integrations list")
+        supported = ["github_app"]
+        print(f"Supported integrations: {', '.join(supported)}")
+```
+
+**GitHub App Integration Details:**
+
+When activating GitHub App integration, the response includes:
+- Installation URL for GitHub App setup
+- Instructions for completing the integration
+- Success confirmation
+
+The GitHub App integration provides:
+- Repository access for code analysis
+- Webhook configuration for events
+- Pull request and issue management
+- Automated workflow triggers
+
+##### `_get_integration(name: str) -> Optional[Dict[str, Any]]` (Private)
+
+Retrieve existing integration details by name.
+
+**Parameters:**
+- `name` (`str`): Name of the integration to retrieve
+
+**Returns:**
+- `Optional[Dict[str, Any]]`: Integration data or None if not found
+
+**Raises:**
+- `IntegrationError`: If API request fails
+
+**Internal Usage:**
+This method is used internally to check if an integration already exists before attempting activation.
+
+##### `_github_app() -> str` (Private)
+
+Handle GitHub App integration activation process.
+
+**Returns:**
+- `str`: Installation URL for GitHub App
+
+**Raises:**
+- `IntegrationNotFoundError`: If integration already exists
+- `IntegrationError`: If failed to create GitHub app integration
+
+**Internal Process:**
+1. Check if GitHub App integration already exists
+2. Create new GitHub App integration if not present
+3. Return installation URL for user completion
+
+##### `_create_github_integration() -> str` (Private)
+
+Create GitHub App integration and return installation URL.
+
+**Returns:**
+- `str`: Installation URL for GitHub App
+
+**Raises:**
+- `IntegrationError`: If API request fails or unexpected response
+
+**Internal Implementation:**
+- Makes API call to create GitHub App integration
+- Handles response parsing and validation
+- Extracts installation URL from response
+
+---
+
+## Exceptions
+
+### IntegrationError (Base Exception)
+
+Base exception class for all integration-related errors.
+
+```python
+class IntegrationError(KubiyaSDKError):
+    """Integration-related errors"""
+```
+
+#### Attributes
+- `message` (`str`): Error message describing the failure
+- `details` (`Dict[str, Any]`): Additional error context and metadata
+
+#### Example
+```python
+try:
+    result = client.integrations.activate("unsupported_service")
+except IntegrationError as e:
+    print(f"Integration error: {e}")
+    print(f"Error details: {e.details}")
+    
+    # Handle different error types
+    error_msg = str(e).lower()
+    if "not supported" in error_msg:
+        print("💡 Check the supported integrations list")
+    elif "failed to create" in error_msg:
+        print("💡 Check your API permissions and connectivity")
+```
+
+---
+
+### IntegrationNotFoundError
+
+Specialized exception for integration conflicts or missing integrations.
+
+```python
+class IntegrationNotFoundError(IntegrationError):
+    """Integration not found errors"""
+```
+
+#### Attributes
+- `message` (`str`): Error message describing the conflict
+- `details` (`Dict[str, Any]`): Additional error context
+
+#### Common Scenarios
+
+**Integration Already Exists:**
+```python
+try:
+    result = client.integrations.activate("github_app")
+except IntegrationNotFoundError as e:
+    if "already exist" in str(e):
+        print("GitHub App integration is already configured")
+        print("💡 No further action needed - integration is active")
+        
+        # Proceed with using the existing integration
+        # No need to reconfigure
+```
+
+**Integration Missing During Lookup:**
+Used internally when checking for existing integrations.
+
+#### Example
+```python
+def safe_activate_integration(client, integration_name):
+    """Safely activate integration with proper error handling"""
+    try:
+        result = client.integrations.activate(integration_name)
+        print(f"✅ {integration_name} activated successfully")
+        return result
+        
+    except IntegrationNotFoundError as e:
+        print(f"ℹ️  Integration conflict: {e}")
+        
+        if "already exist" in str(e):
+            print("Integration is already configured")
+            return {"success": True, "already_exists": True}
+        else:
+            print("Integration lookup failed")
+            return None
+            
+    except IntegrationError as e:
+        print(f"❌ Activation failed: {e}")
+        return None
+
+# Usage
+result = safe_activate_integration(client, "github_app")
+if result and result.get("success"):
+    print("Integration is ready for use")
+```
+
+#### Attributes
+- `message` (`str`): Validation error message
+- `field` (`Optional[str]`): Field that failed validation
+- `value` (`Optional[Any]`): Value that caused validation failure
+- `details` (`Dict[str, Any]`): Complete validation context
+
+#### Error Details Structure
+```python
+{
+    "field": "integration_name",
+    "value": "invalid_integration",
+    "validation_rules": ["must_be_supported", "must_not_exist"]
+}
+```
+
+#### Example
+```python
+try:
+    result = client.integrations.activate("invalid_integration")
+except IntegrationError as e:
+    print(f"Validation failed: {e}")
+    print(f"Field: {e.details.get('field')}")
+    print(f"Invalid value: {e.details.get('value')}")
+    
+    # Access validation rules
+    rules = e.details.get('validation_rules', [])
+    if rules:
+        print(f"Validation rules: {', '.join(rules)}")
+        
+    # Provide specific guidance
+    if e.details.get('field') == 'integration_name':
+        print("💡 Use a supported integration name")
+        print("Supported integrations: github_app")
+```
+
+---
+
+## Usage Patterns
+
+### Complete Integration Setup
+
+```python
+def setup_integration_with_retry(client, integration_name, max_retries=3):
+    """Set up integration with retry logic and comprehensive error handling"""
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Attempting to activate {integration_name} (attempt {attempt + 1}/{max_retries})")
+            
+            result = client.integrations.activate(integration_name)
+            
+            if result.get("success"):
+                print(f"✅ {integration_name} activated successfully")
+                
+                # Handle installation requirements
+                install_url = result.get("install_url")
+                if install_url:
+                    print(f"📋 Installation required: {install_url}")
+                    print(f"📝 Instructions: {result.get('instructions', 'N/A')}")
+                    
+                    # Option 1: Auto-open browser
+                    import webbrowser
+                    webbrowser.open(install_url)
+                    
+                    # Option 2: Wait for user confirmation
+                    input("Press Enter after completing the installation...")
+                    
+                return result
+            else:
+                print(f"❌ Activation returned success=False")
+                continue
+                
+        except IntegrationNotFoundError as e:
+            if "already exist" in str(e):
+                print(f"✅ {integration_name} already configured")
+                return {"success": True, "already_exists": True}
+            else:
+                print(f"❌ Integration not found: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    return None
+                    
+        except IntegrationError as e:
+            print(f"❌ Activation failed: {e}")
+            
+            # Check for permanent vs temporary errors
+            error_msg = str(e).lower()
+            if "not supported" in error_msg:
+                print("💥 Permanent error: integration not supported")
+                return None
+            elif "failed to create" in error_msg:
+                print(f"🔄 Temporary error, retrying... ({attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                else:
+                    return None
+            else:
+                print("💥 Unknown error type")
+                return None
+                
+        except Exception as e:
+            print(f"💥 Unexpected error: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            else:
+                return None
+    
+    print(f"❌ Failed to activate {integration_name} after {max_retries} attempts")
+    return None
+
+# Usage
+result = setup_integration_with_retry(client, "github_app")
+if result and result.get("success"):
+    print("🎉 Integration setup complete!")
+else:
+    print("💔 Integration setup failed")
+```
+
+### Batch Integration Setup
+
+```python
+def setup_multiple_integrations(client, integrations):
+    """Set up multiple integrations with status tracking"""
+    results = {}
+    
+    for integration_name in integrations:
+        print(f"\n🔧 Setting up {integration_name}...")
+        
+        try:
+            result = client.integrations.activate(integration_name)
+            results[integration_name] = {
+                "status": "success",
+                "result": result
+            }
+            print(f"✅ {integration_name}: Success")
+            
+        except IntegrationNotFoundError as e:
+            if "already exist" in str(e):
+                results[integration_name] = {
+                    "status": "already_exists",
+                    "message": str(e)
+                }
+                print(f"ℹ️  {integration_name}: Already configured")
+            else:
+                results[integration_name] = {
+                    "status": "error",
+                    "message": str(e)
+                }
+                print(f"❌ {integration_name}: Error - {e}")
+                
+        except IntegrationError as e:
+            results[integration_name] = {
+                "status": "error", 
+                "message": str(e)
+            }
+            print(f"❌ {integration_name}: Error - {e}")
+    
+    # Summary
+    print("\n📊 Integration Setup Summary:")
+    for name, result in results.items():
+        status = result["status"]
+        if status == "success":
+            print(f"  ✅ {name}: Successfully activated")
+        elif status == "already_exists":
+            print(f"  ℹ️  {name}: Already configured")
+        else:
+            print(f"  ❌ {name}: Failed - {result['message']}")
+    
+    return results
+
+# Usage
+integrations_to_setup = ["github_app"]
+results = setup_multiple_integrations(client, integrations_to_setup)
+
+# Check which integrations need manual completion
+for name, result in results.items():
+    if result["status"] == "success" and result["result"].get("install_url"):
+        print(f"\n🔗 Complete {name} installation at: {result['result']['install_url']}")
+```
+
+This API reference provides complete documentation for all public interfaces in the Integrations service. 
+Use the examples and error handling patterns to build robust integration workflows with third-party services.

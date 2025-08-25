@@ -1,0 +1,459 @@
+---
+title: "Tools Service API Reference"
+description: "Complete API reference for the Kubiya Tools service methods and exceptions"
+icon: "code"
+tags: ["tools", "api", "reference"]
+---
+
+# Tools Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Tools service.
+
+## Classes
+
+### ToolService
+
+Main service class for managing and discovering tools across sources.
+
+```python
+class ToolService(BaseService):
+    """Service for managing tools"""
+```
+
+#### Methods
+
+##### `list(source_uuid: Optional[str] = None) -> List[Dict[str, Any]]`
+
+List tools from all sources or a specific source.
+
+**Parameters:**
+- `source_uuid` (`Optional[str]`): Optional source UUID to list tools from specific source. If not provided, lists tools from all sources
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of tool dictionaries
+
+**Raises:**
+- `ToolExecutionError`: For general tool operation failures
+
+**Examples:**
+
+```python
+# List all tools across sources
+all_tools = client.tools.list()
+print(f"Found {len(all_tools)} tools total")
+
+# List tools from specific source
+source_tools = client.tools.list(source_uuid="source-123")
+print(f"Found {len(source_tools)} tools in source")
+
+# Handle errors
+try:
+    tools = client.tools.list(source_uuid="invalid-uuid")
+except ToolExecutionError as e:
+    print(f"Failed to list tools: {e}")
+```
+
+##### `search(query: str) -> List[Dict[str, Any]]`
+
+Search for tools using intelligent fuzzy matching.
+
+**Parameters:**
+- `query` (`str`): Search query string to match against tool names and descriptions
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of search result dictionaries
+
+
+**Matching Algorithm:**
+- Exact matches in tool name or description get distance = 0
+- Fuzzy matches use Levenshtein distance algorithm
+- Results are sorted by distance (best matches first), then by tool name
+- Limited to top 10 matches
+
+**Raises:**
+- `ToolExecutionError`: For search operation failures
+
+**Examples:**
+
+```python
+# Basic search
+results = client.tools.search("kubernetes deploy")
+for result in results:
+    tool = result["tool"]
+    distance = result["distance"]
+    match_quality = "Exact" if distance == 0 else f"Fuzzy ({distance})"
+    print(f"{tool['name']} - {match_quality}")
+
+# Handle no results
+results = client.tools.search("nonexistent-tool")
+if not results:
+    print("No tools found matching query")
+else:
+    print(f"Found {len(results)} matching tools")
+```
+
+##### `describe(tool_name: str, source_uuid: Optional[str] = None) -> Dict[str, Any]`
+
+Get detailed information about a specific tool.
+
+**Parameters:**
+- `tool_name` (`str`): Name of the tool to describe
+- `source_uuid` (`Optional[str]`): Optional source UUID to search in specific source. If not provided, searches all sources
+
+**Returns:**
+- `Dict[str, Any]`: Tool details dictionary
+
+
+**Raises:**
+- `ToolNotFoundError`: When the specified tool cannot be found
+- `ToolExecutionError`: For general operation failures
+
+**Examples:**
+
+```python
+# Describe specific tool
+try:
+    tool_info = client.tools.describe("kubectl-apply")
+    tool = tool_info["tool"]
+    source_name = tool_info["source_name"]
+    
+    print(f"Tool: {tool['name']}")
+    print(f"Source: {source_name}")
+    print(f"Description: {tool.get('description', 'No description')}")
+    
+    # Show parameters if available
+    if "parameters" in tool:
+        params = tool["parameters"].get("properties", {})
+        print(f"Parameters: {list(params.keys())}")
+        
+except ToolNotFoundError as e:
+    print(f"Tool not found: {e}")
+    # Fallback to search
+    search_results = client.tools.search("kubectl-apply")
+    if search_results:
+        print("Did you mean one of these?")
+        for result in search_results[:3]:
+            print(f"  - {result['tool']['name']}")
+
+# Describe tool from specific source
+try:
+    tool_info = client.tools.describe(
+        tool_name="deploy-app",
+        source_uuid="my-source-123"
+    )
+except ToolNotFoundError:
+    print("Tool not found in specified source")
+```
+
+##### `generate_tool(description: str, session_id: Optional[str] = None, target_dir: Optional[str] = None) -> Dict[str, Any]`
+
+Generate a new tool from natural language description using AI.
+
+**Parameters:**
+- `description` (`str`): Tool description (required) - detailed description of what the tool should do
+- `session_id` (`Optional[str]`): Session ID for continuing previous generation. Auto-generated if not provided
+- `target_dir` (`Optional[str]`): Target directory for generated files. Defaults to current working directory
+
+**Returns:**
+- `Dict[str, Any]`: Generation result with session information and created files
+
+**Generation Process:**
+1. Creates a session directory within target_dir
+2. Streams AI-generated tool code and files
+3. Processes and writes files to disk
+4. Returns paths to all created files
+
+**Raises:**
+- `ToolGenerationError`: When tool generation fails (empty description, directory issues, AI errors, etc.)
+
+**Examples:**
+
+```python
+# Basic tool generation
+try:
+    result = client.tools.generate_tool(
+        description="Create a tool that monitors disk usage and sends alerts when usage exceeds 80%"
+    )
+    
+    print(f"✨ Tool generated successfully!")
+    print(f"Session ID: {result['session_id']}")
+    print(f"Location: {result['session_dir']}")
+    print(f"Files created:")
+    for file_path in result['files_created']:
+        file_name = os.path.basename(file_path)
+        print(f"  📄 {file_name}")
+        
+except ToolGenerationError as e:
+    print(f"Generation failed: {e}")
+
+# Custom target directory and session
+import tempfile
+custom_dir = tempfile.mkdtemp(prefix="my_tools_")
+
+try:
+    result = client.tools.generate_tool(
+        description="Create a tool for automated code review using AI",
+        target_dir=custom_dir,
+        session_id="code-review-tool-v1"
+    )
+    
+    # Validate generated files
+    for file_path in result['files_created']:
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            print(f"✅ {os.path.basename(file_path)} ({file_size} bytes)")
+        else:
+            print(f"❌ Missing: {os.path.basename(file_path)}")
+            
+except ToolGenerationError as e:
+    print(f"Generation failed: {e}")
+    
+    # Check for specific error types
+    if "description is required" in str(e):
+        print("💡 Provide a detailed description of what the tool should do")
+    elif "directory" in str(e):
+        print("💡 Check that the target directory exists and is writable")
+
+# Continue previous session
+try:
+    # First generation
+    result1 = client.tools.generate_tool(
+        description="Create a deployment tool",
+        session_id="deploy-tool-session"
+    )
+    
+    # Continue in same session (will add to existing files)
+    result2 = client.tools.generate_tool(
+        description="Add rollback functionality to the deployment tool",
+        session_id="deploy-tool-session",  # Same session
+        target_dir=os.path.dirname(result1['session_dir'])
+    )
+    
+    print(f"Total files: {len(result2['files_created'])}")
+    
+except ToolGenerationError as e:
+    print(f"Session continuation failed: {e}")
+```
+
+---
+
+## Exceptions
+
+### ToolExecutionError
+
+General exception for tool operation failures.
+
+```python
+class ToolExecutionError(Exception):
+    """Exception raised when tool operations fail"""
+```
+
+**Common Causes:**
+- Network connectivity issues
+- Invalid source UUIDs
+- API errors
+- Search operation failures
+
+**Example:**
+```python
+try:
+    tools = client.tools.list(source_uuid="invalid-uuid")
+except ToolExecutionError as e:
+    print(f"Tool operation failed: {e}")
+    # Handle gracefully - maybe retry or use fallback
+```
+
+---
+
+### ToolNotFoundError
+
+Specialized exception for when a specific tool cannot be found.
+
+```python
+class ToolNotFoundError(Exception):
+    """Exception raised when a specific tool is not found"""
+```
+
+**Common Causes:**
+- Tool name typos
+- Tool doesn't exist in specified source
+- Tool has been removed or renamed
+
+**Example:**
+```python
+def find_tool_with_fallback(tool_name: str):
+    """Find tool with search fallback"""
+    try:
+        return client.tools.describe(tool_name)
+    except ToolNotFoundError:
+        # Try search as fallback
+        search_results = client.tools.search(tool_name)
+        if search_results:
+            best_match = search_results[0]
+            if best_match["distance"] <= 2:  # Close match
+                return best_match
+        raise ToolNotFoundError(f"No close matches found for '{tool_name}'")
+```
+
+---
+
+### ToolGenerationError
+
+Specialized exception for tool generation failures.
+
+```python
+class ToolGenerationError(Exception):
+    """Exception raised when tool generation fails"""
+```
+
+**Common Causes:**
+- Empty or invalid tool descriptions
+- Directory permission issues
+- AI service errors
+- File system errors during generation
+
+**Error Handling Strategy:**
+```python
+def generate_tool_with_retry(description: str, max_retries: int = 3):
+    """Generate tool with retry logic"""
+    for attempt in range(max_retries):
+        try:
+            return client.tools.generate_tool(description)
+        except ToolGenerationError as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            
+            if "description is required" in str(e):
+                # No point retrying this
+                raise
+            elif attempt == max_retries - 1:
+                # Last attempt failed
+                raise
+            else:
+                # Wait before retry
+                time.sleep(2 ** attempt)  # Exponential backoff
+    
+    raise ToolGenerationError("All retry attempts exhausted")
+```
+
+---
+
+## Helper Methods (Internal)
+
+These methods are used internally by the ToolService but may be useful to understand the service behavior:
+
+### `_list_sources() -> List[Dict[str, Any]]`
+
+Internal method to list all available sources.
+
+### `_get_source_metadata(source_uuid: str) -> Dict[str, Any]`
+
+Internal method to get metadata for a specific source, including its tools.
+
+### `_levenshtein_distance(s1: str, s2: str) -> int`
+
+Internal method to calculate Levenshtein distance for fuzzy matching in search.
+
+### `_process_generation_events(events: List[Dict[str, Any]], session_dir: str) -> List[str]`
+
+Internal method to process AI generation events and write files to disk.
+
+### `_process_file_content(generated_content: List[Dict[str, Any]], file_buffers: Dict[str, Dict[str, Any]], session_dir: str) -> List[str]`
+
+Internal method to process generated file content and handle file writing with proper buffering.
+
+---
+
+## Usage Patterns
+
+### Comprehensive Tool Discovery
+
+```python
+def comprehensive_tool_audit():
+    """Perform comprehensive audit of all available tools"""
+    print("🔍 Starting comprehensive tool discovery...\n")
+    
+    # Get all sources first
+    try:
+        # List all tools
+        all_tools = client.tools.list()
+        print(f"📊 Total tools across all sources: {len(all_tools)}")
+        
+        # Group by source
+        sources_response = client.tools._list_sources()  # Internal method
+        source_tool_counts = {}
+        
+        for source in sources_response:
+            source_uuid = source["uuid"]
+            source_name = source["name"]
+            
+            try:
+                source_tools = client.tools.list(source_uuid=source_uuid)
+                source_tool_counts[source_name] = len(source_tools)
+                print(f"  📦 {source_name}: {len(source_tools)} tools")
+            except ToolExecutionError:
+                print(f"  ❌ {source_name}: Failed to access")
+                
+    except ToolExecutionError as e:
+        print(f"Failed to perform tool audit: {e}")
+
+# Run the audit
+comprehensive_tool_audit()
+```
+
+### Smart Tool Recommendations
+
+```python
+def recommend_tools(task_description: str, max_recommendations: int = 5):
+    """Recommend tools based on task description"""
+    print(f"🎯 Finding tools for: {task_description}\n")
+    
+    # Extract keywords from task description
+    keywords = task_description.lower().split()
+    
+    all_recommendations = []
+    
+    # Search for each keyword
+    for keyword in keywords:
+        if len(keyword) > 3:  # Skip short words
+            try:
+                results = client.tools.search(keyword)
+                all_recommendations.extend(results)
+            except ToolExecutionError:
+                continue
+    
+    # Remove duplicates and sort by relevance
+    seen_tools = set()
+    unique_recommendations = []
+    
+    for result in all_recommendations:
+        tool_name = result["tool"]["name"]
+        if tool_name not in seen_tools:
+            seen_tools.add(tool_name)
+            unique_recommendations.append(result)
+    
+    # Sort by distance (best matches first)
+    unique_recommendations.sort(key=lambda x: x["distance"])
+    
+    # Return top recommendations
+    recommendations = unique_recommendations[:max_recommendations]
+    
+    print("🔧 Recommended tools:")
+    for i, result in enumerate(recommendations, 1):
+        tool = result["tool"]
+        source = result["source"]
+        distance = result["distance"]
+        
+        relevance = "High" if distance == 0 else "Medium" if distance <= 2 else "Low"
+        print(f"{i}. {tool['name']} (Relevance: {relevance})")
+        print(f"   Source: {source['name']}")
+        print(f"   Description: {tool.get('description', 'No description')[:100]}...")
+        print()
+    
+    return recommendations
+
+# Usage
+recommendations = recommend_tools("deploy application to kubernetes cluster")
+```
+
+This API reference provides complete documentation for all public interfaces in the Tools service. 
+Use the examples and error handling patterns to build robust tool discovery and generation workflows.

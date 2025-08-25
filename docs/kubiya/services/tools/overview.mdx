@@ -1,0 +1,355 @@
+---
+title: "Tools Service Overview"
+description: "Complete guide to the Kubiya Tools service for managing and discovering tools across sources"
+icon: "wrench"
+tags: ["tools", "sources", "discovery", "generation"]
+---
+
+# Tools Service Overview
+
+The Kubiya Tools service provides a comprehensive interface for discovering, managing, and generating tools across your organization's sources. 
+It enables you to list, search, describe, and even generate new tools with AI assistance, all with comprehensive error handling.
+
+## Features
+
+- **Tool Discovery**: List and search tools across all sources or specific sources
+- **Intelligent Search**: Fuzzy matching with Levenshtein distance for close matches
+- **Detailed Descriptions**: Get comprehensive information about any tool
+- **AI-Powered Generation**: Generate new tools from natural language descriptions
+- **Real-time Streaming**: Stream tool generation process in real-time
+- **Comprehensive Error Handling**: Specialized exceptions for different failure scenarios
+
+## Core Components
+
+### ToolService
+
+The `ToolService` class provides four core operations:
+
+- **`list()`**: Discover tools across sources
+- **`search()`**: Find tools using intelligent search
+- **`describe()`**: Get detailed information about specific tools
+- **`generate_tool()`**: Create new tools using AI
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import (
+    ToolExecutionError, 
+    ToolNotFoundError, 
+    ToolGenerationError
+)
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# List all tools
+all_tools = client.tools.list()
+print(f"Found {len(all_tools)} tools across all sources")
+
+# List tools from specific source
+source_tools = client.tools.list(source_uuid="source-uuid-123")
+print(f"Found {len(source_tools)} tools in source")
+
+# Search for specific tools
+search_results = client.tools.search("kubernetes deploy")
+for result in search_results:
+    tool = result["tool"]
+    source = result["source"]
+    print(f"Found: {tool['name']} from {source['name']} (score: {result['distance']})")
+
+# Get detailed tool information
+try:
+    tool_info = client.tools.describe("kubectl-apply")
+    tool = tool_info["tool"]
+    source_name = tool_info["source_name"]
+    
+    print(f"Tool: {tool['name']}")
+    print(f"Source: {source_name}")
+    print(f"Description: {tool.get('description', 'No description')}")
+    
+except ToolNotFoundError as e:
+    print(f"Tool not found: {e}")
+
+# Generate a new tool
+try:
+    generation_result = client.tools.generate_tool(
+        description="Create a tool that deploys a Docker container to Kubernetes",
+        target_dir="./generated_tools"
+    )
+    
+    print(f"Generated tool in session: {generation_result['session_id']}")
+    print(f"Files created: {generation_result['files_created']}")
+    
+except ToolGenerationError as e:
+    print(f"Tool generation failed: {e}")
+```
+
+### Advanced Search
+
+The search functionality provides intelligent matching with scoring:
+
+```python
+# Search with detailed results
+search_query = "database backup"
+results = client.tools.search(search_query)
+
+print(f"Search results for '{search_query}':")
+for result in results:
+    tool = result["tool"]
+    source = result["source"]
+    distance = result["distance"]
+    
+    # Lower distance means better match
+    match_quality = "Exact" if distance == 0 else f"Close ({distance})"
+    
+    print(f"  📦 {tool['name']} - {match_quality}")
+    print(f"     Source: {source['name']}")
+    print(f"     Description: {tool.get('description', 'No description')[:100]}...")
+    print()
+
+# Non-interactive search (for automated systems)
+results = client.tools.search("monitoring alert")
+```
+
+### Tool Generation
+
+Generate new tools with AI assistance:
+
+```python
+import os
+from pathlib import Path
+
+# Basic tool generation
+try:
+    result = client.tools.generate_tool(
+        description="Create a tool that monitors disk usage and sends alerts when usage exceeds 80%"
+    )
+    
+    session_id = result["session_id"]
+    session_dir = result["session_dir"]
+    files_created = result["files_created"]
+    
+    print(f"✨ Tool generated successfully!")
+    print(f"Session ID: {session_id}")
+    print(f"Location: {session_dir}")
+    print(f"Files created:")
+    for file_path in files_created:
+        file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+        print(f"  📄 {file_name} ({file_size} bytes)")
+        
+except ToolGenerationError as e:
+    print(f"Generation failed: {e}")
+
+# Generate with custom target directory
+custom_dir = Path("./my_tools")
+custom_dir.mkdir(exist_ok=True)
+
+try:
+    result = client.tools.generate_tool(
+        description="Create a tool for automated code review using AI",
+        target_dir=str(custom_dir),
+        session_id="my-custom-session-123"  # Optional: reuse session
+    )
+    
+    print(f"Tool generated in: {result['session_dir']}")
+    
+except ToolGenerationError as e:
+    print(f"Generation failed: {e}")
+```
+
+## Error Handling
+
+The Tools service provides specialized exceptions for different failure scenarios:
+
+### ToolExecutionError
+
+Thrown for general tool operation failures:
+
+```python
+try:
+    tools = client.tools.list(source_uuid="invalid-uuid")
+except ToolExecutionError as e:
+    print(f"Tool operation failed: {e}")
+    # Handle generic tool execution errors
+```
+
+### ToolNotFoundError
+
+Thrown when a specific tool cannot be found:
+
+```python
+try:
+    tool_info = client.tools.describe("non-existent-tool")
+except ToolNotFoundError as e:
+    print(f"Tool not found: {e}")
+    # Handle missing tool scenarios
+    
+    # Try searching instead
+    search_results = client.tools.search("non-existent-tool")
+    if search_results:
+        print(f"Did you mean one of these?")
+        for result in search_results[:3]:
+            print(f"  - {result['tool']['name']}")
+```
+
+### ToolGenerationError
+
+Thrown when tool generation fails:
+
+```python
+try:
+    result = client.tools.generate_tool(
+        description="",  # Empty description will fail
+        target_dir="/invalid/path"
+    )
+except ToolGenerationError as e:
+    print(f"Tool generation failed: {e}")
+    
+    # Check for specific error types
+    if "description is required" in str(e):
+        print("💡 Tip: Provide a detailed tool description")
+    elif "directory" in str(e):
+        print("💡 Tip: Check that the target directory is writable")
+```
+
+## Best Practices
+
+### 1. Use Descriptive Search Terms
+
+```python
+# Good: Specific and descriptive
+results = client.tools.search("kubernetes deployment automation")
+
+# Less effective: Too generic
+results = client.tools.search("tool")
+```
+
+### 2. Handle Missing Tools Gracefully
+
+```python
+def get_tool_safely(tool_name: str, source_uuid: str = None):
+    """Safely get tool information with fallback to search"""
+    try:
+        return client.tools.describe(tool_name, source_uuid=source_uuid)
+    except ToolNotFoundError:
+        # Fallback to search
+        search_results = client.tools.search(tool_name)
+        if search_results:
+            best_match = search_results[0]
+            print(f"Tool '{tool_name}' not found. Did you mean '{best_match['tool']['name']}'?")
+            return best_match
+        else:
+            print(f"No tools found matching '{tool_name}'")
+            return None
+```
+
+### 3. Validate Generated Tools
+
+```python
+def validate_generated_tool(session_dir: str, files_created: list):
+    """Validate that generated tool files are properly created"""
+    if not files_created:
+        raise ValueError("No files were generated")
+    
+    for file_path in files_created:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Generated file not found: {file_path}")
+        
+        # Check file size
+        file_size = os.path.getsize(file_path)
+        if file_size == 0:
+            raise ValueError(f"Generated file is empty: {file_path}")
+    
+    print(f"✅ All {len(files_created)} generated files validated")
+
+# Use with tool generation
+try:
+    result = client.tools.generate_tool(description="My awesome tool")
+    validate_generated_tool(result["session_dir"], result["files_created"])
+except (ToolGenerationError, ValueError, FileNotFoundError) as e:
+    print(f"Validation failed: {e}")
+```
+
+### 4. Organize Tool Discovery
+
+```python
+def discover_tools_by_category(category_keywords: list):
+    """Discover tools organized by category"""
+    categorized_tools = {}
+    
+    for keyword in category_keywords:
+        print(f"🔍 Searching for {keyword} tools...")
+        results = client.tools.search(keyword)
+        
+        # Group by source
+        categorized_tools[keyword] = {}
+        for result in results:
+            source_name = result["source"]["name"]
+            if source_name not in categorized_tools[keyword]:
+                categorized_tools[keyword][source_name] = []
+            categorized_tools[keyword][source_name].append(result["tool"])
+    
+    return categorized_tools
+
+# Usage
+categories = ["kubernetes", "database", "monitoring", "security"]
+tools_by_category = discover_tools_by_category(categories)
+
+for category, sources in tools_by_category.items():
+    print(f"\n📂 {category.upper()} TOOLS:")
+    for source_name, tools in sources.items():
+        print(f"  📦 {source_name}: {len(tools)} tools")
+```
+
+## Integration Examples
+
+The Tools service integrates seamlessly with other Kubiya services and workflows:
+
+### With Sources Service
+
+```python
+# List sources first, then get tools from each
+sources = client.sources.list()
+for source in sources:
+    source_uuid = source["uuid"]
+    source_name = source["name"]
+    
+    tools = client.tools.list(source_uuid=source_uuid)
+    print(f"📦 {source_name}: {len(tools)} tools")
+```
+
+### With Workflow Integration
+
+```python
+# Use tool discovery in workflow automation
+def find_deployment_tools():
+    """Find all tools related to deployment"""
+    deployment_tools = client.tools.search("deploy")
+    
+    # Filter for specific patterns
+    k8s_tools = [
+        result for result in deployment_tools 
+        if "kubernetes" in result["tool"].get("description", "").lower()
+    ]
+    
+    return k8s_tools
+
+# Generate deployment workflow
+deployment_tools = find_deployment_tools()
+for tool_result in deployment_tools:
+    tool = tool_result["tool"]
+    print(f"Available deployment tool: {tool['name']}")
+```
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check out tool generation examples in the tutorials section

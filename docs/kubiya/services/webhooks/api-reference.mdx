@@ -1,0 +1,472 @@
+---
+title: "Webhooks Service API Reference"
+description: "Complete API reference for the Kubiya Webhooks service methods and exceptions"
+icon: "code"
+tags: ["webhooks", "api", "reference"]
+---
+
+# Webhooks Service API Reference
+
+Complete reference documentation for all methods and exceptions in the Kubiya Webhooks service.
+
+## Classes
+
+### WebhookService
+
+Main service class for managing webhooks.
+
+```python
+class WebhookService(BaseService):
+    """Service for managing webhooks"""
+```
+
+#### Methods
+
+##### `list(limit: Optional[int] = None) -> List[Dict[str, Any]]`
+
+List all webhooks with optional limiting.
+
+**Parameters:**
+- `limit` (`Optional[int]`): Limit the number of webhooks to display
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of webhooks
+
+**Raises:**
+- `WebhookError`: For general webhook listing errors
+
+**Example:**
+```python
+# List all webhooks
+webhooks = client.webhooks.list()
+print(f"Found {len(webhooks)} webhooks")
+
+# List with limit
+webhooks_limited = client.webhooks.list(limit=5)
+print(webhooks_limited)
+```
+
+##### `describe(webhook_id: str) -> Dict[str, Any]`
+
+Get detailed information about a specific webhook.
+
+**Parameters:**
+- `webhook_id` (`str`): The webhook ID to retrieve
+
+**Returns:**
+- `Dict[str, Any]`: Complete webhook details
+
+**Raises:**
+- `WebhookError`: If webhook not found or access denied
+
+**Example:**
+```python
+try:
+    webhook = client.webhooks.describe("webhook-uuid")
+    
+    print(f"Webhook: {webhook['name']}")
+    print(f"Source: {webhook['source']}")
+    print(f"URL: {webhook['webhook_url']}")
+    
+    if webhook.get('agent_id'):
+        print(f"Target: Agent ({webhook['agent_id']})")
+    elif webhook.get('workflow'):
+        print("Target: Workflow")
+        
+except WebhookError as e:
+    print(f"Failed to get webhook: {e}")
+```
+
+##### `create(...) -> Dict[str, Any]`
+
+Create a new webhook with specified configuration.
+
+**Parameters:**
+- `name` (`str`): Webhook name
+- `source` (`str`): Event source (e.g., "github", "JIRA", "slack", "custom")
+- `agent_id` (`Optional[str]`): Agent ID (required for agent target)
+- `target` (`str`): Webhook target - `"agent"` or `"workflow"` (default: "agent")
+- `workflow` (`Optional[str]`): Workflow definition (required for workflow target)
+- `runner` (`Optional[str]`): Runner name for workflow execution
+- `method` (`str`): Communication method - `"Slack"`, `"Teams"`, or `"HTTP"` (default: "Slack")
+- `destination` (`Optional[str]`): Communication destination (channel, team:channel, etc.)
+- `filter` (`Optional[str]`): JMESPath event filter expression
+- `prompt` (`Optional[str]`): Agent prompt with template variables (required for agent target)
+- `hide_webhook_headers` (`bool`): Hide webhook headers in notifications (default: False)
+
+**Returns:**
+- `Dict[str, Any]`: Created webhook details including webhook URL
+
+**Validation Rules:**
+- For `target="agent"`: `agent_id` and `prompt` are required
+- For `target="workflow"`: `workflow` definition is required
+- Teams destinations support "team:channel" format auto-conversion
+
+**Example:**
+```python
+# JIRA webhook
+jira_webhook = client.webhooks.create(
+    name="jira-sprint-summarizer",
+    source="JIRA",
+    agent_id="sprint-analysis-agent-id",
+    target="agent",
+    prompt="Please summarize the sprint details according to {{.event.sprint}}",
+    method="Slack",
+    destination="#sprint-updates",
+    filter="event.webhookEvent == 'sprint_closed'"
+)
+
+# GitHub webhook
+github_webhook = client.webhooks.create(
+    name="github-pr-notifications",
+    source="github",
+    agent_id="pr-review-agent-id",
+    target="agent",
+    prompt="New PR: {{.pull_request.title}} by {{.pull_request.user.login}}",
+    method="Slack",
+    destination="#dev-team",
+    filter="pull_request.action == 'opened'"
+)
+
+# Workflow-based webhook
+workflow_def = {
+    "steps": [
+        {"name": "validate", "action": "validate_deployment"},
+        {"name": "notify", "action": "send_notification"}
+    ]
+}
+
+workflow_webhook = client.webhooks.create(
+    name="deployment-webhook",
+    source="custom",
+    target="workflow",
+    workflow=workflow_def,
+    runner="production-runner",
+    method="Teams",
+    destination="devops:alerts"
+)
+
+print(f"JIRA webhook created: {jira_webhook['id']}")
+print(f"GitHub webhook created: {github_webhook['id']}")
+print(f"Workflow webhook created: {workflow_webhook['id']}")
+```
+
+##### `update(webhook_id: str, ...) -> Dict[str, Any]`
+
+Update an existing webhook's configuration.
+
+**Parameters:**
+- `webhook_id` (`str`): The webhook ID to update
+- `name` (`Optional[str]`): New webhook name
+- `source` (`Optional[str]`): New event source
+- `agent_id` (`Optional[str]`): New agent ID
+- `method` (`Optional[str]`): New communication method
+- `destination` (`Optional[str]`): New communication destination
+- `filter_expression` (`Optional[str]`): New event filter
+- `prompt` (`Optional[str]`): New agent prompt
+- `hide_headers` (`Optional[bool]`): New hide headers setting
+
+**Returns:**
+- `Dict[str, Any]`: Updated webhook details
+
+**Example:**
+```python
+# Update webhook destination and filter
+updated_webhook = client.webhooks.update(
+    webhook_id="webhook-uuid",
+    destination="#new-channel",
+    filter_expression="pull_request.action == 'opened' && pull_request.base.ref == 'main'"
+)
+
+# Update prompt template
+updated_webhook = client.webhooks.update(
+    webhook_id="webhook-uuid",
+    prompt="Updated prompt: {{.event.type}} - {{.event.message}}"
+)
+```
+
+##### `delete(webhook_id: str) -> Dict[str, Any]`
+
+Delete a webhook permanently.
+
+**Parameters:**
+- `webhook_id` (`str`): The webhook ID to delete
+
+**Returns:**
+- `Dict[str, Any]`: Deletion result
+
+**Example:**
+```python
+result = client.webhooks.delete("webhook-uuid")
+print(f"Webhook deleted: {result}")
+```
+
+##### `test(...) -> Union[Dict[str, Any], str]`
+
+Test a webhook by sending test data.
+
+**Parameters:**
+- `webhook_id` (`Optional[str]`): Webhook ID (alternative to webhook_url)
+- `webhook_url` (`Optional[str]`): Direct webhook URL
+- `test_data` (`Optional[Dict[str, Any]]`): JSON data to send
+- `wait_for_response` (`bool`): Wait for HTTP response (default: False)
+- `auto_generate` (`bool`): Auto-generate test data based on template variables (default: False)
+
+**Returns:**
+- `Union[Dict[str, Any], str]`: Test result or response
+
+**Default Test Data Structure:**
+```python
+{
+    "test": True,
+    "timestamp": "2024-01-01T00:00:00Z",
+    "message": "Test webhook from Kubiya Python SDK"
+}
+```
+
+**Example:**
+```python
+# Basic test with default data
+result = client.webhooks.test(
+    webhook_id="webhook-uuid",
+    wait_for_response=True
+)
+
+# Test with custom data
+test_data = {
+    "pull_request": {
+        "title": "Test PR",
+        "user": {"login": "testuser"},
+        "action": "opened"
+    }
+}
+
+result = client.webhooks.test(
+    webhook_id="webhook-uuid",
+    test_data=test_data
+)
+
+# Auto-generate test data from prompt template
+result = client.webhooks.test(
+    webhook_id="webhook-uuid",
+    auto_generate=True
+)
+```
+
+##### `import_from_file(file_path: str) -> Dict[str, Any]`
+
+Import webhook configuration from a JSON or YAML file.
+
+**Parameters:**
+- `file_path` (`str`): Path to the webhook definition file
+
+**Returns:**
+- `Dict[str, Any]`: Imported webhook details
+
+**Supported File Formats:**
+- JSON files (`.json`)
+- YAML files (`.yaml`, `.yml`)
+
+**File Structure:**
+```yaml
+# webhook-config.yaml
+name: "imported-webhook"
+source: "github"
+agent_id: "agent-uuid"
+prompt: "Imported webhook: {{.event.type}}"
+communication:
+  method: "Slack"
+  destination: "#imported-channel"
+filter: "event.action == 'created'"
+```
+
+**Example:**
+```python
+# Import from JSON file
+webhook = client.webhooks.import_from_file("./configs/webhook.json")
+
+# Import from YAML file
+webhook = client.webhooks.import_from_file("./configs/webhook.yaml")
+
+print(f"Imported webhook: {webhook['id']}")
+```
+
+##### `export_to_file(webhook_id: str, file_path: str, format: str = "json") -> Dict[str, Any]`
+
+Export webhook configuration to a file.
+
+**Parameters:**
+- `webhook_id` (`str`): The webhook ID to export
+- `file_path` (`str`): Output file path
+- `format` (`str`): Export format - `"json"` or `"yaml"` (default: "json")
+
+**Returns:**
+- `Dict[str, Any]`: Export result with metadata
+
+
+**Example:**
+```python
+# Export to JSON
+result = client.webhooks.export_to_file(
+    webhook_id="webhook-uuid",
+    file_path="./backup/webhook.json",
+    format="json"
+)
+
+# Export to YAML
+result = client.webhooks.export_to_file(
+    webhook_id="webhook-uuid", 
+    file_path="./backup/webhook.yaml",
+    format="yaml"
+)
+
+print(f"Exported to: {result['file_path']}")
+```
+
+---
+
+## Exceptions
+
+### WebhookError
+
+Base exception class for all webhook-related errors.
+
+```python
+class WebhookError(Exception):
+    """Base exception for webhook operations"""
+```
+
+**Attributes:**
+- `message` (`str`): Error message describing the failure
+- `details` (`Optional[Dict[str, Any]]`: Additional error context
+
+**Example:**
+```python
+try:
+    webhook = client.webhooks.describe("invalid-id")
+except WebhookError as e:
+    print(f"Webhook operation failed: {e}")
+    
+    # Access additional context if available
+    if hasattr(e, 'details') and e.details:
+        print(f"Error details: {e.details}")
+```
+
+---
+
+### ValidationError
+
+Specialized exception for input validation failures.
+
+```python
+class ValidationError(Exception):
+    """Exception raised for validation errors"""
+```
+
+**Common Validation Scenarios:**
+- Missing required parameters (e.g., `agent_id` for agent target)
+- Invalid parameter combinations
+- Invalid file paths for import operations
+- Invalid JMESPath filter expressions
+
+**Example:**
+```python
+try:
+    # Missing required agent_id for agent target
+    webhook = client.webhooks.create(
+        name="invalid-webhook",
+        source="github",
+        target="agent"  # Missing agent_id and prompt
+    )
+except ValidationError as e:
+    print(f"Validation failed: {e}")
+    
+    # Fix validation issues
+    webhook = client.webhooks.create(
+        name="valid-webhook",
+        source="github",
+        target="agent",
+        agent_id="valid-agent-id",
+        prompt="Valid prompt template"
+    )
+```
+
+---
+
+## Template Variables
+
+Webhook prompts support template variables using `{{.path.to.variable}}` syntax:
+
+### Common GitHub Variables
+
+```python
+# Pull request webhook prompt
+prompt = """
+New pull request: {{.pull_request.title}}
+Author: {{.pull_request.user.login}}
+Repository: {{.repository.name}}
+Branch: {{.pull_request.head.ref}} → {{.pull_request.base.ref}}
+"""
+
+# Issue webhook prompt  
+prompt = """
+Issue {{.action}}: {{.issue.title}}
+Reporter: {{.issue.user.login}}
+Labels: {{.issue.labels[].name | join(', ')}}
+"""
+```
+
+### Common JIRA Variables
+
+```python
+# Sprint closed webhook prompt
+prompt = """
+Sprint Closed: {{.sprint.name}}
+State: {{.sprint.state}}
+Start Date: {{.sprint.startDate}}
+End Date: {{.sprint.endDate}}
+"""
+
+# Issue updated webhook prompt
+prompt = """
+Issue Updated: {{.issue.key}} - {{.issue.fields.summary}}
+Status: {{.issue.fields.status.name}}
+Assignee: {{.issue.fields.assignee.displayName}}
+"""
+
+# Epic link example
+prompt = "Epic Link: {{.issue.fields.customfield_10008}}"
+```
+
+### Custom Event Variables
+
+```python
+# Custom deployment webhook
+prompt = """
+Deployment {{.deployment.status}}
+Environment: {{.deployment.environment}}
+Version: {{.deployment.version}}
+Duration: {{.deployment.duration}}
+"""
+```
+
+### Auto-Generated Test Data
+
+The `test()` method with `auto_generate=True` analyzes prompt templates and creates appropriate test data:
+
+```python
+# For prompt: "PR {{.pull_request.title}} by {{.pull_request.user.login}}"
+# Generates:
+{
+    "pull_request": {
+        "title": "sample-title",
+        "user": {
+            "login": "sample-login"
+        }
+    },
+    "_test": {
+        "timestamp": "2024-01-01T00:00:00Z",
+        "message": "Auto-generated test webhook data"
+    }
+}
+```

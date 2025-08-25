@@ -1,0 +1,342 @@
+---
+title: "Stacks Service Overview"
+description: "Complete guide to the Kubiya Stacks service for managing Terraform deployments"
+icon: "layers"
+tags: ["stacks", "terraform", "infrastructure"]
+---
+
+# Stacks Service Overview
+
+The Kubiya Stacks service provides a powerful interface for managing Terraform deployments through the Kubiya platform. 
+It enables you to plan, apply, and monitor Terraform configurations with full streaming support and comprehensive error handling.
+
+## Features
+
+- **Terraform Management**: Plan and apply Terraform configurations
+- **File Flexibility**: Support for both inline content and file paths
+- **Real-time Streaming**: Stream apply operation logs in real-time
+- **Comprehensive Error Handling**: Detailed error reporting with Terraform-specific context
+- **Validation**: Built-in validation for required files and content
+
+## Core Components
+
+### StackFiles
+
+The `StackFiles` class handles Terraform configuration files with flexible input options:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.services.stacks import StackFiles
+
+# Option 1: Direct content
+stack_files = StackFiles(
+    main_tf="terraform { ... }",
+    variables_tf="variable \"name\" { ... }"
+)
+
+# Option 2: File paths
+stack_files = StackFiles(
+    main_tf_path="./terraform/main.tf",
+    variables_tf_path="./terraform/variables.tf"
+)
+
+# Option 3: Mixed approach
+stack_files = StackFiles(
+    main_tf="terraform { ... }",  # Direct content
+    variables_tf_path="./variables.tf"  # File path
+)
+```
+
+### StackRequest
+
+The `StackRequest` class combines stack metadata with configuration files:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.services.stacks import StackRequest
+
+stack_request = StackRequest(
+    name="my-infrastructure-stack",
+    files=stack_files
+)
+```
+
+### StacksService
+
+The main service class provides three core operations:
+
+- **`plan()`**: Validate and plan Terraform changes
+- **`apply()`**: Execute Terraform deployment
+- **`stream()`**: Stream real-time logs from apply operations
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.services.stacks import StackRequest, StackFiles
+from kubiya_workflow_sdk.kubiya_services.exceptions import StackPlanError, StackApplyError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Create stack configuration
+stack_files = StackFiles(
+    main_tf='''
+        terraform {
+          required_providers {
+            local = {
+              source  = "hashicorp/local"
+              version = "~> 2.1"
+            }
+          }
+        }
+        
+        resource "local_file" "example" {
+          content  = "Hello, Terraform!"
+          filename = "example.txt"
+        }
+    ''',
+    variables_tf='''
+        variable "environment" {
+          description = "Environment name"
+          type        = string
+          default     = "dev"
+        }
+    '''
+)
+
+stack_request = StackRequest(
+    name="hello-world-stack",
+    files=stack_files
+)
+
+try:
+    # Plan the deployment
+    plan_result = client.stacks.plan(stack_request)
+    print(f"Plan successful: {plan_result}")
+    
+    # Apply the deployment
+    apply_result = client.stacks.apply(stack_request)
+    print(f"Apply initiated: {apply_result}")
+    
+    # Stream logs if stack_id is returned
+    # Stream logs - no stack_id needed! Service tracks it internally
+    for log_line in client.stacks.stream():
+        print(f"Log: {log_line}")
+        
+    # Or use explicit stack_id for backward compatibility
+    # if apply_result.get("uuid"):
+    #     for log_line in client.stacks.stream(apply_result["uuid"]):
+    #         print(f"Log: {log_line}")
+            
+except StackPlanError as e:
+    print(f"Planning failed: {e}")
+    if e.details.get("validation_errors"):
+        print(f"Terraform errors: {e.details['validation_errors']}")
+        
+except StackApplyError as e:
+    print(f"Apply failed: {e}")
+    if e.details.get("terraform_errors"):
+        print(f"Terraform errors: {e.details['terraform_errors']}")
+```
+
+### File-Based Configuration
+
+For larger configurations, you can use file paths:
+
+```python
+import tempfile
+from pathlib import Path
+
+# Create temporary Terraform files
+temp_dir = Path(tempfile.mkdtemp())
+
+# Write main.tf
+main_tf_path = temp_dir / "main.tf"
+main_tf_path.write_text('''
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+resource "aws_s3_bucket" "example" {
+  bucket = var.bucket_name
+}
+''')
+
+# Write variables.tf
+variables_tf_path = temp_dir / "variables.tf"
+variables_tf_path.write_text('''
+variable "bucket_name" {
+  description = "Name of the S3 bucket"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment tag"
+  type        = string
+  default     = "dev"
+}
+''')
+
+# Create stack with file paths
+stack_files = StackFiles(
+    main_tf_path=main_tf_path,
+    variables_tf_path=variables_tf_path
+)
+
+stack_request = StackRequest(
+    name="aws-s3-stack",
+    files=stack_files
+)
+
+# Use as before...
+```
+
+## Error Handling
+
+The Stacks service provides specialized exceptions for different failure scenarios:
+
+### StackPlanError
+
+Thrown when Terraform planning fails:
+
+```python
+try:
+    plan_result = client.stacks.plan(stack_request)
+except StackPlanError as e:
+    print(f"Plan failed: {e}")
+    print(f"Stack name: {e.stack_name}")
+    
+    # Access detailed validation errors
+    if e.details.get("validation_errors"):
+        errors = e.details["validation_errors"]
+        print(f"Error message: {errors.get('errorMessage')}")
+        print(f"Init output: {errors.get('initOutput')}")
+        print(f"Plan output: {errors.get('planOutput')}")
+```
+
+### StackApplyError
+
+Thrown when Terraform apply fails:
+
+```python
+try:
+    apply_result = client.stacks.apply(stack_request)
+except StackApplyError as e:
+    print(f"Apply failed: {e}")
+    print(f"Stack name: {e.stack_name}")
+    print(f"Stack ID: {e.stack_id}")
+    
+    # Access Terraform-specific errors
+    if e.details.get("terraform_errors"):
+        errors = e.details["terraform_errors"]
+        print(f"Error message: {errors.get('errorMessage')}")
+        print(f"Full result: {errors.get('result')}")
+```
+
+### StackStreamError
+
+Thrown when log streaming fails:
+
+```python
+try:
+    for log_line in client.stacks.stream(stack_id):
+        print(log_line)
+except StackStreamError as e:
+    print(f"Streaming failed: {e}")
+    print(f"Stack ID: {e.stack_id}")
+    
+    # Check stream position if available
+    if e.details.get("stream_position"):
+        print(f"Failed at position: {e.details['stream_position']}")
+```
+
+## Best Practices
+
+### 1. Always Plan Before Apply
+
+```python
+# Good practice: Plan first to validate
+try:
+    plan_result = client.stacks.plan(stack_request)
+    print("Plan successful, proceeding with apply...")
+    
+    apply_result = client.stacks.apply(stack_request)
+except StackPlanError as e:
+    print("Fix planning issues before applying")
+    return
+```
+
+### 2. Handle Streaming Gracefully
+
+```python
+# Stream with proper error handling
+stack_id = apply_result.get("uuid")
+if stack_id:
+    try:
+        for log_line in client.stacks.stream(stack_id):
+            # Process each log line
+            if "ERROR" in log_line:
+                print(f"⚠️  {log_line}")
+            else:
+                print(f"📋 {log_line}")
+    except StackStreamError as e:
+        print(f"Streaming interrupted: {e}")
+        # Consider implementing retry logic
+```
+
+### 3. Validate File Content
+
+```python
+# Validate content before creating request
+try:
+    main_content = stack_files.get_main_tf_content()
+    vars_content = stack_files.get_variables_tf_content()
+    
+    print(f"Main.tf: {len(main_content)} characters")
+    print(f"Variables.tf: {len(vars_content)} characters")
+    
+    if len(main_content) == 0:
+        raise ValueError("Main.tf cannot be empty")
+        
+except FileNotFoundError as e:
+    print(f"File not found: {e}")
+    return
+```
+
+### 4. Use Meaningful Stack Names
+
+```python
+# Use descriptive, environment-specific names
+stack_name = f"{project}-{environment}-{component}-{version}"
+
+stack_request = StackRequest(
+    name=stack_name,  # e.g., "webapp-prod-infrastructure-v1.2.0"
+    files=stack_files
+)
+```
+
+## Integration Examples
+
+The Stacks service integrates seamlessly with other Kubiya services and workflows. 
+Check the API reference for detailed method signatures and the examples directory for comprehensive usage patterns.
+
+### Common Terraform Patterns
+
+- **Multi-environment deployments**: Use variables for environment-specific configurations
+- **Modular infrastructure**: Organize Terraform code into reusable modules
+- **State management**: Let Kubiya handle Terraform state automatically
+- **Provider configuration**: Include necessary provider blocks in your main.tf
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples

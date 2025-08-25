@@ -1,0 +1,350 @@
+---
+title: "Users Service Overview"
+description: "Complete guide to the Kubiya Users service for managing users and groups"
+icon: "users"
+tags: ["users", "groups", "organization"]
+---
+
+# Users Service Overview
+
+The Kubiya Users service provides a comprehensive interface for managing users and groups within your organization through the Kubiya platform. 
+It enables you to list users and groups with pagination support and comprehensive error handling.
+
+## Features
+
+- **User Management**: List all users in your organization
+- **Group Management**: List all groups in your organization  
+- **Pagination Support**: Built-in pagination for large datasets
+- **Comprehensive Error Handling**: Detailed error reporting with user-specific context
+
+## Core Components
+
+### UserService
+
+The `UserService` class provides access to user and group management operations:
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Access users service
+users_service = client.users
+```
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import UserError, GroupError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # List all users with default pagination
+    users = client.users.list_users()
+    print(f"Found {len(users)} users")
+    
+    for user in users:
+        print(f"User: {user.get('name', 'N/A')} ({user.get('email', 'N/A')})")
+    
+    # List all groups
+    groups = client.users.list_groups()
+    print(f"Found {len(groups)} groups")
+    
+    for group in groups:
+        print(f"Group: {group.get('name', 'N/A')}")
+        
+except UserError as e:
+    print(f"User operation failed: {e}")
+    
+except GroupError as e:
+    print(f"Group operation failed: {e}")
+```
+
+### Pagination
+
+The users service supports pagination for handling large datasets:
+
+```python
+# Get first 50 users
+users_page_1 = client.users.list_users(limit=50, page=1)
+print(f"Page 1: {len(users_page_1)} users")
+
+# Get next 50 users
+users_page_2 = client.users.list_users(limit=50, page=2)
+print(f"Page 2: {len(users_page_2)} users")
+
+# Process all users with pagination
+page = 1
+all_users = []
+
+while True:
+    users_batch = client.users.list_users(limit=100, page=page)
+    
+    if not users_batch:
+        break
+        
+    all_users.extend(users_batch)
+    page += 1
+    
+    print(f"Loaded {len(users_batch)} users from page {page-1}")
+
+print(f"Total users loaded: {len(all_users)}")
+```
+
+### Advanced User Filtering
+
+```python
+# Get users and filter by attributes
+users = client.users.list_users(limit=1000)
+
+# Filter by email domain
+company_users = [user for user in users if user.get('email', '').endswith('@company.com')]
+print(f"Company users: {len(company_users)}")
+```
+
+## Error Handling
+
+The Users service provides specialized exceptions for different failure scenarios:
+
+### UserError
+
+Thrown when user operations fail:
+
+```python
+try:
+    users = client.users.list_users()
+except UserError as e:
+    print(f"User operation failed: {e}")
+    
+    # Log error details
+    logger.error(f"Failed to list users: {e}")
+    
+    # Implement retry logic if needed
+    import time
+    time.sleep(5)
+    # retry...
+```
+
+### GroupError
+
+Thrown when group operations fail:
+
+```python
+try:
+    groups = client.users.list_groups()
+except GroupError as e:
+    print(f"Group operation failed: {e}")
+    
+    # Handle group-specific errors
+    if "permission" in str(e).lower():
+        print("Insufficient permissions to list groups")
+    elif "not found" in str(e).lower():
+        print("Groups endpoint not available")
+```
+
+### Comprehensive Error Handling
+
+```python
+import logging
+from kubiya_workflow_sdk.kubiya_services.exceptions import UserError, GroupError
+
+logger = logging.getLogger(__name__)
+
+def get_organization_info():
+    """Get complete organization user and group information"""
+    try:
+        # Get users with error handling
+        try:
+            users = client.users.list_users(limit=1000)
+            logger.info(f"Successfully retrieved {len(users)} users")
+        except UserError as e:
+            logger.error(f"Failed to retrieve users: {e}")
+            users = []
+        
+        # Get groups with error handling
+        try:
+            groups = client.users.list_groups()
+            logger.info(f"Successfully retrieved {len(groups)} groups")
+        except GroupError as e:
+            logger.error(f"Failed to retrieve groups: {e}")
+            groups = []
+            
+        return {
+            'users': users,
+            'groups': groups,
+            'total_users': len(users),
+            'total_groups': len(groups)
+        }
+        
+    except Exception as e:
+        logger.error(f"Unexpected error retrieving organization info: {e}")
+        return {
+            'users': [],
+            'groups': [],
+            'total_users': 0,
+            'total_groups': 0,
+            'error': str(e)
+        }
+```
+
+## Best Practices
+
+### 1. Use Pagination for Large Organizations
+
+```python
+# Good practice: Use reasonable page sizes
+def get_all_users_efficiently():
+    all_users = []
+    page = 1
+    page_size = 100  # Reasonable page size
+    
+    while True:
+        try:
+            batch = client.users.list_users(limit=page_size, page=page)
+            
+            if not batch:
+                break
+                
+            all_users.extend(batch)
+            page += 1
+            
+            # Optional: Add delay to avoid rate limiting
+            time.sleep(0.1)
+            
+        except UserError as e:
+            logger.error(f"Error on page {page}: {e}")
+            break
+    
+    return all_users
+```
+
+### 2. Cache Results for Performance
+
+```python
+import time
+from typing import Optional
+
+class UserCache:
+    def __init__(self, ttl_seconds: int = 300):  # 5 minutes default
+        self.ttl_seconds = ttl_seconds
+        self._users_cache = None
+        self._groups_cache = None
+        self._users_timestamp = 0
+        self._groups_timestamp = 0
+    
+    def get_users(self, force_refresh: bool = False) -> list:
+        current_time = time.time()
+        
+        if (force_refresh or 
+            self._users_cache is None or 
+            current_time - self._users_timestamp > self.ttl_seconds):
+            
+            try:
+                self._users_cache = client.users.list_users(limit=1000)
+                self._users_timestamp = current_time
+            except UserError as e:
+                logger.error(f"Failed to refresh user cache: {e}")
+                # Return cached data if available
+                if self._users_cache is not None:
+                    return self._users_cache
+                raise
+        
+        return self._users_cache or []
+    
+    def get_groups(self, force_refresh: bool = False) -> list:
+        current_time = time.time()
+        
+        if (force_refresh or 
+            self._groups_cache is None or 
+            current_time - self._groups_timestamp > self.ttl_seconds):
+            
+            try:
+                self._groups_cache = client.users.list_groups()
+                self._groups_timestamp = current_time
+            except GroupError as e:
+                logger.error(f"Failed to refresh group cache: {e}")
+                # Return cached data if available
+                if self._groups_cache is not None:
+                    return self._groups_cache
+                raise
+        
+        return self._groups_cache or []
+
+# Usage
+cache = UserCache(ttl_seconds=600)  # 10 minutes
+
+users = cache.get_users()
+groups = cache.get_groups()
+```
+
+### 3. Implement Robust Search and Filtering
+
+```python
+def find_users_by_criteria(
+    email_domain: Optional[str] = None,
+    name_pattern: Optional[str] = None,
+    status: Optional[str] = None
+) -> list:
+    """Find users matching specific criteria"""
+    
+    try:
+        all_users = client.users.list_users(limit=1000)
+        filtered_users = all_users
+        
+        # Filter by email domain
+        if email_domain:
+            filtered_users = [
+                user for user in filtered_users 
+                if user.get('email', '').endswith(f'@{email_domain}')
+            ]
+        
+        # Filter by name pattern
+        if name_pattern:
+            pattern = name_pattern.lower()
+            filtered_users = [
+                user for user in filtered_users
+                if pattern in user.get('name', '').lower() or 
+                   pattern in user.get('email', '').lower()
+            ]
+        
+        return filtered_users
+        
+    except UserError as e:
+        logger.error(f"Failed to search users: {e}")
+        return []
+
+# Usage examples
+company_users = find_users_by_criteria(email_domain="company.com")
+johns = find_users_by_criteria(name_pattern="john")
+```
+
+## Integration Examples
+
+The Users service integrates seamlessly with other Kubiya services and workflows. 
+Use it for access control, audit logging, and organizational reporting.
+
+### Common Use Cases
+
+- **Access Control**: Verify user permissions before executing operations
+- **Audit Logging**: Track user activities across different services
+- **Organizational Reporting**: Generate reports on user distribution and group membership
+- **User Onboarding**: Automate user setup and group assignments
+- **Compliance**: Monitor user access and group memberships for security compliance
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check other service documentation for integration patterns

@@ -1,0 +1,509 @@
+---
+title: "Projects Service Overview"
+description: "Complete guide to the Kubiya Projects service for managing infrastructure projects and templates"
+icon: "folder-open"
+tags: ["projects", "templates", "infrastructure"]
+---
+
+# Projects Service Overview
+
+The Kubiya Projects service provides a comprehensive interface for managing infrastructure projects through template-based deployments. 
+It enables you to create, manage, and deploy projects using predefined templates with robust variable validation, planning workflows, and deployment automation.
+
+## Features
+
+- **Template-Based Projects**: Create projects from reusable templates with predefined configurations
+- **Variable Validation**: Comprehensive validation of project variables against template schemas
+- **Environment Management**: Support for sensitive variables and environment-specific configurations
+- **Planning Workflows**: Plan and approve project deployments before execution
+- **File-Based Configuration**: Support for loading variables from JSON files
+- **Template Repository Integration**: Fetch templates from external repositories
+- **Lifecycle Management**: Complete CRUD operations for project management
+
+## Core Concepts
+
+### Projects
+
+Projects are infrastructure deployments created from templates. Each project has:
+- A unique name and description
+- Variables that configure the deployment
+- A template that defines the infrastructure
+- Plans and executions for deployment tracking
+
+### Templates
+
+Templates define reusable infrastructure patterns with:
+- Required and optional variables
+- Type validation schemas
+- Secret requirements
+- Resource definitions
+
+### Variables
+
+Variables configure project deployments and support:
+- Type validation (string, number, boolean, array, object)
+- Required vs optional designation
+- Default values
+- Sensitive variable handling
+
+## Quick Start
+
+### Basic Project Creation
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import ProjectValidationError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # Create a simple project
+    project = client.projects.create(
+        name="my-web-app",
+        template_id="webapp-template-v1",
+        description="Production web application deployment",
+        variables={
+            "environment": "production",
+            "instance_count": "3",
+            "enable_ssl": "true"
+        }
+    )
+    
+    print(f"Project created: {project}")
+    
+except ProjectValidationError as e:
+    print(f"Validation failed: {e}")
+```
+
+### Template-Based Workflow
+
+```python
+# 1. List available templates
+templates = client.projects.templates()
+print("Available templates:")
+for template in templates.get("usecases", []):
+    print(f"- {template['name']}: {template['description']}")
+
+# 2. Get template details
+template_info = client.projects.template_info("webapp-template-v1")
+print(f"Template variables: {template_info['variables']}")
+print(f"Required secrets: {template_info.get('secrets', [])}")
+
+# 3. Create project with full validation
+project = client.projects.create(
+    name="production-webapp",
+    template_id="webapp-template-v1",
+    description="Production web application",
+    variables={
+        "app_name": "my-app",
+        "environment": "prod",
+        "replica_count": "5",
+        "database_url": "postgres://..."
+    },
+    sensitive_variables={
+        "api_key": "secret-api-key",
+        "database_password": "secret-password"
+    }
+)
+```
+
+### File-Based Configuration
+
+For complex projects with many variables, use JSON files:
+
+```python
+import json
+import tempfile
+
+# Create variables file
+variables_data = {
+    "app_name": "my-application",
+    "environment": "production",
+    "replica_count": 3,
+    "enable_monitoring": True,
+    "allowed_hosts": ["api.example.com", "app.example.com"],
+    "database_config": {
+        "host": "db.example.com",
+        "port": 5432,
+        "name": "myapp_prod"
+    }
+}
+
+# Write to temporary file
+with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    json.dump(variables_data, f, indent=2)
+    variables_file = f.name
+
+try:
+    # Create project using variables file
+    project = client.projects.create(
+        name="complex-app",
+        template_id="full-stack-template",
+        description="Complex application deployment",
+        variables_file=variables_file,
+        # Additional variables can still be provided
+        variables={
+            "deployment_region": "us-east-1"
+        }
+    )
+    
+    print(f"Project created: {project['name']}")
+    
+finally:
+    # Clean up temporary file
+    import os
+    os.unlink(variables_file)
+```
+
+## Planning and Deployment
+
+### Plan-Apply Workflow
+
+```python
+# Create project first
+project = client.projects.create(
+    name="infrastructure-stack",
+    template_id="aws-vpc-template",
+    variables={"vpc_cidr": "10.0.0.0/16", "availability_zones": "3"}
+)
+
+project_id = project["id"]
+
+# Create deployment plan
+plan = client.projects.plan(project_id)
+print(f"Plan created: {plan['plan_id']}")
+print(f"Changes: {plan.get('changes', 'No changes')}")
+
+# Review and approve plan
+if plan.get('changes'):
+    execution = client.projects.approve(plan['plan_id'])
+    print(f"Execution started: {execution}")
+else:
+    print("No changes to apply")
+```
+
+### Auto-Approval
+
+For automated workflows, use auto-approval:
+
+```python
+# Plan and auto-approve if there are changes
+execution = client.projects.plan(
+    project_id=project_id,
+    auto_approve=True
+)
+
+if execution.get('execution_id'):
+    print("Deployment started automatically")
+else:
+    print("No changes detected")
+```
+
+## Project Management
+
+### Listing and Describing Projects
+
+```python
+# List all projects
+projects = client.projects.list()
+for project in projects.get("usecases", []):
+    print(f"Project: {project['name']} (ID: {project['id']})")
+
+# Get detailed project information
+project_details = client.projects.describe(project_id)
+print(f"Project: {project_details['name']}")
+print(f"Template: {project_details['template_id']}")
+print(f"Variables: {project_details['variables']}")
+```
+
+### Updating Projects
+
+```python
+# Update project configuration
+updated_project = client.projects.update(
+    project_id=project_id,
+    description="Updated production web application",
+    variables={
+        "replica_count": "10",  # Scale up
+        "enable_caching": "true"  # Add new feature
+    }
+)
+
+print(f"Project updated: {updated_project}")
+```
+
+### Deleting Projects
+
+```python
+# Delete a project
+result = client.projects.delete(project_id)
+print(f"Project deleted: {result}")
+```
+
+## Error Handling
+
+The Projects service provides detailed error handling for various scenarios:
+
+### Variable Validation Errors
+
+```python
+try:
+    project = client.projects.create(
+        name="invalid-project",
+        template_id="webapp-template",
+        variables={
+            "replica_count": "not-a-number",  # Invalid type
+            "invalid_option": "some-value"    # Not in template
+        }
+    )
+except ProjectValidationError as e:
+    print(f"Validation failed: {e}")
+    
+    # Error message includes specific validation failures:
+    # - missing required variables
+    # - type validation errors  
+    # - extra variables not in template
+    # - missing environment variables for secrets
+```
+
+### Missing Template Variables
+
+```python
+try:
+    project = client.projects.create(
+        name="incomplete-project",
+        template_id="webapp-template",
+        variables={
+            "app_name": "my-app"
+            # Missing required variables like 'environment', 'database_url'
+        }
+    )
+except ProjectValidationError as e:
+    print(f"Missing required variables: {e}")
+    # Error will list all missing required variables
+    # and show template help information
+```
+
+### Environment Variable Requirements
+
+```python
+import os
+
+# Template requires DATABASE_PASSWORD environment variable
+try:
+    project = client.projects.create(
+        name="secure-app",
+        template_id="secure-webapp-template",
+        variables={"app_name": "secure-app"}
+        # Missing: export DATABASE_PASSWORD="secret"
+    )
+except ProjectValidationError as e:
+    print(f"Missing environment variables: {e}")
+    # Error will show required environment variables
+    # and provide export command examples
+```
+
+## Validation Features
+
+### Skip Validation
+
+For development or special cases, validation can be skipped:
+
+```python
+project = client.projects.create(
+    name="dev-project",
+    template_id="webapp-template",
+    variables={"custom_config": "non-standard-value"},
+    skip_var_validation=True  # Skip template validation
+)
+```
+
+### Type Validation
+
+The service validates variable types according to template specifications:
+
+```python
+# Supported types and examples:
+variables = {
+    "app_name": "my-app",                    # string
+    "port": "8080",                          # number/int
+    "price": "19.99",                        # float
+    "enabled": "true",                       # boolean
+    "tags": '["web", "production"]',         # array/list
+    "config": '{"debug": false, "port": 80}' # object/map
+}
+```
+
+## Repository Integration
+
+### Custom Template Repositories
+
+```python
+# List templates from specific repository
+custom_templates = client.projects.templates(
+    repository="https://github.com/my-org/infrastructure-templates"
+)
+
+for template in custom_templates:
+    print(f"Custom template: {template['name']}")
+
+# Use template from custom repository
+project = client.projects.create(
+    name="custom-project",
+    template_id="custom-template-id",
+    variables={"environment": "staging"}
+)
+```
+
+## Best Practices
+
+### 1. Always Validate Before Deployment
+
+```python
+# Good practice: Use template validation
+try:
+    # Get template info first
+    template = client.projects.template_info(template_id)
+    print(f"Required variables: {[v['name'] for v in template['variables'] if v.get('required')]}")
+    
+    # Create with proper validation
+    project = client.projects.create(
+        name="validated-project",
+        template_id=template_id,
+        variables=complete_variables
+    )
+except ProjectValidationError as e:
+    print(f"Fix validation errors: {e}")
+    return
+```
+
+### 2. Use Environment Variables for Secrets
+
+```bash
+# Set required environment variables
+export DATABASE_PASSWORD="secure-password"
+export API_SECRET_KEY="secret-api-key"
+export JWT_SECRET="jwt-signing-secret"
+```
+
+```python
+# Projects will automatically use environment variables for secrets
+project = client.projects.create(
+    name="secure-app",
+    template_id="secure-template",
+    variables={"app_name": "my-app"}
+    # Secrets come from environment variables
+)
+```
+
+### 3. Use Descriptive Names and Documentation
+
+```python
+# Use environment and purpose in names
+project_name = f"{app_name}-{environment}-{component}"
+
+project = client.projects.create(
+    name=project_name,  # e.g., "webapp-prod-frontend"
+    template_id=template_id,
+    description=f"Production {component} deployment for {app_name} application",
+    variables=variables
+)
+```
+
+### 4. Plan Before Major Changes
+
+```python
+# Always plan before applying updates
+plan = client.projects.plan(project_id)
+
+if plan.get('changes'):
+    print("Planned changes:")
+    print(plan['changes'])
+    
+    # Review changes before approval
+    user_input = input("Approve these changes? (y/N): ")
+    if user_input.lower() == 'y':
+        execution = client.projects.approve(plan['plan_id'])
+        print(f"Execution started: {execution}")
+else:
+    print("No changes to apply")
+```
+
+### 5. Organize Variables with Files
+
+```python
+# Use environment-specific variable files
+def load_environment_config(environment):
+    config_file = f"configs/{environment}.json"
+    
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"Config file not found: {config_file}")
+        
+    with open(config_file) as f:
+        return json.load(f)
+
+# Create environment-specific projects
+for env in ["dev", "staging", "prod"]:
+    config = load_environment_config(env)
+    
+    project = client.projects.create(
+        name=f"webapp-{env}",
+        template_id="webapp-template",
+        description=f"Web application {env} environment",
+        variables=config
+    )
+```
+
+## Integration Examples
+
+The Projects service integrates seamlessly with other Kubiya services and CI/CD workflows:
+
+### CI/CD Integration
+
+```python
+# Example GitHub Actions workflow integration
+def deploy_environment(environment, git_sha):
+    """Deploy application to specific environment"""
+    
+    project_name = f"myapp-{environment}-{git_sha[:8]}"
+    
+    try:
+        # Create project from template
+        project = client.projects.create(
+            name=project_name,
+            template_id="webapp-template",
+            variables={
+                "environment": environment,
+                "git_sha": git_sha,
+                "app_version": os.environ["APP_VERSION"]
+            }
+        )
+        
+        # Auto-deploy if validation passes
+        execution = client.projects.plan(
+            project["id"],
+            auto_approve=True
+        )
+        
+        return {
+            "project_id": project["id"],
+            "execution_id": execution.get("execution_id"),
+            "status": "deployed"
+        }
+        
+    except ProjectValidationError as e:
+        return {
+            "status": "failed",
+            "error": str(e)
+        }
+```
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check template repositories for pre-built infrastructure patterns

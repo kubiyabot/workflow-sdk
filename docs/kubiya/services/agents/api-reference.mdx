@@ -1,0 +1,1099 @@
+---
+title: "Agents Service API Reference"
+description: "Complete API reference for the Kubiya Agents service methods and classes"
+icon: "code"
+tags: ["agents", "api", "reference"]
+---
+
+# Agents Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Agents service.
+
+## Classes
+
+### AgentService
+
+Main service class for managing Kubiya agents and their configurations.
+
+```python
+class AgentService(BaseService):
+    """Service for managing Kubiya agents"""
+```
+
+#### Sub-Services
+
+The AgentService provides access to specialized sub-services through these properties:
+
+- `access` (`_Access`): Manage user and group access permissions
+- `env` (`_Env`): Handle environment variables
+- `integrations` (`_Integrations`): Manage agent integrations
+- `prompt` (`_Prompt`): Configure AI instructions and prompts
+- `secrets` (`_Secrets`): Manage agent secrets
+- `tools` (`_Tools`): Handle tool attachments and configurations
+
+#### Methods
+
+##### `list(sort_by: str = "name", filter_term: str = "", limit: int = 100, show_active: bool = False) -> Dict[str, Any]`
+
+List all agents with filtering, sorting, and pagination support.
+
+**Parameters:**
+- `sort_by` (`str`): Sort by field ("name", "created", "updated"). Default: "name"
+- `filter_term` (`str`): Filter agents (supports partial matching on name, description, instruction_type, llm_model, and integrations). Default: ""
+- `limit` (`int`): Limit number of results. Default: 100
+- `show_active` (`bool`): Show only active agents (agents with runners and sources). Default: False
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of agent dictionaries
+
+**Raises:**
+- `AgentError`: For listing-specific errors
+
+**Example:**
+```python
+try:
+    # List all agents
+    all_agents = client.agents.list()
+    
+    # Filter DevOps agents, sorted by creation date
+    devops_agents = client.agents.list(
+        filter_term="devops",
+        sort_by="created",
+        limit=20
+    )
+    
+    # Show only active agents
+    active_agents = client.agents.list(show_active=True)
+    
+    print(f"Found {len(devops_agents)} DevOps agents")
+    for agent in devops_agents:
+        print(f"- {agent['name']} ({agent['uuid']})")
+        
+except AgentError as e:
+    print(f"Failed to list agents: {e}")
+```
+
+##### `get(agent_uuid: str) -> Dict[str, Any]`
+
+Get detailed information about a specific agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent to retrieve
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing complete agent details
+
+**Raises:**
+- `AgentError`: For get-specific errors (e.g., agent not found)
+
+**Example:**
+```python
+try:
+    agent = client.agents.get("agent-uuid-here")
+    
+    print(f"Agent Name: {agent['name']}")
+    print(f"Description: {agent['description']}")
+    print(f"LLM Model: {agent['llm_model']}")
+    print(f"Tools: {agent.get('tools', [])}")
+    print(f"Integrations: {agent.get('integrations', [])}")
+    print(f"Environment Variables: {agent.get('environment_variables', {})}")
+    
+except AgentError as e:
+    print(f"Failed to get agent: {e}")
+```
+
+##### `create(...) -> Dict[str, Any]`
+
+Create a new agent with comprehensive configuration options.
+
+**Parameters:**
+- `name` (`str`): Agent name (required)
+- `description` (`str`): Agent description. Default: ""
+- `llm_model` (`str`): LLM model to use ("claude-4-sonnet", "claude-4-opus", "gpt-4o"). Default: "claude-4-sonnet"
+- `instruction_type` (`str`): Type of instructions. Default: "natural_language"
+- `sources` (`Optional[List[str]]`): List of source UUIDs to attach. Default: []
+- `secrets` (`Optional[List[str]]`): List of secret names to attach. Default: []
+- `integrations` (`Optional[List[str]]`): List of integrations to attach. Default: []
+- `environment` (`Optional[Dict[str, str]]`): Environment variables dict. Default: {}
+- `runners` (`Optional[List[str]]`): List of runner names. Default: ["gke-poc-kubiya"]
+- `ai_instructions` (`str`): Custom AI instructions. Default: ""
+- `is_debug_mode` (`bool`): Enable debug mode. Default: False
+- `owners` (`Optional[List[str]]`): List of owner identifiers. Default: []
+- `allowed_users` (`Optional[List[str]]`): List of allowed user identifiers. Default: []
+- `allowed_groups` (`Optional[List[str]]`): List of allowed group identifiers. Default: []
+- `tools` (`Optional[List[str]]`): List of tool identifiers. Default: []
+- `image` (`str`): Docker image for the agent. Default: "ghcr.io/kubiyabot/kubiya-agent:stable"
+- `**kwargs`: Additional agent properties
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing created agent details including UUID
+
+**Raises:**
+- `AgentError`: For creation-specific errors
+
+**Example:**
+```python
+try:
+    agent = client.agents.create(
+        name="devops-assistant",
+        description="AI assistant for DevOps automation tasks",
+        llm_model="claude-4-sonnet",
+        ai_instructions="""
+        You are an expert DevOps engineer. Help users with:
+        - Infrastructure automation
+        - CI/CD pipeline management
+        - Monitoring and alerting
+        - Security best practices
+        """,
+        tools=["kubectl", "terraform", "docker"],
+        integrations=["slack", "github"],
+        secrets=["aws-credentials", "github-token"],
+        environment={
+            "LOG_LEVEL": "INFO",
+            "AWS_REGION": "us-east-1"
+        },
+        runners=["production-runner"],
+        owners=["devops-team@company.com"],
+        allowed_groups=["devops-team"]
+    )
+    
+    print(f"Created agent: {agent['name']} (UUID: {agent['uuid']})")
+    
+except AgentError as e:
+    print(f"Failed to create agent: {e}")
+```
+
+##### `delete(agent_uuid: str) -> Dict[str, Any]`
+
+Delete an agent permanently.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent to delete
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing deletion status
+
+**Raises:**
+- `AgentError`: For deletion-specific errors
+
+**Example:**
+```python
+try:
+    result = client.agents.delete("agent-uuid-here")
+    print(f"Agent deleted: {result['message']}")
+    
+except AgentError as e:
+    print(f"Failed to delete agent: {e}")
+```
+
+##### `edit(agent_uuid: str, ...) -> Dict[str, Any]`
+
+Edit an existing agent with support for adding/removing list items.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent to edit (required)
+- `name` (`Optional[str]`): New agent name
+- `description` (`Optional[str]`): New agent description
+- `llm_model` (`Optional[str]`): New LLM model
+- `ai_instructions` (`Optional[str]`): New AI instructions
+- `add_sources` (`Optional[List[str]]`): Sources to add
+- `remove_sources` (`Optional[List[str]]`): Sources to remove
+- `add_secrets` (`Optional[List[str]]`): Secrets to add
+- `remove_secrets` (`Optional[List[str]]`): Secrets to remove
+- `add_env_vars` (`Optional[Dict[str, str]]`): Environment variables to add/update
+- `remove_env_vars` (`Optional[List[str]]`): Environment variable keys to remove
+- `add_integrations` (`Optional[List[str]]`): Integrations to add
+- `remove_integrations` (`Optional[List[str]]`): Integrations to remove
+- `add_tools` (`Optional[List[str]]`): Tools to add
+- `remove_tools` (`Optional[List[str]]`): Tools to remove
+- `add_allowed_users` (`Optional[List[str]]`): Users to add to allowed list
+- `remove_allowed_users` (`Optional[List[str]]`): Users to remove from allowed list
+- `add_allowed_groups` (`Optional[List[str]]`): Groups to add to allowed list
+- `remove_allowed_groups` (`Optional[List[str]]`): Groups to remove from allowed list
+- `runners` (`Optional[List[str]]`): List of runners to set
+- `**kwargs`: Additional fields to update
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing updated agent details
+
+**Raises:**
+- `AgentError`: For edit-specific errors
+
+**Example:**
+```python
+try:
+    # Update agent with mixed operations
+    updated_agent = client.agents.edit(
+        "agent-uuid-here",
+        description="Updated description",
+        llm_model="claude-4-opus",
+        add_tools=["helm", "ansible"],
+        remove_tools=["deprecated-tool"],
+        add_env_vars={"NEW_CONFIG": "value"},
+        remove_env_vars=["OLD_CONFIG"],
+        add_allowed_users=["newuser@company.com"],
+        runners=["new-production-runner"]
+    )
+    
+    print(f"Updated agent: {updated_agent['name']}")
+    
+except AgentError as e:
+    print(f"Failed to edit agent: {e}")
+```
+
+##### `model(agent_uuid: str, llm_model: str) -> Dict[str, Any]`
+
+Set the LLM model for an agent with validation.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `llm_model` (`str`): LLM model to set ("claude-4-sonnet", "claude-4-opus", "gpt-4o")
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Raises:**
+- `AgentError`: For model-specific errors
+- `ValidationError`: For unsupported model names
+
+**Example:**
+```python
+try:
+    result = client.agents.model("agent-uuid-here", "claude-4-opus")
+    print("Model updated successfully")
+    
+except ValidationError as e:
+    print(f"Invalid model: {e}")
+except AgentError as e:
+    print(f"Failed to update model: {e}")
+```
+
+##### `runner(agent_uuid: str, runner_name: str) -> Dict[str, Any]`
+
+Set the runner for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `runner_name` (`str`): Name of the runner to set
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Raises:**
+- `AgentError`: For runner-specific errors
+
+**Example:**
+```python
+try:
+    result = client.agents.runner("agent-uuid-here", "production-runner")
+    print("Runner updated successfully")
+    
+except AgentError as e:
+    print(f"Failed to update runner: {e}")
+```
+
+---
+
+## Sub-Service Classes
+
+### _Access
+
+Service for managing agent access control and permissions.
+
+```python
+class _Access:
+    """Service for managing agent access control"""
+```
+
+#### Methods
+
+##### `show(agent_uuid: str) -> Dict[str, Any]`
+
+Show current access control settings for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing access control information
+
+**Example:**
+```python
+try:
+    access_info = client.agents.access.show("agent-uuid-here")
+    
+    control = access_info["access_control"]
+    print(f"Agent: {control['agent_name']}")
+    print(f"Owners: {control['owners']}")
+    print(f"Allowed Users: {control['allowed_users']}")
+    print(f"Allowed Groups: {control['allowed_groups']}")
+    print(f"Open Access: {control['is_open_access']}")
+    
+except AgentError as e:
+    print(f"Failed to show access: {e}")
+```
+
+##### `clear(agent_uuid: str) -> Dict[str, Any]`
+
+Clear all access restrictions, making the agent accessible to everyone.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.access.clear("agent-uuid-here")
+    print("Access restrictions cleared - agent now has open access")
+    
+except AgentError as e:
+    print(f"Failed to clear access: {e}")
+```
+
+##### `add_user(agent_uuid: str, users: List[str]) -> Dict[str, Any]`
+
+Add users to the agent's allowed list.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `users` (`List[str]`): List of user identifiers to add
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.access.add_user(
+        "agent-uuid-here", 
+        ["user1@company.com", "user2@company.com"]
+    )
+    print("Users added to allowed list")
+    
+except AgentError as e:
+    print(f"Failed to add users: {e}")
+```
+
+##### `remove_user(agent_uuid: str, users: List[str]) -> Dict[str, Any]`
+
+Remove users from the agent's allowed list.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `users` (`List[str]`): List of user identifiers to remove
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.access.remove_user(
+        "agent-uuid-here",
+        ["user1@company.com"]
+    )
+    print("Users removed from allowed list")
+    
+except AgentError as e:
+    print(f"Failed to remove users: {e}")
+```
+
+##### `add_group(agent_uuid: str, groups: List[str]) -> Dict[str, Any]`
+
+Add groups to the agent's allowed list.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `groups` (`List[str]`): List of group identifiers to add
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.access.add_group(
+        "agent-uuid-here",
+        ["devops-team", "engineering"]
+    )
+    print("Groups added to allowed list")
+    
+except AgentError as e:
+    print(f"Failed to add groups: {e}")
+```
+
+##### `remove_group(agent_uuid: str, groups: List[str]) -> Dict[str, Any]`
+
+Remove groups from the agent's allowed list.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `groups` (`List[str]`): List of group identifiers to remove
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.access.remove_group(
+        "agent-uuid-here",
+        ["old-team"]
+    )
+    print("Groups removed from allowed list")
+    
+except AgentError as e:
+    print(f"Failed to remove groups: {e}")
+```
+
+---
+
+### _Env
+
+Service for managing agent environment variables.
+
+```python
+class _Env:
+    """Service for managing agent environment variables"""
+```
+
+#### Methods
+
+##### `list(agent_uuid: str) -> Dict[str, Any]`
+
+List environment variables for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing environment variables
+
+**Example:**
+```python
+try:
+    env_result = client.agents.env.list("agent-uuid-here")
+    
+    env_vars = env_result["environment_variables"]
+    print(f"Found {env_result['count']} environment variables:")
+    for key, value in env_vars.items():
+        print(f"  {key}: {value}")
+    
+except AgentError as e:
+    print(f"Failed to list environment variables: {e}")
+```
+
+##### `set(agent_uuid: str, env_vars: Dict[str, str]) -> Dict[str, Any]`
+
+Set environment variables for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `env_vars` (`Dict[str, str]`): Environment variables to set (key-value pairs)
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.env.set("agent-uuid-here", {
+        "API_ENDPOINT": "https://api.example.com",
+        "TIMEOUT": "30",
+        "LOG_LEVEL": "INFO"
+    })
+    print("Environment variables set successfully")
+    
+except AgentError as e:
+    print(f"Failed to set environment variables: {e}")
+```
+
+##### `unset(agent_uuid: str, keys: List[str]) -> Dict[str, Any]`
+
+Unset environment variables for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `keys` (`List[str]`): Environment variable keys to unset
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.env.unset("agent-uuid-here", ["OLD_VAR", "DEBUG"])
+    print("Environment variables unset successfully")
+    
+except AgentError as e:
+    print(f"Failed to unset environment variables: {e}")
+```
+
+---
+
+### _Integrations
+
+Service for managing agent integrations.
+
+```python
+class _Integrations:
+    """Service for managing agent integrations"""
+```
+
+#### Methods
+
+##### `list(agent_uuid: str) -> Dict[str, Any]`
+
+List integrations for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing integrations
+
+**Example:**
+```python
+try:
+    integrations_result = client.agents.integrations.list("agent-uuid-here")
+    
+    integrations = integrations_result["integrations"]
+    print(f"Found {integrations_result['count']} integrations:")
+    for integration in integrations:
+        print(f"  - {integration}")
+    
+except AgentError as e:
+    print(f"Failed to list integrations: {e}")
+```
+
+##### `add(agent_uuid: str, integrations: List[str]) -> Dict[str, Any]`
+
+Add integrations to an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `integrations` (`List[str]`): List of integration names to add
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.integrations.add(
+        "agent-uuid-here",
+        ["datadog", "pagerduty"]
+    )
+    print("Integrations added successfully")
+    
+except AgentError as e:
+    print(f"Failed to add integrations: {e}")
+```
+
+##### `remove(agent_uuid: str, integrations: List[str]) -> Dict[str, Any]`
+
+Remove integrations from an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `integrations` (`List[str]`): List of integration names to remove
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.integrations.remove(
+        "agent-uuid-here",
+        ["old-integration"]
+    )
+    print("Integrations removed successfully")
+    
+except AgentError as e:
+    print(f"Failed to remove integrations: {e}")
+```
+
+---
+
+### _Prompt
+
+Service for managing agent AI instructions and prompts.
+
+```python
+class _Prompt:
+    """Service for managing agent AI instructions/prompts"""
+```
+
+#### Methods
+
+##### `get(agent_uuid: str) -> Dict[str, Any]`
+
+Get AI instructions for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing AI instructions
+
+**Example:**
+```python
+try:
+    prompt_result = client.agents.prompt.get("agent-uuid-here")
+    
+    instructions = prompt_result["ai_instructions"]
+    length = prompt_result["instruction_length"]
+    
+    print(f"AI Instructions ({length} characters):")
+    print(instructions)
+    
+except AgentError as e:
+    print(f"Failed to get AI instructions: {e}")
+```
+
+##### `set(...) -> Dict[str, Any]`
+
+Set AI instructions for an agent from various sources.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `content` (`Optional[str]`): Prompt content to set
+- `file_path` (`Optional[str]`): Path to file containing prompt content
+- `url` (`Optional[str]`): URL to fetch prompt content from
+
+**Note:** Exactly one of `content`, `file_path`, or `url` must be provided.
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Raises:**
+- `ValidationError`: If no content source is provided or file/URL access fails
+
+**Example:**
+```python
+try:
+    # Set from direct content
+    result = client.agents.prompt.set(
+        "agent-uuid-here",
+        content="""
+        You are an expert DevOps engineer.
+        Always follow security best practices.
+        Provide clear, step-by-step instructions.
+        """
+    )
+    
+    # Set from file
+    result = client.agents.prompt.set(
+        "agent-uuid-here",
+        file_path="./agent_instructions.txt"
+    )
+    
+    # Set from URL
+    result = client.agents.prompt.set(
+        "agent-uuid-here",
+        url="https://company.com/agent-prompts/devops.txt"
+    )
+    
+    print("AI instructions set successfully")
+    
+except ValidationError as e:
+    print(f"Content source error: {e}")
+except AgentError as e:
+    print(f"Failed to set AI instructions: {e}")
+```
+
+##### `append(...) -> Dict[str, Any]`
+
+Append to existing AI instructions for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `content` (`Optional[str]`): Prompt content to append
+- `file_path` (`Optional[str]`): Path to file containing prompt content
+- `url` (`Optional[str]`): URL to fetch prompt content from
+
+**Note:** Exactly one of `content`, `file_path`, or `url` must be provided.
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    # Append additional instructions
+    result = client.agents.prompt.append(
+        "agent-uuid-here",
+        content="\n\nAdditional guideline: Always validate configurations before applying."
+    )
+    
+    print("Instructions appended successfully")
+    
+except ValidationError as e:
+    print(f"Content source error: {e}")
+except AgentError as e:
+    print(f"Failed to append AI instructions: {e}")
+```
+
+##### `clear(agent_uuid: str) -> Dict[str, Any]`
+
+Clear all AI instructions for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.prompt.clear("agent-uuid-here")
+    print("AI instructions cleared successfully")
+    
+except AgentError as e:
+    print(f"Failed to clear AI instructions: {e}")
+```
+
+---
+
+### _Secrets
+
+Service for managing agent secrets.
+
+```python
+class _Secrets:
+    """Service for managing agent secrets"""
+```
+
+#### Methods
+
+##### `list(agent_uuid: str) -> Dict[str, Any]`
+
+List secrets for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing secrets
+
+**Example:**
+```python
+try:
+    secrets_result = client.agents.secrets.list("agent-uuid-here")
+    
+    secrets = secrets_result["secrets"]
+    print(f"Found {secrets_result['count']} secrets:")
+    for secret in secrets:
+        print(f"  - {secret}")
+    
+except AgentError as e:
+    print(f"Failed to list secrets: {e}")
+```
+
+##### `add(agent_uuid: str, secrets: List[str]) -> Dict[str, Any]`
+
+Add secrets to an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `secrets` (`List[str]`): List of secret names to add
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.secrets.add(
+        "agent-uuid-here",
+        ["aws-credentials", "docker-registry-token"]
+    )
+    print("Secrets added successfully")
+    
+except AgentError as e:
+    print(f"Failed to add secrets: {e}")
+```
+
+##### `remove(agent_uuid: str, secrets: List[str]) -> Dict[str, Any]`
+
+Remove secrets from an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `secrets` (`List[str]`): List of secret names to remove
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.secrets.remove(
+        "agent-uuid-here",
+        ["old-secret"]
+    )
+    print("Secrets removed successfully")
+    
+except AgentError as e:
+    print(f"Failed to remove secrets: {e}")
+```
+
+---
+
+### _Tools
+
+Service for managing agent tools.
+
+```python
+class _Tools:
+    """Service for managing agent tools"""
+```
+
+#### Methods
+
+##### `list(agent_uuid: str) -> Dict[str, Any]`
+
+List tools for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing tools
+
+**Example:**
+```python
+try:
+    tools_result = client.agents.tools.list("agent-uuid-here")
+    
+    tools = tools_result["tools"]
+    print(f"Found {tools_result['count']} tools:")
+    for tool in tools:
+        print(f"  - {tool}")
+    
+except AgentError as e:
+    print(f"Failed to list tools: {e}")
+```
+
+##### `add(agent_uuid: str, tools: List[str]) -> Dict[str, Any]`
+
+Add tools to an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `tools` (`List[str]`): List of tool names/IDs to add
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.tools.add(
+        "agent-uuid-here",
+        ["ansible", "git", "curl"]
+    )
+    print("Tools added successfully")
+    
+except AgentError as e:
+    print(f"Failed to add tools: {e}")
+```
+
+##### `remove(agent_uuid: str, tools: List[str]) -> Dict[str, Any]`
+
+Remove tools from an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `tools` (`List[str]`): List of tool names/IDs to remove
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing operation result
+
+**Example:**
+```python
+try:
+    result = client.agents.tools.remove(
+        "agent-uuid-here",
+        ["deprecated-tool"]
+    )
+    print("Tools removed successfully")
+    
+except AgentError as e:
+    print(f"Failed to remove tools: {e}")
+```
+
+##### `describe(agent_uuid: str, tool_name: str) -> Dict[str, Any]`
+
+Describe a specific tool for an agent.
+
+**Parameters:**
+- `agent_uuid` (`str`): UUID of the agent
+- `tool_name` (`str`): Specific tool name to describe
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing tool description
+
+**Note:** This method currently returns placeholder information. Full implementation requires additional backend support.
+
+**Example:**
+```python
+try:
+    description = client.agents.tools.describe("agent-uuid-here", "kubectl")
+    print(f"Tool description: {description}")
+    
+except AgentError as e:
+    print(f"Failed to describe tool: {e}")
+```
+
+---
+
+## Exceptions
+
+### AgentError
+
+Base exception class for all agent-related errors.
+
+```python
+class AgentError(Exception):
+    """Base exception for agent operations"""
+```
+
+#### Usage in Error Handling
+
+All agent service methods can raise `AgentError` exceptions with specific context:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError
+
+try:
+    agent = client.agents.get("non-existent-uuid")
+except AgentError as e:
+    print(f"Agent operation failed: {e}")
+    # Exception includes context about the specific failure
+```
+
+### ValidationError
+
+Exception for input validation failures.
+
+```python
+class ValidationError(Exception):
+    """Exception for validation failures"""
+```
+
+#### Usage in Error Handling
+
+Validation errors occur when input parameters are invalid:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.exceptions import ValidationError
+
+try:
+    # Invalid model name
+    result = client.agents.model("agent-uuid", "invalid-model")
+except ValidationError as e:
+    print(f"Validation failed: {e}")
+    
+try:
+    # Invalid file path in prompt.set()
+    result = client.agents.prompt.set("agent-uuid", file_path="nonexistent.txt")
+except ValidationError as e:
+    print(f"File validation failed: {e}")
+```
+
+---
+
+## Complete Usage Examples
+
+### Comprehensive Agent Management
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError, ValidationError
+
+# Initialize client
+client = KubiyaClient(api_key="your-api-key", base_url="https://api.kubiya.ai")
+
+try:
+    # Create a comprehensive agent
+    agent = client.agents.create(
+        name="production-devops-agent",
+        description="Production DevOps automation and monitoring agent",
+        llm_model="claude-4-sonnet",
+        ai_instructions="""
+        You are a senior DevOps engineer for production systems.
+        
+        Responsibilities:
+        - Monitor system health and performance
+        - Automate deployment and scaling operations
+        - Respond to incidents with appropriate urgency
+        - Maintain security and compliance standards
+        
+        Guidelines:
+        - Always verify before making changes
+        - Document all actions taken
+        - Escalate critical issues immediately
+        - Follow change management procedures
+        """,
+        tools=["kubectl", "terraform", "helm", "docker", "prometheus"],
+        integrations=["slack", "github", "datadog", "pagerduty"],
+        secrets=["aws-credentials", "k8s-token", "monitoring-api-key"],
+        environment={
+            "LOG_LEVEL": "INFO",
+            "AWS_REGION": "us-east-1",
+            "CLUSTER_NAME": "production",
+            "MONITORING_ENABLED": "true"
+        },
+        runners=["production-runner"],
+        owners=["devops-lead@company.com"],
+        allowed_groups=["devops-team", "sre-team"],
+        allowed_users=["oncall@company.com"]
+    )
+    
+    agent_uuid = agent['uuid']
+    print(f"✅ Created agent: {agent['name']} ({agent_uuid})")
+    
+    # Configure additional access
+    client.agents.access.add_user(agent_uuid, ["emergency-contact@company.com"])
+    print("✅ Added emergency contact access")
+    
+    # Add monitoring tools
+    client.agents.tools.add(agent_uuid, ["grafana", "alertmanager"])
+    print("✅ Added monitoring tools")
+    
+    # Set up environment for different regions
+    client.agents.env.set(agent_uuid, {
+        "BACKUP_REGION": "us-west-2",
+        "FAILOVER_ENABLED": "true"
+    })
+    print("✅ Configured multi-region settings")
+    
+    # Update AI instructions with specific procedures
+    client.agents.prompt.append(agent_uuid, content="""
+    
+    Emergency Procedures:
+    1. For P0 incidents: Immediately notify on-call team
+    2. For resource exhaustion: Scale horizontally first
+    3. For security alerts: Isolate affected components
+    4. Always create incident reports in JIRA
+    """)
+    print("✅ Added emergency procedures")
+    
+    # Verify final configuration
+    final_agent = client.agents.get(agent_uuid)
+    print(f"✅ Agent fully configured with {len(final_agent.get('tools', []))} tools")
+    
+except AgentError as e:
+    print(f"❌ Agent operation failed: {e}")
+except ValidationError as e:
+    print(f"❌ Validation error: {e}")
+```
+
+This API reference provides complete documentation for all public interfaces in the Agents service. 
+Use the examples and error handling patterns to build robust agent management workflows.

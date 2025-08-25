@@ -1,0 +1,345 @@
+---
+title: "Documentations Service Overview"
+description: "Complete guide to the Kubiya Documentations service for querying the central knowledge base"
+icon: "book"
+tags: ["documentations", "knowledge", "search", "trieve"]
+---
+
+# Documentations Service Overview
+
+The Kubiya Documentations service provides a powerful interface for querying the central knowledge base using the Trieve API. 
+It enables you to search documentation content with advanced semantic search capabilities, scoring, and flexible result formatting.
+
+## Features
+
+- **Knowledge Base Search**: Query the central documentation knowledge base using Trieve API
+- **Multiple Search Types**: Support for BM25 and other search algorithms
+- **Flexible Formatting**: Choose between markdown and plain text result formatting
+- **Intelligent Scoring**: Configurable score thresholds for result filtering
+- **Extended Results**: Option to include additional context with search results
+- **Comprehensive Error Handling**: Detailed error reporting with search-specific context
+
+## Core Components
+
+### DocumentationService
+
+The main service class provides centralized access to the documentation knowledge base:
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Access documentation service
+docs = client.documentations
+```
+
+## Quick Start
+
+### Basic Search
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import DocumentationError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # Simple documentation search
+    results = client.documentations.query(
+        prompt="How to create a Terraform workflow"
+    )
+    
+    # Process results
+    for result in results:
+        print(f"{result['formatted_title']}")
+        print(f"Group: {result['group']}")
+        print(f"Content: {result['content'][:200]}...")
+        print("-" * 50)
+        
+except DocumentationError as e:
+    print(f"Search failed: {e}")
+```
+
+### Advanced Search with Custom Parameters
+
+```python
+try:
+    # Advanced search with custom parameters
+    results = client.documentations.query(
+        prompt="authentication setup guide",
+        page_size=20,                    # Get more results
+        search_type="bm25",             # Use BM25 algorithm
+        extend_results=True,            # Include extended context
+        score_threshold=0.5,            # Lower threshold for more results
+        render_markdown=False           # Plain text formatting
+    )
+    
+    # Filter by content type
+    code_results = [r for r in results if r['is_code']]
+    doc_results = [r for r in results if not r['is_code']]
+    
+    print(f"Found {len(code_results)} code examples")
+    print(f"Found {len(doc_results)} documentation sections")
+    
+    # Display code examples
+    for result in code_results:
+        print(f"\n📄 {result['title']}")
+        print(f"Tags: {', '.join(result['tags'])}")
+        print(f"```\n{result['raw_content']}\n```")
+        
+except DocumentationError as e:
+    print(f"Advanced search failed: {e}")
+    if e.details:
+        print(f"Error details: {e.details}")
+```
+
+### Processing Different Content Types
+
+```python
+try:
+    results = client.documentations.query(
+        prompt="API reference examples",
+        page_size=15,
+        render_markdown=True
+    )
+    
+    for result in results:
+        print(f"\n{result['icon']} {result['title']}")
+        print(f"Group: {result['group']}")
+        
+        # Handle different content types
+        if result['is_code']:
+            print("📝 Code Example:")
+            print(result['content'])  # Already formatted as code block
+        else:
+            print("📖 Documentation:")
+            print(result['content'])
+            
+        # Access metadata
+        metadata = result['metadata']
+        if metadata.get('url'):
+            print(f"🔗 Source: {metadata['url']}")
+            
+        print("=" * 60)
+        
+except DocumentationError as e:
+    print(f"Content processing failed: {e}")
+```
+
+## Error Handling
+
+The Documentations service provides specialized exceptions for different failure scenarios:
+
+### DocumentationError
+
+Thrown when documentation queries fail:
+
+```python
+try:
+    results = client.documentations.query("complex search query")
+except DocumentationError as e:
+    print(f"Search failed: {e}")
+    
+    # Access error details
+    if e.details:
+        error_type = e.details.get("error_type")
+        if error_type == "config_error":
+            print("⚠️  Configuration issue - check Trieve API settings")
+        elif error_type == "api_error":
+            print("🌐 API communication error - check connectivity")
+        elif error_type == "no_results":
+            print("🔍 No results found - try broader search terms")
+```
+
+
+
+## Best Practices
+
+### 1. Use Descriptive Search Queries
+
+```python
+# Good practice: Use natural language queries
+results = client.documentations.query(
+    "How to set up authentication in Kubiya workflows"
+)
+
+# Better than single keywords
+# results = client.documentations.query("auth")
+```
+
+### 2. Handle Empty Results Gracefully
+
+```python
+results = client.documentations.query("search query")
+
+if not results:
+    print("No results found. Try:")
+    print("- Using broader search terms")
+    print("- Checking spelling")
+    print("- Using synonyms")
+else:
+    print(f"Found {len(results)} results")
+    for result in results[:5]:  # Show top 5
+        print(f"• {result['title']}")
+```
+
+### 3. Leverage Content Filtering
+
+```python
+# Search for specific content types
+results = client.documentations.query(
+    "Terraform configuration examples",
+    page_size=50
+)
+
+# Filter by content characteristics
+tutorials = [r for r in results if 'tutorial' in r['title'].lower()]
+api_refs = [r for r in results if 'api' in r['group'].lower()]
+code_examples = [r for r in results if r['is_code']]
+
+print(f"Found {len(tutorials)} tutorials")
+print(f"Found {len(api_refs)} API references") 
+print(f"Found {len(code_examples)} code examples")
+```
+
+### 4. Optimize Search Parameters
+
+```python
+# For quick overview - use defaults
+quick_results = client.documentations.query("workflow basics")
+
+# For comprehensive search - increase page size
+detailed_results = client.documentations.query(
+    "workflow configuration options",
+    page_size=30,
+    extend_results=True
+)
+
+# For precise matching - increase score threshold
+precise_results = client.documentations.query(
+    "exact error message text",
+    score_threshold=2.0,
+    search_type="bm25"
+)
+```
+
+### 5. Process Results Systematically
+
+```python
+def process_documentation_results(results):
+    """Process and categorize search results"""
+    
+    categories = {
+        'guides': [],
+        'api_reference': [],
+        'examples': [],
+        'troubleshooting': []
+    }
+    
+    for result in results:
+        title_lower = result['title'].lower()
+        group_lower = result['group'].lower()
+        
+        if any(word in title_lower for word in ['guide', 'tutorial', 'getting started']):
+            categories['guides'].append(result)
+        elif any(word in group_lower for word in ['api', 'reference']):
+            categories['api_reference'].append(result)
+        elif result['is_code'] or 'example' in title_lower:
+            categories['examples'].append(result)
+        elif any(word in title_lower for word in ['troubleshoot', 'error', 'debug']):
+            categories['troubleshooting'].append(result)
+    
+    return categories
+
+# Usage
+results = client.documentations.query("Kubiya workflow development")
+categorized = process_documentation_results(results)
+
+for category, items in categorized.items():
+    if items:
+        print(f"\n📋 {category.upper()} ({len(items)} items)")
+        for item in items[:3]:  # Show top 3 per category
+            print(f"  • {item['title']}")
+```
+
+## Integration Examples
+
+The Documentations service integrates seamlessly with other Kubiya services and workflows:
+
+### Contextual Help in Workflows
+
+```python
+# Use in workflow step for dynamic help
+def get_workflow_help(topic):
+    try:
+        results = client.documentations.query(
+            f"Kubiya workflow {topic} guide",
+            page_size=5,
+            score_threshold=1.5
+        )
+        
+        if results:
+            help_text = f"# Help: {topic}\n\n"
+            for result in results:
+                help_text += f"## {result['title']}\n"
+                help_text += f"{result['content']}\n\n"
+            return help_text
+        else:
+            return f"No specific help found for '{topic}'"
+            
+    except DocumentationError:
+        return "Help system temporarily unavailable"
+
+# Usage in workflow
+help_content = get_workflow_help("authentication")
+print(help_content)
+```
+
+### Error Context Enhancement
+
+```python
+def enhance_error_with_docs(error_message):
+    """Enhance error messages with relevant documentation"""
+    
+    try:
+        # Search for documentation related to the error
+        results = client.documentations.query(
+            f"troubleshoot {error_message}",
+            page_size=3,
+            score_threshold=0.8
+        )
+        
+        if results:
+            enhanced_message = f"Error: {error_message}\n\n"
+            enhanced_message += "📚 Relevant Documentation:\n"
+            
+            for result in results:
+                enhanced_message += f"• {result['title']}: {result['content'][:100]}...\n"
+                
+            return enhanced_message
+        else:
+            return error_message
+            
+    except DocumentationError:
+        return error_message
+
+# Usage
+original_error = "Authentication failed"
+enhanced_error = enhance_error_with_docs(original_error)
+print(enhanced_error)
+```
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check the [Trieve API documentation](https://docs.trieve.ai/) for advanced search features

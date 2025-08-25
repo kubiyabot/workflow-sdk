@@ -1,0 +1,543 @@
+---
+title: "Runners Service API Reference"
+description: "Complete API reference for the Kubiya Runners service methods and classes"
+icon: "code"
+tags: ["runners", "api", "reference"]
+---
+
+# Runners Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Runners service.
+
+## Classes
+
+### RunnerService
+
+Main service class for managing and monitoring Kubiya runners.
+
+```python
+class RunnerService(BaseService):
+    """Service for managing Kubiya runners"""
+```
+
+#### Methods
+
+##### `list() -> List[Dict[str, Any]]`
+
+List all runners with their health status and detailed information.
+
+**Parameters:**
+- None
+
+**Returns:**
+- `List[Dict[str, Any]]`: List of runner objects with health status information
+
+
+**Features:**
+- **Concurrent Health Checks**: Fetches health status for all runners in parallel using ThreadPoolExecutor
+- **Version Normalization**: Converts numeric versions to string format (0 → "v1", 2 → "v2")
+- **Fallback Namespace**: Uses `kubernetes_namespace` if `namespace` is empty
+- **Default Health Values**: Sets "unknown" for missing health status fields
+
+**Raises:**
+- `RunnerError`: For general runner operation failures
+- `RunnerHealthError`: When health status checks fail for multiple runners
+
+**Example:**
+```python
+try:
+    runners = client.runners.list()
+    
+    print(f"Found {len(runners)} runners:")
+    
+    for runner in runners:
+        name = runner.get('name', 'Unknown')
+        version = runner.get('version', 'Unknown')
+        namespace = runner.get('namespace', 'default')
+        
+        # Check overall runner health
+        runner_health = runner.get('runner_health', {})
+        health_status = runner_health.get('status', 'unknown')
+        health_version = runner_health.get('version', 'N/A')
+        
+        print(f"Runner: {name}")
+        print(f"  Version: {version}")
+        print(f"  Namespace: {namespace}")
+        print(f"  Health: {health_status} (v{health_version})")
+        
+        # Check component health
+        tool_manager = runner.get('tool_manager_health', {})
+        agent_manager = runner.get('agent_manager_health', {})
+        
+        print(f"  Components:")
+        print(f"    Tool Manager: {tool_manager.get('status', 'unknown')} (v{tool_manager.get('version', 'N/A')})")
+        print(f"    Agent Manager: {agent_manager.get('status', 'unknown')} (v{agent_manager.get('version', 'N/A')})")
+        
+        # Check for errors
+        if tool_manager.get('error'):
+            print(f"    Tool Manager Error: {tool_manager['error']}")
+        if agent_manager.get('error'):
+            print(f"    Agent Manager Error: {agent_manager['error']}")
+        
+        print()
+        
+except RunnerError as e:
+    print(f"Failed to list runners: {e}")
+except RunnerHealthError as e:
+    print(f"Health check issues: {e}")
+    print("Some runners may not have current health status")
+```
+
+**Health Status Values:**
+- `"healthy"` / `"ok"` / `"running"`: Runner is operational
+- `"unhealthy"` / `"error"` / `"failed"`: Runner has issues
+- `"unknown"`: Health status could not be determined
+
+**Performance Notes:**
+- Uses ThreadPoolExecutor with max 5 workers for concurrent health checks
+- Health check failures are handled gracefully (runner keeps "unknown" status)
+- Typical response time: 2-5 seconds depending on number of runners
+
+##### `manifest(name: str) -> Dict[str, Any]`
+
+Generate a Kubernetes manifest for deploying the specified runner.
+
+**Parameters:**
+- `name` (`str`): Name of the runner to generate manifest for
+
+**Returns:**
+- `Dict[str, Any]`: Dictionary containing the manifest URL and metadata
+
+**Raises:**
+- `RunnerError`: For general manifest generation failures
+- `RunnerNotFoundError`: When the specified runner does not exist
+
+**Example:**
+```python
+try:
+    runner_name = "production-runner"
+    manifest_info = client.runners.manifest(runner_name)
+    
+    if manifest_info.get('url'):
+        manifest_url = manifest_info['url']
+        print(f"Kubernetes manifest for '{runner_name}':")
+        print(f"URL: {manifest_url}")
+        
+        # Download and save the manifest
+        import requests
+        response = requests.get(manifest_url)
+        
+        if response.status_code == 200:
+            with open(f"{runner_name}-manifest.yaml", 'w') as f:
+                f.write(response.text)
+            print(f"Manifest saved to {runner_name}-manifest.yaml")
+            
+            # Apply using kubectl
+            print(f"To deploy: kubectl apply -f {runner_name}-manifest.yaml")
+        else:
+            print(f"Failed to download manifest: {response.status_code}")
+    else:
+        print("Manifest generation failed: no URL returned")
+        
+except RunnerNotFoundError as e:
+    print(f"Runner '{runner_name}' not found: {e}")
+    
+    # List available runners as fallback
+    print("Available runners:")
+    try:
+        runners = client.runners.list()
+        for runner in runners:
+            print(f"  - {runner.get('name', 'Unknown')}")
+    except RunnerError:
+        print("  Could not fetch runner list")
+        
+except RunnerError as e:
+    print(f"Manifest generation failed: {e}")
+    
+    # Check if it's a network or server issue
+    if "connection" in str(e).lower():
+        print("💡 Tip: Check your network connection and API endpoint")
+    elif "authentication" in str(e).lower():
+        print("💡 Tip: Verify your API key and permissions")
+```
+
+**Manifest Usage:**
+```bash
+# Download the manifest
+curl -O "https://api.kubiya.ai/manifests/runner-name-manifest.yaml"
+
+# Apply to Kubernetes cluster
+kubectl apply -f runner-name-manifest.yaml
+
+# Verify deployment
+kubectl get pods -l app=kubiya-runner
+kubectl get services -l app=kubiya-runner
+```
+
+**Security Notes:**
+- Manifest URLs may have time-based expiration
+- URLs are specific to your organization and authentication context
+- Always verify manifest contents before applying to production clusters
+
+---
+
+## Internal Methods
+
+### `_fetch_health_status_batch(runners: List[Dict[str, Any]]) -> List[Dict[str, Any]]`
+
+Internal method for fetching health status of multiple runners concurrently.
+
+**Parameters:**
+- `runners` (`List[Dict[str, Any]]`): List of runner objects to check health for
+
+**Returns:**
+- `List[Dict[str, Any]]`: Updated runners list with health status information
+
+**Features:**
+- **Concurrent Execution**: Uses ThreadPoolExecutor for parallel health checks
+- **Graceful Failure**: Individual health check failures don't affect other runners
+- **Component Health**: Checks runner, tool-manager, and agent-manager health
+- **Error Handling**: Silently handles health check failures
+
+**Implementation Details:**
+```python
+def _fetch_health_status_batch(self, runners):
+    """
+    Fetches health status for multiple runners using concurrent requests
+    - Max 5 concurrent workers to avoid overwhelming the API
+    - Each health check is independent and can fail without affecting others
+    - Updates runner objects in-place with health information
+    """
+```
+
+This method is called automatically by the `list()` method and should not be called directly.
+
+---
+
+## Exceptions
+
+### RunnerError (Base Exception)
+
+Base exception class for all runner-related errors.
+
+```python
+class RunnerError(KubiyaSDKError):
+    """Base exception for runner operations"""
+```
+
+#### Attributes
+- Inherits from `KubiyaSDKError`
+- Standard exception message and optional details
+
+#### Example
+```python
+try:
+    runners = client.runners.list()
+except RunnerError as e:
+    print(f"Runner operation failed: {e}")
+    
+    # Check for specific error patterns
+    error_msg = str(e).lower()
+    if "timeout" in error_msg:
+        print("💡 Tip: The request timed out, try again later")
+    elif "unauthorized" in error_msg:
+        print("💡 Tip: Check your API key and permissions")
+    elif "network" in error_msg:
+        print("💡 Tip: Check your internet connection")
+```
+
+---
+
+### RunnerNotFoundError
+
+Specialized exception for when a specific runner cannot be found.
+
+```python
+class RunnerNotFoundError(RunnerError):
+    """Exception raised when a runner is not found"""
+```
+
+#### Attributes
+- Inherits from `RunnerError`
+- Typically includes the runner name in the error message
+
+#### Example
+```python
+try:
+    manifest = client.runners.manifest("non-existent-runner")
+except RunnerNotFoundError as e:
+    print(f"Runner not found: {e}")
+    
+    # Provide helpful suggestions
+    print("Available runners:")
+    try:
+        runners = client.runners.list()
+        runner_names = [r.get('name', 'Unknown') for r in runners]
+        
+        if runner_names:
+            for name in sorted(runner_names):
+                print(f"  - {name}")
+        else:
+            print("  No runners available")
+            
+        # Suggest similar names
+        requested_name = "non-existent-runner"
+        similar = [name for name in runner_names if requested_name.lower() in name.lower()]
+        if similar:
+            print(f"Did you mean: {', '.join(similar)}?")
+            
+    except RunnerError:
+        print("  Could not fetch runner list")
+
+except RunnerError as e:
+    print(f"Other runner error: {e}")
+```
+
+**Common Causes:**
+- Misspelled runner name
+- Runner was deleted or decommissioned
+- Runner exists but is not accessible with current permissions
+- Temporary synchronization issues between services
+
+---
+
+### RunnerHealthError
+
+Specialized exception for health check failures.
+
+```python
+class RunnerHealthError(RunnerError):
+    """Exception raised when runner health checks fail"""
+```
+
+#### Attributes
+- Inherits from `RunnerError`
+- May include details about which health checks failed
+
+#### Example
+```python
+try:
+    runners = client.runners.list()
+    
+    # If we get here, some runners loaded but health checks may have issues
+    unhealthy_count = 0
+    for runner in runners:
+        runner_health = runner.get('runner_health', {})
+        if runner_health.get('status', 'unknown') == 'unknown':
+            unhealthy_count += 1
+    
+    if unhealthy_count > 0:
+        print(f"⚠️  Warning: {unhealthy_count} runners have unknown health status")
+        
+except RunnerHealthError as e:
+    print(f"Health check failures occurred: {e}")
+    print("Some or all runners may not have current health status")
+    
+    # Health errors are often non-fatal - runners list may still be useful
+    print("Attempting to list runners without health checks...")
+    # Note: The actual service doesn't provide a way to skip health checks
+    # This is just an example of how you might handle such errors
+    
+except RunnerError as e:
+    print(f"Complete failure to list runners: {e}")
+```
+
+**Common Causes:**
+- Network timeouts during health checks
+- Runner health endpoints temporarily unavailable
+- Authentication issues with health check endpoints
+- Overloaded runners not responding to health requests
+
+**Mitigation Strategies:**
+- Retry the operation after a short delay
+- Check if specific runners are experiencing issues
+- Verify network connectivity to the Kubiya platform
+- Contact support if health check failures persist
+
+---
+
+## Error Handling Patterns
+
+### Comprehensive Error Handling
+
+```python
+import time
+from typing import List, Dict, Any, Optional
+
+def robust_runner_operations():
+    """Demonstrates robust error handling for runner operations"""
+    
+    def list_runners_with_retry(max_retries: int = 3) -> Optional[List[Dict[str, Any]]]:
+        """List runners with exponential backoff retry"""
+        for attempt in range(max_retries):
+            try:
+                return client.runners.list()
+            except RunnerHealthError as e:
+                print(f"Attempt {attempt + 1}: Health check issues - {e}")
+                if attempt < max_retries - 1:
+                    delay = 2 ** attempt  # Exponential backoff
+                    print(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    print("Max retries reached for health checks")
+                    return None
+            except RunnerError as e:
+                print(f"Attempt {attempt + 1}: Runner operation failed - {e}")
+                if attempt < max_retries - 1:
+                    delay = 2 ** attempt
+                    print(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                else:
+                    print("Max retries reached")
+                    return None
+        return None
+    
+    def safe_manifest_generation(runner_name: str) -> Optional[str]:
+        """Safely generate manifest with comprehensive error handling"""
+        try:
+            # First verify runner exists
+            runners = list_runners_with_retry()
+            if not runners:
+                print("Cannot verify runner existence - skipping manifest generation")
+                return None
+            
+            runner_names = [r.get('name') for r in runners if r.get('name')]
+            if runner_name not in runner_names:
+                print(f"Runner '{runner_name}' not found")
+                print(f"Available runners: {', '.join(sorted(runner_names))}")
+                return None
+            
+            # Generate manifest
+            manifest_info = client.runners.manifest(runner_name)
+            manifest_url = manifest_info.get('url')
+            
+            if not manifest_url:
+                print("Manifest generation succeeded but no URL returned")
+                return None
+            
+            # Validate URL format
+            if not manifest_url.startswith(('http://', 'https://')):
+                print(f"Warning: Manifest URL appears invalid: {manifest_url}")
+            
+            return manifest_url
+            
+        except RunnerNotFoundError as e:
+            print(f"Runner not found during manifest generation: {e}")
+            return None
+        except RunnerError as e:
+            print(f"Manifest generation failed: {e}")
+            return None
+    
+    # Main execution
+    try:
+        print("=== Robust Runner Operations Demo ===")
+        
+        # List runners with retry logic
+        print("\n1. Listing runners with retry logic...")
+        runners = list_runners_with_retry()
+        
+        if runners:
+            print(f"✅ Successfully retrieved {len(runners)} runners")
+            
+            # Display runner summary
+            healthy_count = 0
+            for runner in runners:
+                runner_health = runner.get('runner_health', {})
+                if runner_health.get('status', '').lower() in ['healthy', 'ok', 'running']:
+                    healthy_count += 1
+            
+            print(f"   Healthy runners: {healthy_count}/{len(runners)}")
+            
+            # Generate manifests for healthy runners
+            print("\n2. Generating manifests for healthy runners...")
+            for runner in runners[:3]:  # Limit to first 3 for demo
+                runner_name = runner.get('name')
+                if runner_name:
+                    runner_health = runner.get('runner_health', {})
+                    if runner_health.get('status', '').lower() in ['healthy', 'ok', 'running']:
+                        print(f"   Generating manifest for {runner_name}...")
+                        manifest_url = safe_manifest_generation(runner_name)
+                        if manifest_url:
+                            print(f"   ✅ Manifest URL: {manifest_url}")
+                        else:
+                            print(f"   ❌ Failed to generate manifest for {runner_name}")
+        else:
+            print("❌ Failed to retrieve runners after retries")
+            
+    except Exception as e:
+        print(f"Unexpected error in robust operations: {e}")
+
+# Run the demonstration
+robust_runner_operations()
+```
+
+### Monitoring Integration
+
+```python
+def continuous_runner_monitoring():
+    """Example of continuous runner health monitoring"""
+    import time
+    from datetime import datetime
+    
+    monitoring_active = True
+    check_interval = 30  # seconds
+    
+    print("Starting continuous runner monitoring...")
+    print(f"Check interval: {check_interval} seconds")
+    print("Press Ctrl+C to stop")
+    
+    try:
+        while monitoring_active:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"\n[{timestamp}] Checking runner health...")
+            
+            try:
+                runners = client.runners.list()
+                
+                # Categorize runners by health
+                healthy = []
+                unhealthy = []
+                unknown = []
+                
+                for runner in runners:
+                    name = runner.get('name', 'Unknown')
+                    runner_health = runner.get('runner_health', {})
+                    status = runner_health.get('status', 'unknown').lower()
+                    
+                    if status in ['healthy', 'ok', 'running']:
+                        healthy.append(name)
+                    elif status in ['unhealthy', 'error', 'failed']:
+                        unhealthy.append(name)
+                    else:
+                        unknown.append(name)
+                
+                # Display summary
+                total = len(runners)
+                print(f"  Total: {total} | Healthy: {len(healthy)} | Unhealthy: {len(unhealthy)} | Unknown: {len(unknown)}")
+                
+                # Alert on issues
+                if unhealthy:
+                    print(f"  ⚠️  UNHEALTHY RUNNERS: {', '.join(unhealthy)}")
+                if unknown:
+                    print(f"  ❓ UNKNOWN STATUS: {', '.join(unknown)}")
+                if len(healthy) == total:
+                    print(f"  ✅ All runners healthy")
+                
+            except RunnerHealthError as e:
+                print(f"  ⚠️  Health check issues: {e}")
+            except RunnerError as e:
+                print(f"  ❌ Runner monitoring failed: {e}")
+            
+            time.sleep(check_interval)
+            
+    except KeyboardInterrupt:
+        print("\nMonitoring stopped by user")
+    except Exception as e:
+        print(f"\nUnexpected error in monitoring: {e}")
+
+# Example usage (commented out for documentation)
+# continuous_runner_monitoring()
+```
+
+This API reference provides complete documentation for all public interfaces in the Runners service. 
+Use the examples and error handling patterns to build robust runner management and monitoring workflows.

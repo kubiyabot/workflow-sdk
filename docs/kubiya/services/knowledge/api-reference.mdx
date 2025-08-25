@@ -1,0 +1,434 @@
+---
+title: "Knowledge Service API Reference"
+description: "Complete API reference for the Kubiya Knowledge service methods and classes"
+icon: "code"
+tags: ["knowledge", "api", "reference"]
+---
+
+# Knowledge Service API Reference
+
+Complete reference documentation for all classes, methods, and exceptions in the Kubiya Knowledge service.
+
+## Classes
+
+### KnowledgeService
+
+Main service class for querying the central knowledge base with intelligent search capabilities.
+
+```python
+class KnowledgeService(BaseService):
+    """Service for managing knowledge base queries and operations"""
+```
+
+#### Methods
+
+##### `query(prompt: str, stream: bool = True, user_id: Optional[str] = None, org_id: Optional[str] = None) -> Union[Dict[str, Any], Generator[str, None, None]]`
+
+Query the central knowledge base for contextual information with intelligent search capabilities.
+
+This provides intelligent search capabilities across all available data sources
+in the central knowledge base, with real-time streaming updates on search progress.
+
+**Parameters:**
+- `prompt` (`str`): The query string to search for in the knowledge base
+- `stream` (`bool`, optional): Whether to stream the response in real-time (default: True)
+- `user_id` (`Optional[str]`): User ID for the query (optional)
+- `org_id` (`Optional[str]`): Organization ID for the query (optional)
+
+**Returns:**
+- For streaming: `Generator[str, None, None]` yielding event data
+- For non-streaming: `Dict[str, Any]` containing the final response data
+
+**Response Structure (Non-streaming):**
+```python
+{
+    "results": [
+        {
+            "title": "Document title",
+            "source": "Source system/location",
+            "summary": "Document summary",
+            "score": 0.95,  # Relevance score
+            "metadata": {
+                "type": "documentation",
+                "last_updated": "2024-01-15T10:30:00Z"
+            }
+        }
+    ],
+    "suggestions": [
+        "Related query suggestion 1",
+        "Related query suggestion 2"
+    ],
+    "summary": "Overall search summary",
+    "query_id": "unique-query-identifier"
+}
+```
+
+**Streaming Event Structure:**
+```python
+# Progress events
+{
+    "type": "progress",
+    "percentage": 45,
+    "message": "Searching documentation sources...",
+    "sources_checked": ["docs", "wiki", "tickets"]
+}
+
+# Result events
+{
+    "type": "result",
+    "title": "Kubernetes Deployment Guide",
+    "source": "internal-docs",
+    "summary": "Comprehensive guide for deploying applications...",
+    "score": 0.92
+}
+
+# Completion event
+{
+    "type": "complete",
+    "total_results": 15,
+    "search_time_ms": 2340,
+    "suggestions": ["related query 1", "related query 2"]
+}
+```
+
+**Features:**
+- **Semantic Search**: Goes beyond keyword matching to understand context and intent
+- **Real-time Progress**: Provides updates during search with streaming enabled
+- **Multi-source Integration**: Searches across all available data sources
+- **Intelligent Summarization**: Provides relevant summaries and context
+- **Related Suggestions**: Offers related query suggestions for enhanced discovery
+- **Source Tracking**: Maintains metadata about where information was found
+
+**Raises:**
+- `KnowledgeError`: If the query fails due to timeout, service unavailability, or other errors
+
+**Example (Basic Query):**
+```python
+# Simple non-streaming query
+try:
+    response = client.knowledge.query(
+        prompt="How to configure HTTPS for web applications?",
+        stream=False
+    )
+    
+    if response.get("results"):
+        print(f"Found {len(response['results'])} results")
+        for result in response["results"]:
+            print(result)
+    
+    # Show related suggestions
+    suggestions = response.get("suggestions", [])
+    if suggestions:
+        print(f"\nRelated suggestions:")
+        for suggestion in suggestions:
+            print(f"  💡 {suggestion}")
+            
+except KnowledgeError as e:
+    print(f"Query failed: {e}")
+```
+
+**Example (Streaming Query):**
+```python
+# Real-time streaming search
+try:
+    print("Searching knowledge base...")
+    
+    results_count = 0
+    for event in client.knowledge.query(
+        prompt="Best practices for container security",
+        stream=True,
+        user_id="user123",
+        org_id="org456"
+    ):
+        if isinstance(event, dict):
+            event_type = event.get("type")
+            
+            if event_type == "progress":
+                percentage = event.get("percentage", 0)
+                message = event.get("message", "Searching...")
+                print(f"🔍 {percentage}% - {message}")
+                
+            elif event_type == "result":
+                results_count += 1
+                title = event.get("title", "Untitled")
+                score = event.get("score", 0)
+                print(f"📄 Found: {title} (relevance: {score:.2f})")
+                
+            elif event_type == "complete":
+                total = event.get("total_results", results_count)
+                time_ms = event.get("search_time_ms", 0)
+                print(f"✅ Search complete: {total} results in {time_ms}ms")
+                
+                # Show suggestions
+                suggestions = event.get("suggestions", [])
+                if suggestions:
+                    print("💡 Related suggestions:")
+                    for suggestion in suggestions:
+                        print(f"   - {suggestion}")
+                        
+except KnowledgeError as e:
+    print(f"Streaming search failed: {e}")
+```
+
+**Example (Contextual Query):**
+```python
+# Query with user and organization context
+def search_team_knowledge(query, user_context):
+    try:
+        response = client.knowledge.query(
+            prompt=query,
+            user_id=user_context.get("user_id"),
+            org_id=user_context.get("org_id"),
+            stream=False
+        )
+        
+        # Process results with context awareness
+        results = response.get("results", [])
+        team_specific_results = [
+            result for result in results 
+            if result.get("metadata", {}).get("team") == user_context.get("team")
+        ]
+        
+        if team_specific_results:
+            print(f"Found {len(team_specific_results)} team-specific results")
+            return team_specific_results
+        else:
+            print(f"Found {len(results)} general results")
+            return results
+            
+    except KnowledgeError as e:
+        print(f"Contextual search failed: {e}")
+        return []
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+The Knowledge service uses the following environment variables for configuration:
+
+#### `KUBIYA_ORCHESTRATOR_URL`
+
+Specifies the orchestrator service URL for knowledge queries.
+
+**Type:** `str`  
+**Default:** `"https://orchestrator.kubiya.ai"`  
+**Example:** `"https://your-orchestrator.domain.com"`
+
+```python
+import os
+os.environ["KUBIYA_ORCHESTRATOR_URL"] = "https://custom-orchestrator.example.com"
+```
+
+#### `KUBIYA_USE_SAME_API`
+
+Whether to use the same base URL as the main API client for knowledge queries.
+
+**Type:** `bool` (as string)  
+**Default:** `False`  
+**Values:** `"true"`, `"false"`
+
+```python
+import os
+os.environ["KUBIYA_USE_SAME_API"] = "true"
+```
+
+**Configuration Priority:**
+1. If `KUBIYA_ORCHESTRATOR_URL` is set, use that URL
+2. If `KUBIYA_USE_SAME_API` is "true", use the client's base URL
+3. Otherwise, use the default orchestrator URL
+
+---
+
+## Exceptions
+
+### KnowledgeError
+
+Base exception class for all knowledge-related errors.
+
+```python
+class KnowledgeError(KubiyaSDKError):
+    """Exception for knowledge-related errors"""
+```
+
+#### Attributes
+- `message` (`str`): The error message
+- `details` (`Dict[str, Any]`): Additional error context and metadata
+- `knowledge_id` (`Optional[str]`): Knowledge-related identifier if available
+
+#### Common Error Scenarios
+
+**Timeout Errors:**
+```python
+try:
+    response = client.knowledge.query("complex search query")
+except KnowledgeError as e:
+    if "timeout" in str(e).lower():
+        print("Query timed out. The knowledge base might be busy.")
+        print("💡 Try simplifying your query or retry in a few moments.")
+```
+
+**Service Unavailability:**
+```python
+try:
+    response = client.knowledge.query("search query")
+except KnowledgeError as e:
+    if "unavailable" in str(e).lower():
+        print("Knowledge service is temporarily unavailable.")
+        print("💡 Please try again later.")
+```
+
+**Deadline Exceeded:**
+```python
+try:
+    response = client.knowledge.query("very complex query")
+except KnowledgeError as e:
+    if "deadline exceeded" in str(e).lower():
+        print("Query took too long to process.")
+        print("💡 Try breaking down your query into smaller parts.")
+```
+
+#### Error Handling Best Practices
+
+**Comprehensive Error Handling:**
+```python
+def robust_knowledge_search(query, max_retries=3):
+    """Robust knowledge search with retry logic"""
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.knowledge.query(
+                prompt=query,
+                stream=False
+            )
+            return response
+            
+        except KnowledgeError as e:
+            error_msg = str(e).lower()
+            
+            if "timeout" in error_msg and attempt < max_retries - 1:
+                print(f"Attempt {attempt + 1} timed out, retrying...")
+                continue
+            elif "unavailable" in error_msg:
+                print("Service unavailable, stopping retries")
+                break
+            else:
+                print(f"Knowledge search failed: {e}")
+                break
+    
+    return None
+```
+
+**Graceful Degradation:**
+```python
+def search_with_fallback(primary_query, fallback_query=None):
+    """Search with fallback to simpler query"""
+    
+    try:
+        # Try primary query first
+        return client.knowledge.query(primary_query, stream=False)
+        
+    except KnowledgeError as primary_error:
+        print(f"Primary query failed: {primary_error}")
+        
+        if fallback_query:
+            try:
+                print("Trying fallback query...")
+                return client.knowledge.query(fallback_query, stream=False)
+                
+            except KnowledgeError as fallback_error:
+                print(f"Fallback query also failed: {fallback_error}")
+        
+        return {"results": [], "error": str(primary_error)}
+```
+
+**Context-Aware Error Messages:**
+```python
+def handle_knowledge_error(error, query_context=None):
+    """Provide context-aware error handling"""
+    
+    error_msg = str(error).lower()
+    
+    if "timeout" in error_msg:
+        if query_context and len(query_context.get("prompt", "")) > 200:
+            return "Query too complex. Try shortening your search terms."
+        else:
+            return "Search timed out. Please try again."
+    
+    elif "unavailable" in error_msg:
+        return "Knowledge service is temporarily down. Please try later."
+    
+    elif "deadline exceeded" in error_msg:
+        return "Search took too long. Try using more specific terms."
+    
+    else:
+        return f"Search failed: {error}"
+```
+
+---
+
+## Integration Patterns
+
+### Workflow Integration
+
+```python
+from kubiya_workflow_sdk.dsl import Workflow, Step
+
+def create_knowledge_enhanced_workflow():
+    """Create a workflow that uses knowledge base queries"""
+    
+    workflow = Workflow(name="knowledge-enhanced-deployment")
+    
+    # Step 1: Query for deployment best practices
+    def get_deployment_guidance():
+        try:
+            response = client.knowledge.query(
+                prompt="Best practices for production deployment",
+                stream=False
+            )
+            return response.get("summary", "No guidance found")
+        except KnowledgeError:
+            return "Could not retrieve deployment guidance"
+    
+    guidance_step = Step(
+        name="get_guidance",
+        action=get_deployment_guidance
+    )
+    
+    workflow.add_step(guidance_step)
+    return workflow
+```
+
+### Agent Enhancement
+
+```python
+def enhance_agent_with_knowledge(user_query, agent_response):
+    """Enhance agent responses with knowledge base information"""
+    
+    try:
+        # Search for additional context
+        knowledge_response = client.knowledge.query(
+            prompt=f"Additional context for: {user_query}",
+            stream=False
+        )
+        
+        results = knowledge_response.get("results", [])
+        if results:
+            # Add the most relevant result as context
+            top_result = results[0]
+            enhanced_response = f"{agent_response}\n\n"
+            enhanced_response += f"📚 Related information from {top_result['source']}:\n"
+            enhanced_response += f"{top_result['summary']}"
+            return enhanced_response
+            
+    except KnowledgeError:
+        # Gracefully degrade to original response
+        pass
+    
+    return agent_response
+```
+
+This API reference provides complete documentation for all public interfaces in the Knowledge service. 
+Use the examples and error handling patterns to build robust knowledge-enhanced applications.
