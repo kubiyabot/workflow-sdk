@@ -349,35 +349,6 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "Terraform",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "terraform/overview",
-              "terraform/getting-started",
-              "terraform/examples"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "terraform/resources/agent",
-              "terraform/resources/runner",
-              "terraform/resources/integration",
-              "terraform/resources/source",
-              "terraform/resources/inline-source",
-              "terraform/resources/secret",
-              "terraform/resources/knowledge",
-              "terraform/resources/external-knowledge",
-              "terraform/resources/webhook",
-              "terraform/resources/trigger",
-              "terraform/resources/scheduled-task"
-            ]
-          }
-        ]
       }
     ]
   },
@@ -462,18 +433,6 @@
     {
       "source": "/deployment/helm-chart",
       "destination": "/concepts/runners/helm-chart"
-    },
-    {
-      "source": "/terraform",
-      "destination": "/terraform/overview"
-    },
-    {
-      "source": "/iac",
-      "destination": "/terraform/overview"
-    },
-    {
-      "source": "/infrastructure-as-code",
-      "destination": "/terraform/overview"
     }
   ]
 }

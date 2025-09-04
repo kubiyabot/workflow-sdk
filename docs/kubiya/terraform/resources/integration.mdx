@@ -1,0 +1,558 @@
+---
+title: "kubiya_integration"
+sidebarTitle: "Integration Resource"
+description: "Manage connections to external systems like AWS, GitHub, Kubernetes, and more"
+icon: "link"
+---
+
+The `kubiya_integration` resource allows you to create and manage integrations in the Kubiya platform. Integrations enable connections to external systems like AWS, GitHub, Kubernetes, Jira, and more, allowing agents to interact with these services.
+
+<Tip>
+Integrations are the foundation for connecting your agents to external services. They provide secure, configurable connections that can be reused across multiple agents.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. Appropriate credentials and permissions for the external systems you want to integrate
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic AWS Integration
+resource "kubiya_integration" "aws_basic" {
+  name             = "aws-production"
+  description      = "Production AWS account"
+  integration_type = "aws"
+  
+  configs = [
+    {
+      name       = "us-west-2"
+      is_default = true
+      vendor_specific = {
+        arn    = "arn:aws:iam::123456789012:role/KubiyaRole"
+        region = "us-west-2"
+      }
+    }
+  ]
+}
+```
+
+```hcl GitHub Integration
+resource "kubiya_integration" "github" {
+  name             = "github-org"
+  description      = "GitHub organization integration"
+  integration_type = "github"
+  
+  configs = [
+    {
+      name       = "main-org"
+      is_default = true
+      vendor_specific = {
+        org_name     = "my-organization"
+        api_endpoint = "https://api.github.com"
+      }
+    }
+  ]
+}
+```
+
+```hcl Kubernetes Integration
+resource "kubiya_integration" "kubernetes" {
+  name             = "k8s-clusters"
+  description      = "Kubernetes clusters integration"
+  integration_type = "kubernetes"
+  
+  configs = [
+    {
+      name       = "production-cluster"
+      is_default = true
+      vendor_specific = {
+        context   = "production"
+        namespace = "default"
+        server    = "https://k8s-prod.example.com"
+      }
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Multi-Region AWS">
+    Configure AWS integration with multiple regions:
+
+    ```hcl
+    resource "kubiya_integration" "aws_multi_region" {
+      name             = "aws-global"
+      description      = "Global AWS integration with multiple regions"
+      integration_type = "aws"
+      auth_type        = "global"
+      
+      configs = [
+        {
+          name       = "us-west-2"
+          is_default = true
+          vendor_specific = {
+            arn    = "arn:aws:iam::123456789012:role/KubiyaRole"
+            region = "us-west-2"
+          }
+        },
+        {
+          name       = "eu-west-1"
+          is_default = false
+          vendor_specific = {
+            arn    = "arn:aws:iam::123456789012:role/KubiyaRole"
+            region = "eu-west-1"
+          }
+        },
+        {
+          name       = "ap-south-1"
+          is_default = false
+          vendor_specific = {
+            arn    = "arn:aws:iam::123456789012:role/KubiyaRole"
+            region = "ap-south-1"
+          }
+        }
+      ]
+    }
+
+    resource "kubiya_agent" "aws_agent" {
+      name         = "aws-multi-region-agent"
+      runner       = "kubiya-hosted"
+      description  = "AWS agent with multi-region access"
+      instructions = "You are an AWS agent with access to multiple regions. Always specify the region when performing operations."
+      
+      integrations = [kubiya_integration.aws_multi_region.name]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="AWS Organization">
+    Set up integration for AWS Organizations:
+
+    ```hcl
+    resource "kubiya_integration" "aws_org" {
+      name             = "aws-organization"
+      description      = "AWS Organization with multiple accounts"
+      integration_type = "aws_organization"
+      
+      configs = [
+        {
+          name       = "master-account"
+          is_default = true
+          vendor_specific = {
+            arn               = "arn:aws:iam::111111111111:role/OrganizationRole"
+            region            = "us-east-1"
+            organization_role = "OrganizationAccessRole"
+          }
+        },
+        {
+          name       = "dev-account"
+          is_default = false
+          vendor_specific = {
+            arn     = "arn:aws:iam::222222222222:role/KubiyaRole"
+            region  = "us-east-1"
+            account = "222222222222"
+          }
+        },
+        {
+          name       = "prod-account"
+          is_default = false
+          vendor_specific = {
+            arn     = "arn:aws:iam::333333333333:role/KubiyaRole"
+            region  = "us-east-1"
+            account = "333333333333"
+          }
+        }
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Multi-Cloud Setup">
+    Create multiple integrations for comprehensive DevOps setup:
+
+    ```hcl
+    # AWS Integration
+    resource "kubiya_integration" "devops_aws" {
+      name             = "devops-aws"
+      description      = "DevOps AWS account"
+      integration_type = "aws"
+      
+      configs = [
+        {
+          name       = "primary"
+          is_default = true
+          vendor_specific = {
+            arn    = "arn:aws:iam::123456789012:role/DevOpsRole"
+            region = "us-west-2"
+          }
+        }
+      ]
+    }
+
+    # GCP Integration
+    resource "kubiya_integration" "devops_gcp" {
+      name             = "devops-gcp"
+      description      = "DevOps GCP project"
+      integration_type = "gcp"
+      
+      configs = [
+        {
+          name       = "main-project"
+          is_default = true
+          vendor_specific = {
+            project_id      = "my-gcp-project"
+            service_account = "kubiya@my-gcp-project.iam.gserviceaccount.com"
+            region          = "us-central1"
+          }
+        }
+      ]
+    }
+
+    # Create a multi-cloud agent
+    resource "kubiya_agent" "multi_cloud_agent" {
+      name         = "multi-cloud-orchestrator"
+      runner       = "kubiya-hosted"
+      description  = "Multi-cloud infrastructure management agent"
+      instructions = <<-EOT
+        You are a multi-cloud infrastructure agent with access to:
+        - AWS for compute and storage
+        - GCP for data analytics and ML
+        
+        Coordinate resources across cloud providers.
+      EOT
+      
+      integrations = [
+        kubiya_integration.devops_aws.name,
+        kubiya_integration.devops_gcp.name
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Environment-Specific Configurations">
+  Set up environment-specific integration configurations using dynamic blocks:
+
+  ```hcl
+  locals {
+    environments = {
+      dev = {
+        arn    = "arn:aws:iam::111111111111:role/DevRole"
+        region = "us-west-2"
+      }
+      staging = {
+        arn    = "arn:aws:iam::222222222222:role/StagingRole"
+        region = "us-east-1"
+      }
+      prod = {
+        arn    = "arn:aws:iam::333333333333:role/ProdRole"
+        region = "us-east-1"
+      }
+    }
+  }
+
+  resource "kubiya_integration" "env_aws" {
+    name             = "aws-all-environments"
+    description      = "AWS integration for all environments"
+    integration_type = "aws"
+    
+    configs = [
+      for env, config in local.environments : {
+        name       = env
+        is_default = env == "dev"
+        vendor_specific = {
+          arn    = config.arn
+          region = config.region
+          env    = env
+        }
+      }
+    ]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Jira Integration Setup">
+  Configure Jira integration for issue tracking:
+
+  ```hcl
+  resource "kubiya_integration" "jira" {
+    name             = "jira-cloud"
+    description      = "Jira Cloud integration"
+    integration_type = "jira"
+    
+    configs = [
+      {
+        name       = "main-instance"
+        is_default = true
+        vendor_specific = {
+          url      = "https://mycompany.atlassian.net"
+          project  = "OPS"
+          api_type = "cloud"
+        }
+      }
+    ]
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the integration. Must be unique within your organization.
+</ParamField>
+
+<ParamField path="configs" type="array" required>
+  List of configuration objects. Each config must have:
+  
+  <ParamField path="configs.name" type="string" required>
+    Name of the configuration.
+  </ParamField>
+  
+  <ParamField path="configs.is_default" type="boolean" required>
+    Whether this is the default configuration. At least one config must be default.
+  </ParamField>
+  
+  <ParamField path="configs.vendor_specific" type="object" required>
+    Vendor-specific configuration parameters (varies by integration type).
+  </ParamField>
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="description" type="string">
+  A description of the integration's purpose and functionality.
+</ParamField>
+
+<ParamField path="auth_type" type="string" default="">
+  Authentication type. Available options:
+  - `global` - Global authentication
+  - `per_user` - Per-user authentication
+  - Empty string (default)
+</ParamField>
+
+<ParamField path="integration_type" type="string" default="aws">
+  Type of integration. Available options:
+  - `aws` - Amazon Web Services
+  - `aws_organization` - AWS Organizations
+  - `gcp` - Google Cloud Platform
+  - `azure` - Microsoft Azure
+  - `github` - GitHub
+  - `kubernetes` - Kubernetes
+  - `jira` - Atlassian Jira
+  - `confluence` - Atlassian Confluence
+</ParamField>
+
+## Vendor-Specific Configuration
+
+The `vendor_specific` map within each config varies by integration type:
+
+<Tabs>
+  <Tab title="AWS">
+    <ParamField path="arn" type="string" required>
+      IAM role ARN for AWS access.
+    </ParamField>
+    
+    <ParamField path="region" type="string" required>
+      AWS region for operations.
+    </ParamField>
+  </Tab>
+  
+  <Tab title="AWS Organization">
+    <ParamField path="arn" type="string" required>
+      Organization role ARN.
+    </ParamField>
+    
+    <ParamField path="region" type="string" required>
+      AWS region for operations.
+    </ParamField>
+    
+    <ParamField path="organization_role" type="string" required>
+      Cross-account role name for organization access.
+    </ParamField>
+    
+    <ParamField path="account" type="string">
+      Specific account ID (optional for organization setup).
+    </ParamField>
+  </Tab>
+  
+  <Tab title="GCP">
+    <ParamField path="project_id" type="string" required>
+      GCP project ID.
+    </ParamField>
+    
+    <ParamField path="service_account" type="string" required>
+      Service account email for authentication.
+    </ParamField>
+    
+    <ParamField path="region" type="string" required>
+      GCP region for operations.
+    </ParamField>
+  </Tab>
+  
+  <Tab title="Azure">
+    <ParamField path="subscription_id" type="string" required>
+      Azure subscription ID.
+    </ParamField>
+    
+    <ParamField path="tenant_id" type="string" required>
+      Azure AD tenant ID.
+    </ParamField>
+    
+    <ParamField path="client_id" type="string" required>
+      Service principal client ID.
+    </ParamField>
+    
+    <ParamField path="region" type="string" required>
+      Azure region for operations.
+    </ParamField>
+  </Tab>
+  
+  <Tab title="GitHub">
+    <ParamField path="org_name" type="string" required>
+      GitHub organization name.
+    </ParamField>
+    
+    <ParamField path="api_endpoint" type="string" required>
+      GitHub API endpoint URL (usually https://api.github.com).
+    </ParamField>
+  </Tab>
+  
+  <Tab title="Kubernetes">
+    <ParamField path="context" type="string" required>
+      Kubernetes context name.
+    </ParamField>
+    
+    <ParamField path="namespace" type="string" required>
+      Default namespace for operations.
+    </ParamField>
+    
+    <ParamField path="server" type="string" required>
+      Kubernetes API server URL.
+    </ParamField>
+  </Tab>
+  
+  <Tab title="Jira/Confluence">
+    <ParamField path="url" type="string" required>
+      Instance URL (e.g., https://mycompany.atlassian.net).
+    </ParamField>
+    
+    <ParamField path="project" type="string">
+      Default project key (Jira only).
+    </ParamField>
+    
+    <ParamField path="api_type" type="string" required>
+      API type: "cloud" or "server".
+    </ParamField>
+  </Tab>
+</Tabs>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the integration.
+</ParamField>
+
+## Import
+
+Integrations can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_integration.example <integration-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_integration.example
+  id = "<integration-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Security" icon="shield-halved">
+  - Use least privilege access for all integrations
+  - Never hardcode sensitive credentials in configurations
+  - Regularly audit and rotate access credentials
+  - Use separate configs for different environments
+</Card>
+
+<Card title="Configuration" icon="gear">
+  - Always set one configuration as default
+  - Use clear, descriptive names for integrations
+  - Document vendor-specific parameters and their purpose
+  - Group related configurations logically
+</Card>
+
+<Card title="Testing" icon="flask">
+  - Test integrations in non-production environments first
+  - Verify connectivity before deploying to production
+  - Monitor integration health and usage patterns
+  - Document testing procedures for each integration type
+</Card>
+
+<Card title="Maintenance" icon="wrench">
+  - Keep integration configurations in version control
+  - Use Terraform modules for common integration patterns
+  - Implement consistent naming conventions
+  - Monitor and alert on integration failures
+</Card>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- At least one config must have `is_default = true`
+- Integration names must match exactly when referenced by agents
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Some integration types may require additional setup in Kubiya dashboard
+- Ensure proper IAM roles and permissions are configured in target systems
+- Test connectivity before using integrations in production agents
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Integration Authentication Issues">
+  - Verify IAM roles and permissions in the target system
+  - Check that ARNs and identifiers are correctly formatted
+  - Ensure service accounts have necessary permissions
+  - Test authentication outside of Kubiya first
+</Accordion>
+
+<Accordion title="Configuration Validation Errors">
+  - Ensure at least one config has `is_default = true`
+  - Verify all required vendor_specific fields are provided
+  - Check that integration_type matches available options
+  - Validate URL formats and endpoints
+</Accordion>
+
+<Accordion title="Agent Integration Access">
+  - Verify integration names match exactly in agent configuration
+  - Check that the integration is active and properly configured
+  - Ensure agent has appropriate permissions to use the integration
+  - Review integration logs for connection issues
+</Accordion>

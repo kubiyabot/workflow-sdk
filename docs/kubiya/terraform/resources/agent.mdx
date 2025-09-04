@@ -1,0 +1,505 @@
+---
+title: "kubiya_agent"
+sidebarTitle: "Agent Resource"
+description: "Manage AI agents in the Kubiya platform with advanced configuration options"
+icon: "robot"
+---
+
+The `kubiya_agent` resource allows you to create and manage AI agents in the Kubiya platform. Agents are intelligent assistants that can perform various tasks, integrate with external systems, and execute workflows.
+
+<Tip>
+Agents are the core building blocks of your Kubiya automation. They can be configured with specific tools, integrations, and access controls to match your organization's needs.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. At least one runner configured (or use "kubiya-hosted" for cloud execution)
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic Agent
+resource "kubiya_agent" "basic_agent" {
+  name         = "my-basic-agent"
+  runner       = "kubiya-hosted"
+  description  = "A basic AI assistant for general tasks"
+  instructions = "You are a helpful AI assistant. Provide clear and concise responses to user queries."
+}
+```
+
+```hcl Agent with Access Control
+resource "kubiya_agent" "team_agent" {
+  name         = "team-assistant"
+  runner       = "kubiya-hosted"
+  description  = "Team collaboration assistant"
+  instructions = "You are a team assistant helping with project management and collaboration tasks."
+  
+  users  = ["alice@company.com", "bob@company.com"]
+  groups = ["Engineering", "DevOps"]
+  model  = "gpt-4o"
+}
+```
+
+```hcl DevOps Agent
+resource "kubiya_agent" "devops_agent" {
+  name         = "devops-assistant"
+  runner       = "kubiya-hosted"
+  description  = "DevOps automation assistant"
+  instructions = <<-EOT
+    You are a DevOps assistant specialized in:
+    - Managing Kubernetes clusters
+    - GitHub repository operations
+    - Slack notifications
+    - JIRA ticket management
+    
+    Always confirm before making changes to production systems.
+  EOT
+  
+  integrations = [
+    "github_app",
+    "slack_integration",
+    "jira_cloud",
+    "kubernetes"
+  ]
+  
+  environment_variables = {
+    DEFAULT_NAMESPACE = "production"
+    ALERT_CHANNEL     = "#devops-alerts"
+  }
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Task-Based Agent">
+    Configure an agent with predefined tasks that users can execute:
+
+    ```hcl
+    resource "kubiya_agent" "ops_agent" {
+      name         = "operations-agent"
+      runner       = "kubiya-hosted"
+      description  = "Operations management agent"
+      instructions = "You are an operations agent that helps with infrastructure management tasks."
+      
+      tasks = [
+        {
+          name        = "check-cluster-health"
+          prompt      = "Check the health status of all Kubernetes clusters and report any issues"
+          description = "Performs comprehensive health checks on K8s clusters"
+        },
+        {
+          name        = "scale-deployment"
+          prompt      = "Scale the specified deployment to the requested number of replicas"
+          description = "Scales Kubernetes deployments"
+        },
+        {
+          name        = "backup-database"
+          prompt      = "Create a backup of the specified database and store it in S3"
+          description = "Performs database backup operations"
+        }
+      ]
+      
+      integrations = ["kubernetes", "aws"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Agent with Conversation Starters">
+    Create user-friendly agents with quick-start commands:
+
+    ```hcl
+    resource "kubiya_agent" "support_agent" {
+      name         = "support-assistant"
+      runner       = "kubiya-hosted"
+      description  = "Customer support and troubleshooting assistant"
+      instructions = "You are a support assistant helping users troubleshoot issues and answer questions."
+      
+      starters = [
+        {
+          name    = "Check System Status"
+          command = "Show me the current system status and any ongoing incidents"
+        },
+        {
+          name    = "Recent Errors"
+          command = "Display the most recent error logs from the application"
+        },
+        {
+          name    = "Performance Metrics"
+          command = "Show current performance metrics and resource utilization"
+        }
+      ]
+      
+      integrations = ["datadog", "pagerduty"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Custom Docker Image">
+    Use specialized Docker images for advanced functionality:
+
+    ```hcl
+    resource "kubiya_agent" "custom_image_agent" {
+      name         = "python-data-agent"
+      runner       = "kubiya-hosted"
+      description  = "Data analysis agent with Python libraries"
+      instructions = "You are a data analysis agent with access to pandas, numpy, and matplotlib."
+      
+      image = "ghcr.io/company/kubiya-python-agent:latest"
+      model = "gpt-4o"
+      
+      environment_variables = {
+        PYTHON_VERSION = "3.11"
+        DATA_PATH      = "/data"
+      }
+      
+      is_debug_mode = true
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Agent with Inline Tools">
+  Create an agent with custom tools defined directly in the configuration:
+
+  ```hcl
+  resource "kubiya_source" "inline_tools" {
+    name = "custom-tools"
+    
+    tools = jsonencode([
+      {
+        name        = "disk-usage-checker"
+        description = "Check disk usage on servers"
+        type        = "docker"
+        image       = "alpine:latest"
+        content     = "df -h"
+      },
+      {
+        name        = "log-analyzer"
+        description = "Analyze application logs"
+        type        = "docker"
+        image       = "python:3.11-slim"
+        with_files = [
+          {
+            destination = "/analyze.py"
+            content     = <<-PYTHON
+              import sys
+              import json
+              
+              def analyze_logs(log_file):
+                  errors = []
+                  warnings = []
+                  with open(log_file, 'r') as f:
+                      for line in f:
+                          if 'ERROR' in line:
+                              errors.append(line.strip())
+                          elif 'WARNING' in line:
+                              warnings.append(line.strip())
+                  
+                  return {
+                      'total_errors': len(errors),
+                      'total_warnings': len(warnings),
+                      'errors': errors[:10],
+                      'warnings': warnings[:10]
+                  }
+              
+              if __name__ == "__main__":
+                  result = analyze_logs('/var/log/app.log')
+                  print(json.dumps(result, indent=2))
+            PYTHON
+          }
+        ]
+        content = "python /analyze.py"
+      }
+    ])
+    
+    runner = "kubiya-hosted"
+  }
+
+  resource "kubiya_agent" "agent_with_tools" {
+    name         = "monitoring-agent"
+    runner       = "kubiya-hosted"
+    description  = "System monitoring agent with custom tools"
+    instructions = "You are a monitoring agent with access to custom tools for system analysis."
+    
+    tool_sources = [kubiya_source.inline_tools.id]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Agent with Workflow Execution">
+  Configure an agent that can execute complex, multi-step workflows:
+
+  ```hcl
+  resource "kubiya_source" "deployment_workflow" {
+    name = "deployment-workflows"
+    
+    workflows = jsonencode([
+      {
+        name        = "blue-green-deployment"
+        description = "Perform blue-green deployment"
+        steps = [
+          {
+            name        = "prepare-green-env"
+            description = "Prepare green environment"
+            executor = {
+              type = "command"
+              config = {
+                command = "kubectl apply -f green-deployment.yaml"
+              }
+            }
+          },
+          {
+            name        = "health-check"
+            description = "Check green environment health"
+            depends     = ["prepare-green-env"]
+            executor = {
+              type = "command"
+              config = {
+                command = "kubectl wait --for=condition=ready pod -l version=green --timeout=300s"
+              }
+            }
+          },
+          {
+            name        = "switch-traffic"
+            description = "Switch traffic to green environment"
+            depends     = ["health-check"]
+            executor = {
+              type = "command"
+              config = {
+                command = "kubectl patch service myapp -p '{\"spec\":{\"selector\":{\"version\":\"green\"}}}'"
+              }
+            }
+          }
+        ]
+      }
+    ])
+    
+    runner = "kubiya-hosted"
+  }
+
+  resource "kubiya_agent" "deployment_agent" {
+    name         = "deployment-automation"
+    runner       = "kubiya-hosted"
+    description  = "Automated deployment agent"
+    instructions = <<-EOT
+      You are a deployment automation agent. You can:
+      1. Execute blue-green deployments
+      2. Perform rollbacks if needed
+      3. Monitor deployment status
+      
+      Always verify the target environment before deploying.
+    EOT
+    
+    sources = [kubiya_source.deployment_workflow.id]
+    integrations = ["kubernetes", "slack_integration"]
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the agent. Must be unique within your organization.
+</ParamField>
+
+<ParamField path="runner" type="string" required>
+  The runner to use for agent execution. Use "kubiya-hosted" for cloud execution or specify your own runner name.
+</ParamField>
+
+<ParamField path="description" type="string" required>
+  A detailed description of the agent's purpose and capabilities.
+</ParamField>
+
+<ParamField path="instructions" type="string" required>
+  System instructions that define the agent's behavior and capabilities. These instructions guide how the agent responds to user queries and executes tasks.
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="model" type="string" default="gpt-4o">
+  The LLM model to use for the agent. Available options:
+  - `gpt-4o` - GPT-4 Optimized (recommended)
+  - `gpt-4` - GPT-4
+  - `gpt-3.5-turbo` - GPT-3.5 Turbo
+  - `azure/gpt-4` - Azure OpenAI GPT-4
+</ParamField>
+
+<ParamField path="image" type="string" default="ghcr.io/kubiyabot/kubiya-agent:stable">
+  Docker image for the agent runtime environment. Use custom images for specialized functionality.
+</ParamField>
+
+<ParamField path="is_debug_mode" type="boolean" default="false">
+  Enable debug mode for detailed logging and troubleshooting.
+</ParamField>
+
+<ParamField path="integrations" type="array">
+  List of integration names the agent can access. Must match exactly with configured integrations in your Kubiya account.
+</ParamField>
+
+<ParamField path="users" type="array">
+  List of user emails who can access the agent. If not specified, the agent is accessible to all organization members.
+</ParamField>
+
+<ParamField path="groups" type="array">
+  List of group names that can access the agent. Use for team-based access control.
+</ParamField>
+
+<ParamField path="sources" type="array">
+  List of source IDs for knowledge bases and workflows that the agent can utilize.
+</ParamField>
+
+<ParamField path="tool_sources" type="array">
+  List of tool source URLs or IDs. These provide the agent with additional capabilities and tools.
+</ParamField>
+
+<ParamField path="secrets" type="array">
+  List of secret names the agent can access for secure operations.
+</ParamField>
+
+<ParamField path="environment_variables" type="object">
+  Map of environment variables available to the agent during execution.
+</ParamField>
+
+<ParamField path="tasks" type="array">
+  List of predefined tasks that users can execute. Each task object contains:
+  
+  <ParamField path="tasks.name" type="string" required>
+    Task identifier used for execution.
+  </ParamField>
+  
+  <ParamField path="tasks.prompt" type="string" required>
+    The prompt that will be executed when the task is triggered.
+  </ParamField>
+  
+  <ParamField path="tasks.description" type="string" required>
+    Human-readable description of what the task does.
+  </ParamField>
+</ParamField>
+
+<ParamField path="starters" type="array">
+  List of conversation starters for improved user experience. Each starter object contains:
+  
+  <ParamField path="starters.name" type="string" required>
+    Display name for the conversation starter.
+  </ParamField>
+  
+  <ParamField path="starters.command" type="string" required>
+    Command that will be executed when the starter is selected.
+  </ParamField>
+</ParamField>
+
+<ParamField path="links" type="array">
+  List of reference links that provide additional context or documentation for the agent.
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the agent.
+</ParamField>
+
+<ParamField path="owner" type="string">
+  The email of the user who created the agent.
+</ParamField>
+
+<ParamField path="created_at" type="string">
+  The timestamp when the agent was created.
+</ParamField>
+
+## Import
+
+Agents can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_agent.example <agent-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_agent.example
+  id = "<agent-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Security" icon="shield-halved">
+  - Store sensitive information in secrets, not in environment variables
+  - Use specific access controls with users and groups
+  - Regularly audit agent permissions and access patterns
+</Card>
+
+<Card title="Performance" icon="gauge-high">
+  - Choose the appropriate model for your use case (balance cost vs capability)
+  - Use custom Docker images for specialized environments
+  - Enable debug mode only when troubleshooting
+</Card>
+
+<Card title="Maintenance" icon="wrench">
+  - Use descriptive names that indicate the agent's purpose
+  - Include comprehensive instructions to ensure consistent behavior
+  - Store Terraform configurations in version control
+  - Test agents in non-production runners first
+</Card>
+
+<Card title="User Experience" icon="user">
+  - Provide clear conversation starters for common tasks
+  - Use groups for team-based access rather than individual users
+  - Include helpful links and documentation references
+</Card>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Some features may require specific Kubiya platform tier (Enterprise features)
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Custom Docker images must be accessible from the runner environment
+- Integration names must match exactly with configured integrations in your Kubiya account
+- Debug mode should not be used in production environments
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Agent Not Responding">
+  - Check if the runner is active and accessible
+  - Verify that all required integrations are properly configured
+  - Enable debug mode to get detailed logs
+  - Ensure the agent has proper access permissions
+</Accordion>
+
+<Accordion title="Integration Access Issues">
+  - Verify integration names match exactly with your Kubiya account configuration
+  - Check that the agent's groups/users have access to the integrations
+  - Ensure integrations are properly authenticated and active
+</Accordion>
+
+<Accordion title="Custom Docker Image Issues">
+  - Ensure the image is accessible from the runner environment
+  - Check that required dependencies are installed in the image
+  - Verify environment variables are properly configured
+  - Test the image independently before using with the agent
+</Accordion>

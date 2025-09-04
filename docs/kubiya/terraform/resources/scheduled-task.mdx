@@ -1,0 +1,708 @@
+---
+title: "kubiya_scheduled_task"
+sidebarTitle: "Scheduled Task Resource"
+description: "Manage scheduled automation tasks with cron-based execution"
+icon: "clock"
+---
+
+The `kubiya_scheduled_task` resource allows you to create and manage scheduled tasks in the Kubiya platform. Scheduled tasks execute Kubiya agents on defined schedules using cron expressions, enabling automated recurring operations for monitoring, reporting, maintenance, and other routine activities.
+
+<Tip>
+Scheduled tasks are essential for automating recurring operations like health checks, backups, reports, and maintenance tasks, ensuring consistent operations without manual intervention.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. At least one configured agent to execute
+4. Understanding of cron expression syntax
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Daily Report Task
+resource "kubiya_agent" "daily_reporter" {
+  name         = "daily-reporter"
+  runner       = "kubiya-hosted"
+  description  = "Daily reporting agent"
+  instructions = "You generate daily reports and summaries."
+}
+
+resource "kubiya_scheduled_task" "daily_report" {
+  name        = "daily-status-report"
+  description = "Generate daily status report"
+  agent       = kubiya_agent.daily_reporter.name
+  schedule    = "0 9 * * *"  # 9 AM daily
+  prompt      = "Generate a comprehensive daily status report for all systems"
+  enabled     = true
+}
+```
+
+```hcl Backup Verification
+resource "kubiya_agent" "backup_agent" {
+  name         = "backup-verifier"
+  runner       = "kubiya-hosted"
+  description  = "Backup verification agent"
+  instructions = "You verify backup completion and integrity."
+  
+  integrations = ["aws"]
+}
+
+resource "kubiya_scheduled_task" "backup_check" {
+  name        = "nightly-backup-verification"
+  description = "Verify nightly backup completion"
+  agent       = kubiya_agent.backup_agent.name
+  schedule    = "30 2 * * *"  # 2:30 AM daily
+  prompt      = "Check if all nightly backups completed successfully and verify their integrity"
+  enabled     = true
+  
+  notification {
+    method      = "Slack"
+    destination = "#backups"
+  }
+}
+```
+
+```hcl Health Monitoring
+resource "kubiya_agent" "health_monitor" {
+  name         = "health-monitor"
+  runner       = "kubiya-hosted"
+  description  = "System health monitoring agent"
+  instructions = "You monitor system health and alert on issues."
+  
+  integrations = ["kubernetes", "datadog"]
+}
+
+resource "kubiya_scheduled_task" "health_check" {
+  name        = "frequent-health-check"
+  description = "Check critical service health"
+  agent       = kubiya_agent.health_monitor.name
+  schedule    = "*/15 * * * *"  # Every 15 minutes
+  prompt      = "Check health status of critical services and alert if any issues are detected"
+  enabled     = true
+  
+  notification {
+    method      = "Http"
+    destination = "https://monitoring.example.com/webhook"
+  }
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Weekly Reports">
+    Schedule comprehensive weekly reporting tasks:
+
+    ```hcl
+    resource "kubiya_scheduled_task" "weekly_report" {
+      name        = "weekly-infrastructure-report"
+      description = "Generate weekly infrastructure report"
+      agent       = "infrastructure-agent"
+      schedule    = "0 10 * * MON"  # 10 AM every Monday
+      prompt      = <<-EOT
+        Generate a comprehensive weekly infrastructure report including:
+        - Resource utilization trends
+        - Incident summary
+        - Performance metrics
+        - Cost analysis
+        - Recommendations for optimization
+      EOT
+      enabled     = true
+      
+      notification {
+        method      = "Email"
+        destination = "team@example.com"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Business Hours Monitoring">
+    Monitor systems only during business hours:
+
+    ```hcl
+    resource "kubiya_scheduled_task" "business_hours_monitor" {
+      name        = "business-hours-monitoring"
+      description = "Monitor application performance during business hours"
+      agent       = "performance-agent"
+      schedule    = "*/30 9-17 * * MON-FRI"  # Every 30 minutes, 9 AM-5 PM, Monday-Friday
+      prompt      = "Monitor application performance metrics and report any degradation"
+      enabled     = true
+      
+      notification {
+        method      = "Slack"
+        destination = "#performance"
+      }
+    }
+
+    resource "kubiya_scheduled_task" "after_hours_check" {
+      name        = "after-hours-critical-check"
+      description = "Critical system checks outside business hours"
+      agent       = "critical-monitor-agent"
+      schedule    = "0 18-8 * * *"  # 6 PM to 8 AM
+      prompt      = "Perform critical system health checks for after-hours monitoring"
+      enabled     = true
+      
+      notification {
+        method      = "Slack"
+        destination = "#critical-alerts"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Monthly Maintenance">
+    Schedule monthly maintenance operations:
+
+    ```hcl
+    resource "kubiya_agent" "maintenance_agent" {
+      name         = "maintenance-agent"
+      runner       = "kubiya-hosted"
+      description  = "System maintenance agent"
+      instructions = <<-EOT
+        You perform system maintenance tasks including:
+        - Log rotation and cleanup
+        - Database optimization
+        - Cache clearing
+        - Temporary file cleanup
+      EOT
+      
+      integrations = ["kubernetes", "aws"]
+    }
+
+    resource "kubiya_scheduled_task" "monthly_maintenance" {
+      name        = "monthly-system-maintenance"
+      description = "Perform monthly system maintenance"
+      agent       = kubiya_agent.maintenance_agent.name
+      schedule    = "0 3 1 * *"  # 3 AM on the 1st of each month
+      prompt      = "Execute monthly maintenance tasks: log cleanup, database optimization, cache clearing"
+      enabled     = true
+      
+      notification {
+        method      = "Email"
+        destination = "ops@example.com"
+      }
+    }
+
+    resource "kubiya_scheduled_task" "quarterly_review" {
+      name        = "quarterly-system-review"
+      description = "Quarterly system performance review"
+      agent       = kubiya_agent.maintenance_agent.name
+      schedule    = "0 6 1 */3 *"  # 6 AM on 1st day of quarter
+      prompt      = "Conduct comprehensive quarterly system review and generate optimization recommendations"
+      enabled     = true
+      
+      notification {
+        method      = "Teams"
+        team_name   = "Infrastructure Team"
+        destination = "System Reviews"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Multi-Environment Scheduling">
+  Create scheduled tasks across different environments with varying frequencies:
+
+  ```hcl
+  locals {
+    environments = {
+      dev = {
+        schedule = "0 6 * * *"  # 6 AM daily
+        prompt   = "Check development environment health"
+        enabled  = false  # Disable for development
+      }
+      staging = {
+        schedule = "0 7 * * *"  # 7 AM daily
+        prompt   = "Verify staging environment readiness"
+        enabled  = true
+      }
+      prod = {
+        schedule = "*/10 * * * *"  # Every 10 minutes
+        prompt   = "Monitor production environment health and performance"
+        enabled  = true
+      }
+    }
+  }
+
+  resource "kubiya_agent" "env_monitors" {
+    for_each = local.environments
+    
+    name         = "${each.key}-monitor"
+    runner       = "kubiya-hosted"
+    description  = "Monitor for ${each.key} environment"
+    instructions = "You monitor the ${each.key} environment health and performance."
+    
+    environment_variables = {
+      ENVIRONMENT = each.key
+      LOG_LEVEL   = each.key == "prod" ? "INFO" : "DEBUG"
+    }
+  }
+
+  resource "kubiya_scheduled_task" "env_tasks" {
+    for_each = local.environments
+    
+    name        = "${each.key}-health-check"
+    description = "Health check for ${each.key} environment"
+    agent       = kubiya_agent.env_monitors[each.key].name
+    schedule    = each.value.schedule
+    prompt      = each.value.prompt
+    enabled     = each.value.enabled
+    
+    notification {
+      method      = "Slack"
+      destination = "#${each.key}-alerts"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Conditional Task Execution">
+  Create tasks that perform different actions based on conditions:
+
+  ```hcl
+  resource "kubiya_scheduled_task" "conditional_task" {
+    name        = "conditional-deployment-check"
+    description = "Check deployments based on conditions"
+    agent       = "deployment-agent"
+    schedule    = "0 */4 * * *"  # Every 4 hours
+    prompt      = <<-EOT
+      Check if there are pending deployments:
+      1. If pending deployments exist, validate them
+      2. If validation passes, approve for next window
+      3. If no pending deployments, check system health
+      4. Generate appropriate report based on findings
+    EOT
+    enabled     = true
+    
+    notification {
+      method      = "Slack"
+      destination = "#deployments"
+    }
+  }
+
+  resource "kubiya_scheduled_task" "smart_scaling" {
+    name        = "smart-resource-scaling"
+    description = "Intelligent resource scaling based on usage patterns"
+    agent       = "scaling-agent"
+    schedule    = "*/30 * * * *"  # Every 30 minutes
+    prompt      = <<-EOT
+      Analyze current resource usage and demand patterns:
+      1. Check CPU, memory, and network utilization
+      2. Review historical usage patterns for this time of day
+      3. Predict upcoming demand based on trends
+      4. Scale resources up or down as needed
+      5. Report scaling actions taken
+    EOT
+    enabled     = true
+    
+    notification {
+      method      = "Slack"
+      destination = "#infrastructure"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Compliance and Audit Tasks">
+  Schedule compliance checking and audit tasks:
+
+  ```hcl
+  resource "kubiya_agent" "compliance_agent" {
+    name         = "compliance-auditor"
+    runner       = "kubiya-hosted"
+    description  = "Compliance and security audit agent"
+    instructions = <<-EOT
+      You perform compliance checks and security audits:
+      - Verify access controls and permissions
+      - Check for policy violations
+      - Generate compliance reports
+      - Monitor for security incidents
+    EOT
+    
+    integrations = ["aws", "github", "slack_integration"]
+    groups       = ["Security", "Compliance"]
+  }
+
+  # Daily security checks
+  resource "kubiya_scheduled_task" "daily_security_scan" {
+    name        = "daily-security-compliance-check"
+    description = "Daily security and compliance verification"
+    agent       = kubiya_agent.compliance_agent.name
+    schedule    = "0 8 * * *"  # 8 AM daily
+    prompt      = "Perform daily security compliance check: access controls, policy adherence, and security posture"
+    enabled     = true
+    
+    notification {
+      method      = "Slack"
+      destination = "#security-alerts"
+    }
+  }
+
+  # Weekly compliance report
+  resource "kubiya_scheduled_task" "weekly_compliance_report" {
+    name        = "weekly-compliance-report"
+    description = "Generate weekly compliance report"
+    agent       = kubiya_agent.compliance_agent.name
+    schedule    = "0 9 * * FRI"  # 9 AM every Friday
+    prompt      = "Generate comprehensive weekly compliance report with findings and recommendations"
+    enabled     = true
+    
+    notification {
+      method      = "Email"
+      destination = "compliance@example.com"
+    }
+  }
+
+  # Monthly audit
+  resource "kubiya_scheduled_task" "monthly_audit" {
+    name        = "monthly-security-audit"
+    description = "Monthly comprehensive security audit"
+    agent       = kubiya_agent.compliance_agent.name
+    schedule    = "0 10 1 * *"  # 10 AM on 1st of each month
+    prompt      = "Conduct comprehensive monthly security audit including penetration testing and vulnerability assessment"
+    enabled     = true
+    
+    notification {
+      method      = "Teams"
+      team_name   = "Security Team"
+      destination = "Audit Reports"
+    }
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the scheduled task. Must be unique within your organization.
+</ParamField>
+
+<ParamField path="description" type="string" required>
+  A description of the scheduled task's purpose and functionality.
+</ParamField>
+
+<ParamField path="agent" type="string" required>
+  The name of the agent to execute when the task runs.
+</ParamField>
+
+<ParamField path="schedule" type="string" required>
+  Cron expression defining when the task should run. Format: "minute hour day month weekday".
+</ParamField>
+
+<ParamField path="prompt" type="string" required>
+  The prompt to send to the agent when the task executes. This guides the agent's actions.
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="enabled" type="boolean" default="true">
+  Whether the scheduled task is enabled and will execute on schedule.
+</ParamField>
+
+<ParamField path="notification" type="object">
+  Notification configuration for task execution results:
+  
+  <ParamField path="notification.method" type="string" required>
+    Notification method. Available options:
+    - `Slack` - Send notifications to Slack channels
+    - `Email` - Send email notifications
+    - `Http` - Send HTTP webhook notifications
+    - `Teams` - Send Microsoft Teams notifications
+  </ParamField>
+  
+  <ParamField path="notification.destination" type="string" required>
+    Destination for notifications:
+    - **Slack**: Channel name with "#" prefix or username with "@" prefix
+    - **Email**: Email address or distribution list
+    - **Http**: Webhook URL for HTTP notifications
+    - **Teams**: Channel name within the specified team
+  </ParamField>
+  
+  <ParamField path="notification.team_name" type="string">
+    Team name for Microsoft Teams notifications. Required when method is "Teams".
+  </ParamField>
+</ParamField>
+
+## Cron Expression Reference
+
+The schedule uses standard cron expression format:
+
+```
+* * * * *
+│ │ │ │ │
+│ │ │ │ └─── Day of week (0-7, MON-SUN)
+│ │ │ └───── Month (1-12, JAN-DEC)
+│ │ └─────── Day of month (1-31)
+│ └───────── Hour (0-23)
+└─────────── Minute (0-59)
+```
+
+<Tabs>
+  <Tab title="Common Patterns">
+    ```bash
+    # Every minute
+    * * * * *
+    
+    # Every 15 minutes
+    */15 * * * *
+    
+    # Every hour at minute 0
+    0 * * * *
+    
+    # Daily at 9 AM
+    0 9 * * *
+    
+    # Daily at 2:30 AM
+    30 2 * * *
+    ```
+  </Tab>
+  
+  <Tab title="Business Hours">
+    ```bash
+    # Every hour during business hours (9 AM - 5 PM)
+    0 9-17 * * *
+    
+    # Every 30 minutes during business hours, weekdays only
+    */30 9-17 * * MON-FRI
+    
+    # Hourly during extended business hours
+    0 8-18 * * MON-SAT
+    ```
+  </Tab>
+  
+  <Tab title="Weekly & Monthly">
+    ```bash
+    # Weekly on Sunday at midnight
+    0 0 * * 0
+    
+    # Weekly on Monday at 10 AM
+    0 10 * * MON
+    
+    # Monthly on the 1st at midnight
+    0 0 1 * *
+    
+    # Quarterly on 1st day at 6 AM
+    0 6 1 */3 *
+    
+    # Yearly on January 1st at midnight
+    0 0 1 1 *
+    ```
+  </Tab>
+  
+  <Tab title="Advanced Patterns">
+    ```bash
+    # Every 10 minutes between 9 AM and 5 PM on weekdays
+    */10 9-17 * * MON-FRI
+    
+    # Multiple times per day
+    0 6,12,18 * * *
+    
+    # Specific days of the month
+    0 9 1,15 * *
+    
+    # Weekend maintenance
+    0 3 * * SAT,SUN
+    
+    # Avoid specific day (not Sunday)
+    0 9 * * MON-SAT
+    ```
+  </Tab>
+</Tabs>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the scheduled task.
+</ParamField>
+
+<ParamField path="created_at" type="string">
+  The timestamp when the scheduled task was created.
+</ParamField>
+
+<ParamField path="updated_at" type="string">
+  The timestamp when the scheduled task was last updated.
+</ParamField>
+
+<ParamField path="last_run" type="string">
+  The timestamp of the last execution.
+</ParamField>
+
+<ParamField path="next_run" type="string">
+  The timestamp of the next scheduled execution.
+</ParamField>
+
+<ParamField path="status" type="string">
+  The current status of the scheduled task.
+</ParamField>
+
+## Import
+
+Scheduled tasks can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_scheduled_task.example <scheduled-task-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_scheduled_task.example
+  id = "<scheduled-task-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Scheduling Strategy" icon="calendar">
+  - Be aware that schedules run in UTC; adjust accordingly for your timezone
+  - Avoid overly frequent schedules that may overwhelm the system
+  - Schedule intensive tasks during off-peak hours
+  - Consider business hours and maintenance windows when setting schedules
+</Card>
+
+<Card title="Task Design" icon="gear">
+  - Design tasks to be idempotent to handle potential reruns safely
+  - Include error handling and recovery logic in agent prompts
+  - Use clear, specific prompts that define expected outcomes
+  - Test schedules in development before production deployment
+</Card>
+
+<Card title="Monitoring & Alerts" icon="bell">
+  - Configure appropriate notifications for critical tasks
+  - Monitor task execution history and success rates
+  - Set up alerts for task failures or missed executions
+  - Use different notification channels for different types of tasks
+</Card>
+
+<Card title="Documentation & Maintenance" icon="book-open">
+  - Document the purpose and expected behavior of each task
+  - Include contact information for task owners
+  - Regular review and cleanup of obsolete scheduled tasks
+  - Version control your scheduled task configurations
+</Card>
+
+## Notification Methods
+
+<Tabs>
+  <Tab title="Slack Integration">
+    ```hcl
+    notification {
+      method      = "Slack"
+      destination = "#infrastructure-alerts"
+    }
+    
+    # Or notify specific users
+    notification {
+      method      = "Slack"
+      destination = "@oncall-engineer"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Email Notifications">
+    ```hcl
+    notification {
+      method      = "Email"
+      destination = "ops@example.com"
+    }
+    
+    # Multiple recipients
+    notification {
+      method      = "Email"
+      destination = "team@example.com,oncall@example.com"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Webhook Integration">
+    ```hcl
+    notification {
+      method      = "Http"
+      destination = "https://monitoring.example.com/webhook"
+    }
+    
+    # Custom monitoring system
+    notification {
+      method      = "Http"
+      destination = "https://internal-monitoring.company.com/api/alerts"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Microsoft Teams">
+    ```hcl
+    notification {
+      method      = "Teams"
+      team_name   = "Infrastructure Team"
+      destination = "Alerts"
+    }
+    
+    # Different team channel
+    notification {
+      method      = "Teams"
+      team_name   = "Development Team"
+      destination = "Deployment Notifications"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Cron expressions are evaluated in UTC by default
+- Agent must exist and be accessible before task creation
+</Note>
+
+<Warning>
+**Limitations:**
+- Minimum schedule frequency may be limited by platform tier
+- Very frequent schedules (e.g., every minute) may be subject to rate limiting
+- Task execution time limits apply based on your platform configuration
+- Notification delivery depends on integration configuration
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Schedule Not Executing">
+  - Verify the cron expression syntax is correct
+  - Check that the task is enabled
+  - Ensure the agent exists and is accessible
+  - Review timezone considerations (schedules run in UTC)
+  - Check platform limits on schedule frequency
+</Accordion>
+
+<Accordion title="Agent Execution Issues">
+  - Verify the agent name exactly matches an existing agent
+  - Check that the agent has proper permissions and integrations
+  - Ensure the prompt is clear and actionable
+  - Review agent instructions for task compatibility
+</Accordion>
+
+<Accordion title="Notification Problems">
+  - Verify notification method configuration
+  - Check destination format (channels, emails, URLs)
+  - Ensure integrations are properly configured
+  - Test notification channels independently
+</Accordion>

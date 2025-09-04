@@ -1,0 +1,640 @@
+---
+title: "kubiya_knowledge"
+sidebarTitle: "Knowledge Resource"
+description: "Manage knowledge bases and documentation for agents with context and reference materials"
+icon: "book"
+---
+
+The `kubiya_knowledge` resource allows you to create and manage knowledge resources in the Kubiya platform. Knowledge resources provide specific information, documentation, and context that agents can reference when performing tasks, ensuring consistent and informed responses.
+
+<Tip>
+Knowledge resources are essential for providing agents with domain-specific information, procedures, and context that enables more accurate and useful interactions.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. At least one group configured in your Kubiya organization
+4. Content files prepared (markdown, text, or other supported formats)
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic Documentation
+resource "kubiya_knowledge" "basic_docs" {
+  name        = "basic-documentation"
+  description = "Basic system documentation"
+  content     = "This is the basic documentation for our system."
+  format      = "markdown"
+  
+  groups = ["Engineering"]
+}
+```
+
+```hcl From File
+resource "kubiya_knowledge" "deployment_guide" {
+  name        = "deployment-procedures"
+  description = "Standard procedures for application deployment"
+  content     = file("${path.module}/docs/deployment-guide.md")
+  format      = "markdown"
+  
+  groups = ["DevOps", "Engineering"]
+  labels = ["deployment", "procedures", "documentation"]
+}
+
+resource "kubiya_agent" "deployment_assistant" {
+  name         = "deployment-assistant"
+  runner       = "kubiya-hosted"
+  description  = "Deployment assistance agent"
+  instructions = <<-EOT
+    You are a deployment assistant with access to deployment procedures.
+    Reference the deployment-procedures knowledge base for standard procedures.
+    Always follow the documented deployment steps.
+  EOT
+  
+  groups = ["DevOps"]
+}
+```
+
+```hcl System Architecture
+resource "kubiya_knowledge" "architecture" {
+  name        = "system-architecture"
+  description = "System architecture diagrams and explanations"
+  content     = <<-MARKDOWN
+    # System Architecture
+    
+    ## Overview
+    Our system follows a microservices architecture with the following components:
+    
+    ### Frontend Layer
+    - React application
+    - Nginx reverse proxy
+    - CloudFront CDN
+    
+    ### API Layer
+    - REST API Gateway
+    - GraphQL endpoint
+    - WebSocket server
+    
+    ### Backend Services
+    - User Service
+    - Order Service
+    - Payment Service
+    - Notification Service
+    
+    ### Data Layer
+    - PostgreSQL (primary database)
+    - Redis (caching)
+    - Elasticsearch (search)
+    - S3 (object storage)
+  MARKDOWN
+  format = "markdown"
+  
+  groups = ["Engineering", "DevOps", "Product", "Security"]
+  labels = ["architecture", "documentation", "system-design", "technical"]
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Troubleshooting Runbooks">
+    Create comprehensive troubleshooting documentation:
+
+    ```hcl
+    resource "kubiya_knowledge" "troubleshooting" {
+      name        = "troubleshooting-runbooks"
+      description = "Runbooks for common issues and their resolution"
+      content     = <<-MARKDOWN
+        # Troubleshooting Runbooks
+        
+        ## High Memory Usage
+        
+        ### Symptoms
+        - Memory usage above 90%
+        - Application slowness
+        - OOM kills
+        
+        ### Diagnosis Steps
+        1. Check memory usage: `free -m`
+        2. Identify top consumers: `ps aux --sort=-%mem | head`
+        3. Check for memory leaks: `jmap -heap <pid>`
+        
+        ### Resolution
+        1. Restart affected services
+        2. Scale horizontally if needed
+        3. Investigate code for memory leaks
+        
+        ## Database Connection Issues
+        
+        ### Symptoms
+        - Connection timeout errors
+        - "Too many connections" errors
+        
+        ### Diagnosis Steps
+        1. Check connection count: `SELECT count(*) FROM pg_stat_activity;`
+        2. Check for long-running queries
+        3. Verify network connectivity
+        
+        ### Resolution
+        1. Kill idle connections
+        2. Increase connection pool size
+        3. Optimize queries
+      MARKDOWN
+      format = "markdown"
+      
+      groups = ["DevOps", "SRE", "Engineering"]
+      labels = ["troubleshooting", "runbooks", "operations", "incident-response"]
+    }
+
+    resource "kubiya_agent" "incident_responder" {
+      name         = "incident-responder"
+      runner       = "kubiya-hosted"
+      description  = "Incident response agent"
+      instructions = <<-EOT
+        You are an incident response agent. 
+        Use the troubleshooting-runbooks knowledge base to diagnose and resolve issues.
+        Follow the documented procedures exactly.
+      EOT
+      
+      groups = ["DevOps", "SRE"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="API Documentation">
+    Store API documentation and reference materials:
+
+    ```hcl
+    resource "kubiya_knowledge" "api_docs" {
+      name        = "api-documentation"
+      description = "REST API documentation and examples"
+      content     = <<-MARKDOWN
+        # API Documentation
+        
+        ## Authentication
+        All API requests require a Bearer token:
+        
+        Authorization: Bearer XXXX
+        
+        
+        ## Endpoints
+        
+        ### GET /api/v1/users
+        Retrieve user list
+        
+        **Parameters:**
+        - page (int): Page number
+        - limit (int): Results per page
+        
+        **Response:**
+        {
+          "users": [...],
+          "total": 100,
+          "page": 1
+        }
+        
+        ### POST /api/v1/users
+        Create new user
+        
+        **Body:**
+        {
+          "email": "user@example.com",
+          "name": "John Doe",
+          "role": "user"
+        }
+        
+        ### Error Codes
+        - 400: Bad Request
+        - 401: Unauthorized
+        - 403: Forbidden
+        - 404: Not Found
+        - 500: Internal Server Error
+      MARKDOWN
+      format = "markdown"
+      
+      groups = ["Engineering", "QA", "Product"]
+      labels = ["api", "documentation", "rest", "reference"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Environment-Specific Guides">
+    Create environment-specific documentation using dynamic configuration:
+
+    ```hcl
+    locals {
+      environments = {
+        dev = {
+          name        = "dev-environment-guide"
+          description = "Development environment setup and guidelines"
+          groups      = ["Engineering", "QA"]
+        }
+        staging = {
+          name        = "staging-environment-guide"
+          description = "Staging environment procedures"
+          groups      = ["Engineering", "QA", "Product"]
+        }
+        prod = {
+          name        = "production-environment-guide"
+          description = "Production environment operations"
+          groups      = ["DevOps", "SRE", "Security"]
+        }
+      }
+    }
+
+    resource "kubiya_knowledge" "env_guides" {
+      for_each = local.environments
+      
+      name        = each.value.name
+      description = each.value.description
+      content     = file("${path.module}/docs/${each.key}-guide.md")
+      format      = "markdown"
+      
+      groups = each.value.groups
+      labels = [each.key, "environment", "documentation", "guide"]
+    }
+
+    resource "kubiya_agent" "env_assistants" {
+      for_each = local.environments
+      
+      name         = "${each.key}-assistant"
+      runner       = "kubiya-hosted"
+      description  = "Assistant for ${each.key} environment"
+      instructions = "You are an assistant for the ${each.key} environment. Reference the ${each.value.name} knowledge base."
+      
+      groups = each.value.groups
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Compliance and Security Policies">
+  Store compliance documentation and security policies:
+
+  ```hcl
+  resource "kubiya_knowledge" "compliance_policies" {
+    name        = "compliance-security-policies"
+    description = "Security and compliance policies and procedures"
+    content     = file("${path.module}/docs/compliance-policies.md")
+    format      = "markdown"
+    
+    groups = ["Security", "Compliance", "Engineering", "DevOps"]
+    labels = ["compliance", "security", "policies", "governance"]
+  }
+
+  resource "kubiya_knowledge" "gdpr_procedures" {
+    name        = "gdpr-procedures"
+    description = "GDPR compliance procedures"
+    content     = file("${path.module}/docs/gdpr-procedures.md")
+    format      = "markdown"
+    
+    groups = ["Compliance", "Legal", "Engineering"]
+    labels = ["gdpr", "compliance", "data-privacy", "legal"]
+  }
+
+  resource "kubiya_knowledge" "security_playbooks" {
+    name        = "security-incident-playbooks"
+    description = "Security incident response playbooks"
+    content     = <<-MARKDOWN
+      # Security Incident Response Playbooks
+      
+      ## Data Breach Response
+      
+      ### Immediate Actions (0-1 hours)
+      1. Isolate affected systems
+      2. Assess scope of breach
+      3. Notify incident commander
+      4. Begin evidence collection
+      
+      ### Short Term Actions (1-24 hours)
+      1. Contain the breach
+      2. Assess data exposure
+      3. Notify legal and compliance
+      4. Prepare external communications
+      
+      ### Recovery Actions (24+ hours)
+      1. Implement fixes
+      2. Monitor for additional threats
+      3. Conduct post-incident review
+      4. Update security measures
+      
+      ## Malware Incident
+      
+      ### Detection and Analysis
+      1. Identify infected systems
+      2. Determine malware type
+      3. Assess lateral movement
+      4. Check for data exfiltration
+      
+      ### Containment and Eradication
+      1. Isolate infected systems
+      2. Remove malware
+      3. Patch vulnerabilities
+      4. Update security controls
+    MARKDOWN
+    format = "markdown"
+    
+    groups = ["Security", "DevOps", "SRE"]
+    labels = ["security", "incident-response", "playbooks", "malware", "breach"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Team-Specific Documentation">
+  Create documentation organized by team function:
+
+  ```hcl
+  locals {
+    team_docs = {
+      frontend = {
+        name        = "frontend-development-guide"
+        description = "Frontend development standards and practices"
+        content_file = "frontend-guide.md"
+        groups      = ["Frontend", "Engineering"]
+        labels      = ["frontend", "react", "development", "standards"]
+      }
+      backend = {
+        name        = "backend-development-guide"
+        description = "Backend development standards and API design"
+        content_file = "backend-guide.md"
+        groups      = ["Backend", "Engineering"]
+        labels      = ["backend", "api", "development", "standards"]
+      }
+      devops = {
+        name        = "devops-operational-procedures"
+        description = "DevOps operational procedures and best practices"
+        content_file = "devops-procedures.md"
+        groups      = ["DevOps", "SRE"]
+        labels      = ["devops", "operations", "procedures", "infrastructure"]
+      }
+      security = {
+        name        = "security-guidelines"
+        description = "Security guidelines and secure coding practices"
+        content_file = "security-guidelines.md"
+        groups      = ["Security", "Engineering", "DevOps"]
+        labels      = ["security", "guidelines", "secure-coding", "compliance"]
+      }
+    }
+  }
+
+  resource "kubiya_knowledge" "team_documentation" {
+    for_each = local.team_docs
+    
+    name        = each.value.name
+    description = each.value.description
+    content     = file("${path.module}/docs/${each.value.content_file}")
+    format      = "markdown"
+    
+    groups = each.value.groups
+    labels = each.value.labels
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the knowledge resource. Must be unique within your organization.
+</ParamField>
+
+<ParamField path="description" type="string" required>
+  A description of the knowledge resource's content and purpose. Helps users understand what information is contained.
+</ParamField>
+
+<ParamField path="content" type="string" required>
+  The actual content of the knowledge resource. Can be inline text or loaded from files using the `file()` function.
+</ParamField>
+
+<ParamField path="format" type="string" required>
+  The format of the content. Supported formats include:
+  - `markdown` - Markdown formatted text (recommended)
+  - `text` - Plain text
+  - `json` - JSON data structures
+  - `yaml` - YAML formatted data
+  - `html` - HTML formatted content
+</ParamField>
+
+<ParamField path="groups" type="array" required>
+  List of groups that can access this knowledge resource. At least one group is required. Groups must exist in your Kubiya organization.
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="labels" type="array">
+  Labels for categorizing and searching knowledge resources. Use consistent labeling for better organization and discoverability.
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the knowledge resource.
+</ParamField>
+
+<ParamField path="created_at" type="string">
+  The timestamp when the knowledge resource was created.
+</ParamField>
+
+<ParamField path="updated_at" type="string">
+  The timestamp when the knowledge resource was last updated.
+</ParamField>
+
+<ParamField path="created_by" type="string">
+  The email of the user who created the knowledge resource.
+</ParamField>
+
+## Content Organization Patterns
+
+<Tabs>
+  <Tab title="Documentation Structure">
+    Structure your documentation for maximum clarity:
+
+    ```markdown
+    # Title
+    
+    ## Overview
+    Brief description of the topic
+    
+    ## Prerequisites
+    What users need to know or have
+    
+    ## Step-by-Step Instructions
+    1. First step
+    2. Second step
+    3. Third step
+    
+    ## Examples
+    Practical examples and use cases
+    
+    ## Troubleshooting
+    Common issues and solutions
+    
+    ## Related Resources
+    Links to other relevant knowledge
+    ```
+  </Tab>
+  
+  <Tab title="Runbook Format">
+    Format operational runbooks consistently:
+
+    ```markdown
+    # [Issue Type] Runbook
+    
+    ## Symptoms
+    - What users observe
+    - Error messages
+    - Performance indicators
+    
+    ## Diagnosis
+    1. Commands to run
+    2. Logs to check
+    3. Metrics to review
+    
+    ## Resolution
+    1. Immediate actions
+    2. Long-term fixes
+    3. Prevention measures
+    
+    ## Escalation
+    When to escalate and to whom
+    ```
+  </Tab>
+  
+  <Tab title="API Reference">
+    Structure API documentation clearly:
+
+    ```markdown
+    # API Reference
+    
+    ## Authentication
+    How to authenticate requests
+    
+    ## Base URL
+    https://api.example.com/v1
+    
+    ## Endpoints
+    
+    ### GET /endpoint
+    **Description:** What this endpoint does
+    **Parameters:** Request parameters
+    **Response:** Expected response format
+    **Example:** Code example
+    
+    ## Error Handling
+    Standard error codes and meanings
+    ```
+  </Tab>
+</Tabs>
+
+## Import
+
+Knowledge resources can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_knowledge.example <knowledge-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_knowledge.example
+  id = "<knowledge-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Content Management" icon="file-text">
+  - Store knowledge content in version-controlled files for better change tracking
+  - Use markdown format for documentation to ensure better readability and formatting
+  - Keep content current with regular updates and reviews
+  - Structure content with clear headings and logical organization
+</Card>
+
+<Card title="Access Control" icon="users">
+  - Assign appropriate groups based on content sensitivity and relevance
+  - Use granular group assignments to ensure proper access control
+  - Review access permissions regularly to maintain security
+  - Consider creating specialized groups for different types of content
+</Card>
+
+<Card title="Organization & Discovery" icon="search">
+  - Use consistent labels for easy discovery and categorization
+  - Implement a labeling taxonomy across your organization
+  - Include practical examples in technical documentation
+  - Cross-reference related knowledge resources using labels
+</Card>
+
+<Card title="Quality & Maintenance" icon="wrench">
+  - Implement review processes for critical documentation updates
+  - Test all code examples and procedures before publishing
+  - Include troubleshooting sections for complex procedures
+  - Set up regular review cycles for different types of content
+</Card>
+
+## Supported Content Formats
+
+<Note>
+**Format Support:**
+- **Markdown**: Full markdown support with tables, code blocks, and formatting
+- **Text**: Plain text content for simple documentation
+- **JSON**: Structured data for configuration examples and schemas
+- **YAML**: Configuration files and structured data
+- **HTML**: Rich formatted content with custom styling
+</Note>
+
+<Warning>
+**Content Limitations:**
+- Maximum content size may be limited by platform tier
+- Binary content is not supported; use base64 encoding if needed
+- External references and links should be accessible to users
+- Keep content focused and relevant to avoid information overload
+</Warning>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Groups must exist in your Kubiya organization before being referenced
+- Content should be properly formatted according to the specified format type
+</Note>
+
+## Troubleshooting
+
+<Accordion title="Content Loading Issues">
+  - Verify file paths are correct when using the `file()` function
+  - Check that content format matches the specified format parameter
+  - Ensure content encoding is UTF-8 for proper character support
+  - Test content rendering in the Kubiya interface
+</Accordion>
+
+<Accordion title="Access Control Problems">
+  - Confirm that all specified groups exist in your Kubiya organization
+  - Check group memberships for users who should have access
+  - Verify that agents referencing knowledge have appropriate group assignments
+  - Review group permissions and access policies
+</Accordion>
+
+<Accordion title="Search and Discovery Issues">
+  - Use consistent and meaningful labels across related content
+  - Ensure knowledge resource names are descriptive and searchable
+  - Check that content includes relevant keywords in descriptions
+  - Verify that related knowledge resources are properly cross-referenced
+</Accordion>

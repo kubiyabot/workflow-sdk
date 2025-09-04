@@ -1,0 +1,575 @@
+---
+title: "kubiya_runner"
+sidebarTitle: "Runner Resource"
+description: "Manage compute environments for executing agents and workflows"
+icon: "server"
+---
+
+The `kubiya_runner` resource allows you to create and manage runners in the Kubiya platform. Runners are compute environments where Kubiya agents execute code and perform operations. They provide isolated, secure execution contexts for your automation tasks.
+
+<Tip>
+Runners provide dedicated compute environments that ensure consistent performance, security isolation, and resource management for your automation workloads.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. Appropriate permissions to create runners in your organization
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic Runner
+resource "kubiya_runner" "basic" {
+  name = "basic-runner"
+}
+
+resource "kubiya_agent" "basic_agent" {
+  name         = "basic-agent"
+  runner       = kubiya_runner.basic.name
+  description  = "Agent using custom runner"
+  instructions = "You are an agent running on dedicated infrastructure."
+}
+```
+
+```hcl Production Runner
+resource "kubiya_runner" "production" {
+  name = "production-runner"
+}
+
+resource "kubiya_agent" "prod_agent" {
+  name         = "production-agent"
+  runner       = kubiya_runner.production.name
+  description  = "Production automation agent"
+  instructions = "You are a production agent running on dedicated infrastructure."
+}
+```
+
+```hcl Development Runner
+resource "kubiya_runner" "development" {
+  name = "dev-runner"
+}
+
+resource "kubiya_agent" "dev_agent" {
+  name         = "dev-assistant"
+  runner       = kubiya_runner.development.name
+  description  = "Development environment agent"
+  instructions = "You are a development agent for testing and experimentation."
+  
+  environment_variables = {
+    ENVIRONMENT = "development"
+    DEBUG       = "true"
+  }
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Multi-Environment Setup">
+    Create runners for different environments with corresponding agents:
+
+    ```hcl
+    locals {
+      environments = ["dev", "staging", "prod"]
+    }
+
+    # Create runners for each environment
+    resource "kubiya_runner" "environment" {
+      for_each = toset(local.environments)
+      
+      name = "${each.value}-runner"
+    }
+
+    # Create agents for each environment
+    resource "kubiya_agent" "environment_agent" {
+      for_each = toset(local.environments)
+      
+      name         = "${each.key}-agent"
+      runner       = kubiya_runner.environment[each.key].name
+      description  = "Agent for ${each.key} environment"
+      instructions = "You are an agent operating in the ${each.key} environment."
+      
+      environment_variables = {
+        ENVIRONMENT = each.key
+        LOG_LEVEL   = each.key == "prod" ? "INFO" : "DEBUG"
+      }
+    }
+
+    # Environment-specific sources
+    resource "kubiya_source" "env_tools" {
+      for_each = toset(local.environments)
+      
+      url    = "https://github.com/org/${each.value}-tools"
+      runner = kubiya_runner.environment[each.key].name
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Specialized Task Runners">
+    Create runners optimized for specific types of workloads:
+
+    ```hcl
+    # Data processing runner
+    resource "kubiya_runner" "data_processing" {
+      name = "data-processing-runner"
+    }
+
+    resource "kubiya_agent" "data_agent" {
+      name         = "data-processor"
+      runner       = kubiya_runner.data_processing.name
+      description  = "Agent specialized in data processing"
+      instructions = "You are a data processing agent with access to pandas and data manipulation tools."
+      
+      environment_variables = {
+        SPARK_MASTER = "local[*]"
+        PANDAS_MAX_ROWS = "10000"
+      }
+    }
+
+    # Security scanning runner
+    resource "kubiya_runner" "security_scanner" {
+      name = "security-scanner-runner"
+    }
+
+    resource "kubiya_agent" "security_agent" {
+      name         = "security-scanner"
+      runner       = kubiya_runner.security_scanner.name
+      description  = "Security scanning and compliance agent"
+      instructions = "You are a security agent with access to vulnerability scanning tools."
+    }
+
+    # CI/CD runner
+    resource "kubiya_runner" "cicd" {
+      name = "cicd-runner"
+    }
+
+    resource "kubiya_agent" "cicd_agent" {
+      name         = "cicd-orchestrator"
+      runner       = kubiya_runner.cicd.name
+      description  = "CI/CD pipeline orchestration agent"
+      instructions = "You orchestrate CI/CD pipelines and deployment processes."
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Team-Based Runners">
+    Create runners organized by team or function:
+
+    ```hcl
+    locals {
+      teams = {
+        frontend = {
+          name        = "frontend-team-runner"
+          description = "Frontend development team runner"
+        }
+        backend = {
+          name        = "backend-team-runner" 
+          description = "Backend development team runner"
+        }
+        devops = {
+          name        = "devops-team-runner"
+          description = "DevOps team operations runner"
+        }
+        security = {
+          name        = "security-team-runner"
+          description = "Security team analysis runner"
+        }
+      }
+    }
+
+    resource "kubiya_runner" "team_runners" {
+      for_each = local.teams
+      
+      name = each.value.name
+    }
+
+    resource "kubiya_agent" "team_agents" {
+      for_each = local.teams
+      
+      name         = "${each.key}-team-agent"
+      runner       = kubiya_runner.team_runners[each.key].name
+      description  = each.value.description
+      instructions = "You are a specialized agent for the ${each.key} team."
+      
+      # Team-specific groups
+      groups = [title(each.key)]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Runner with Custom Sources">
+  Configure runners with specialized tools and sources:
+
+  ```hcl
+  resource "kubiya_runner" "ml_pipeline" {
+    name = "machine-learning-runner"
+  }
+
+  resource "kubiya_source" "ml_tools" {
+    url    = "https://github.com/org/ml-tools"
+    runner = kubiya_runner.ml_pipeline.name
+    
+    dynamic_config = jsonencode({
+      branch = "main"
+      path   = "ml-workflows"
+    })
+  }
+
+  resource "kubiya_inline_source" "custom_ml_tools" {
+    name   = "custom-ml-tools"
+    runner = kubiya_runner.ml_pipeline.name
+    
+    tools = jsonencode([
+      {
+        name        = "model-trainer"
+        description = "Train machine learning models"
+        type        = "docker"
+        image       = "tensorflow/tensorflow:latest-py3"
+        content     = "python /app/train_model.py"
+        with_files = [
+          {
+            destination = "/app/train_model.py"
+            content     = <<-PYTHON
+              import tensorflow as tf
+              import os
+              
+              def train_model():
+                  # Model training logic
+                  print("Training ML model...")
+                  model = tf.keras.Sequential([
+                      tf.keras.layers.Dense(128, activation='relu'),
+                      tf.keras.layers.Dense(10, activation='softmax')
+                  ])
+                  print("Model training completed")
+              
+              if __name__ == "__main__":
+                  train_model()
+            PYTHON
+          }
+        ]
+      }
+    ])
+  }
+
+  resource "kubiya_agent" "ml_agent" {
+    name         = "ml-engineer"
+    runner       = kubiya_runner.ml_pipeline.name
+    description  = "Machine learning engineering agent"
+    instructions = "You are an ML engineer with access to TensorFlow and custom ML tools."
+    
+    sources = [
+      kubiya_source.ml_tools.id,
+      kubiya_inline_source.custom_ml_tools.id
+    ]
+    
+    environment_variables = {
+      TF_ENABLE_GPU = "true"
+      CUDA_VISIBLE_DEVICES = "0"
+      MODEL_OUTPUT_DIR = "/models"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="High-Availability Runner Setup">
+  Configure runners for high-availability scenarios:
+
+  ```hcl
+  locals {
+    regions = ["us-east-1", "us-west-2", "eu-west-1"]
+  }
+
+  resource "kubiya_runner" "ha_runners" {
+    for_each = toset(local.regions)
+    
+    name = "ha-runner-${each.value}"
+  }
+
+  resource "kubiya_agent" "ha_agents" {
+    for_each = toset(local.regions)
+    
+    name         = "ha-agent-${each.key}"
+    runner       = kubiya_runner.ha_runners[each.key].name
+    description  = "High-availability agent in ${each.key}"
+    instructions = "You are a high-availability agent providing redundant automation capabilities."
+    
+    environment_variables = {
+      REGION = each.key
+      HA_MODE = "active"
+      FAILOVER_REGION = local.regions[(index(local.regions, each.key) + 1) % length(local.regions)]
+    }
+  }
+
+  # Load balancer configuration for agents
+  resource "kubiya_agent" "ha_coordinator" {
+    name         = "ha-coordinator"
+    runner       = "kubiya-hosted"
+    description  = "High-availability coordinator agent"
+    instructions = <<-EOT
+      You coordinate between multiple high-availability agents.
+      Route requests to available regional agents based on health and load.
+      
+      Available regional agents:
+      ${join("\n", [for region in local.regions : "- ha-agent-${region}"])}
+    EOT
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the runner. Must be unique within your organization and should be descriptive of the runner's purpose.
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="runner_type" type="string">
+  The type of the runner as computed by the system. This reflects the runner's configuration and capabilities.
+</ParamField>
+
+## Runner Types and Use Cases
+
+<Tabs>
+  <Tab title="Environment Runners">
+    Organize runners by deployment environment:
+
+    ```hcl
+    # Development - for testing and experimentation
+    resource "kubiya_runner" "development" {
+      name = "development-runner"
+    }
+
+    # Staging - for pre-production testing  
+    resource "kubiya_runner" "staging" {
+      name = "staging-runner"
+    }
+
+    # Production - for live workloads
+    resource "kubiya_runner" "production" {
+      name = "production-runner"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Workload Runners">
+    Optimize runners for specific workload types:
+
+    ```hcl
+    # High-compute workloads
+    resource "kubiya_runner" "compute_intensive" {
+      name = "compute-intensive-runner"
+    }
+
+    # Data processing workloads
+    resource "kubiya_runner" "data_processing" {
+      name = "data-processing-runner"
+    }
+
+    # Security scanning workloads
+    resource "kubiya_runner" "security_scan" {
+      name = "security-scanning-runner"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Compliance Runners">
+    Create runners for compliance and regulatory requirements:
+
+    ```hcl
+    # SOC2 compliant runner
+    resource "kubiya_runner" "soc2_compliant" {
+      name = "soc2-compliant-runner"
+    }
+
+    # HIPAA compliant runner
+    resource "kubiya_runner" "hipaa_compliant" {
+      name = "hipaa-compliant-runner"
+    }
+
+    # PCI DSS compliant runner
+    resource "kubiya_runner" "pci_compliant" {
+      name = "pci-dss-runner"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Import
+
+Runners can be imported using their name:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_runner.example <runner-name>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_runner.example
+  id = "<runner-name>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Environment Management" icon="layer-group">
+  - Create separate runners for different environments (dev, staging, prod)
+  - Use consistent naming conventions that indicate the runner's purpose
+  - Implement proper access controls and permissions for each environment
+  - Consider resource requirements and scaling needs per environment
+</Card>
+
+<Card title="Workload Optimization" icon="gauge-high">
+  - Design runners for specific workload types (compute, I/O, memory intensive)
+  - Consider geographic distribution for global workloads
+  - Plan for peak usage and scaling requirements
+  - Monitor runner performance and resource utilization
+</Card>
+
+<Card title="Security & Compliance" icon="shield-halved">
+  - Implement appropriate security controls for runner environments
+  - Ensure compliance requirements are met for sensitive workloads
+  - Use dedicated runners for high-security or regulated workloads
+  - Regularly audit runner configurations and access patterns
+</Card>
+
+<Card title="Operations & Maintenance" icon="wrench">
+  - Document the purpose and configuration of each runner
+  - Implement monitoring and alerting for runner health
+  - Plan for disaster recovery and high availability
+  - Establish clear ownership and maintenance procedures
+</Card>
+
+## Special Runner Configurations
+
+<Note>
+**Kubiya-Hosted Runner:**
+The special runner name "kubiya-hosted" refers to Kubiya's cloud-hosted runners. These are managed by Kubiya and provide:
+- Automatic scaling and resource management
+- Built-in security and compliance measures
+- No infrastructure management overhead
+- Global availability and redundancy
+</Note>
+
+<Warning>
+**Custom Runner Considerations:**
+When creating custom runners, consider:
+- Resource requirements and scaling needs
+- Network connectivity and security requirements
+- Maintenance and update responsibilities
+- Monitoring and observability requirements
+</Warning>
+
+## Runner Lifecycle Management
+
+<Tabs>
+  <Tab title="Creation Pattern">
+    ```hcl
+    # Create runner first
+    resource "kubiya_runner" "example" {
+      name = "example-runner"
+    }
+
+    # Then reference in agents
+    resource "kubiya_agent" "example_agent" {
+      name   = "example-agent"
+      runner = kubiya_runner.example.name
+      # ... other configuration
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Migration Pattern">
+    ```hcl
+    # Old runner (to be deprecated)
+    resource "kubiya_runner" "old" {
+      name = "old-runner"
+    }
+
+    # New runner
+    resource "kubiya_runner" "new" {
+      name = "new-improved-runner"
+    }
+
+    # Gradual migration of agents
+    resource "kubiya_agent" "migrated_agent" {
+      name   = "migrated-agent"
+      runner = kubiya_runner.new.name  # Changed from old to new
+      # ... other configuration
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Backup Pattern">
+    ```hcl
+    # Primary runner
+    resource "kubiya_runner" "primary" {
+      name = "primary-runner"
+    }
+
+    # Backup runner
+    resource "kubiya_runner" "backup" {
+      name = "backup-runner"
+    }
+
+    # Agent with fallback capability
+    resource "kubiya_agent" "resilient_agent" {
+      name         = "resilient-agent"
+      runner       = kubiya_runner.primary.name
+      instructions = "You can use backup-runner if primary fails."
+      # ... other configuration
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Runners must be created before they can be referenced by agents or sources
+- Runner names must be unique within your organization
+</Note>
+
+## Troubleshooting
+
+<Accordion title="Runner Creation Issues">
+  - Verify you have appropriate permissions to create runners
+  - Check that the runner name is unique within your organization
+  - Ensure the runner name follows naming conventions (no special characters)
+  - Confirm your organization has available runner quota
+</Accordion>
+
+<Accordion title="Agent Association Problems">
+  - Ensure the runner exists before referencing it in agents
+  - Check that the runner name exactly matches in agent configuration
+  - Verify the runner is active and available
+  - Confirm the agent has permissions to use the specified runner
+</Accordion>
+
+<Accordion title="Performance Issues">
+  - Monitor runner resource utilization and performance metrics
+  - Consider workload distribution across multiple runners
+  - Check for resource constraints or bottlenecks
+  - Review runner capacity and scaling requirements
+</Accordion>

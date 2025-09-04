@@ -1,0 +1,663 @@
+---
+title: "kubiya_external_knowledge"
+sidebarTitle: "External Knowledge Resource"
+description: "Manage external knowledge integrations with RAG system for enhanced agent intelligence"
+icon: "brain"
+---
+
+The `kubiya_external_knowledge` resource manages external knowledge integrations in the Kubiya platform. This resource allows you to connect external systems to the Kubiya RAG (Retrieval-Augmented Generation) system through a vendor-agnostic interface, enabling agents to access and learn from external data sources like Slack conversations, documentation systems, and other knowledge repositories.
+
+<Tip>
+External knowledge integrations supercharge your agents by providing access to historical conversations, institutional knowledge, and contextual information that makes responses more accurate and relevant.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. Access to the external system you want to integrate (e.g., Slack workspace)
+4. Appropriate permissions in the external system
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic Slack Integration
+resource "kubiya_external_knowledge" "slack_general" {
+  vendor = "slack"
+  config = {
+    channel_ids = ["C1234567890"]  # General channel ID
+  }
+}
+
+resource "kubiya_agent" "slack_aware_agent" {
+  name         = "slack-aware-assistant"
+  runner       = "kubiya-hosted"
+  description  = "Agent with access to Slack knowledge"
+  instructions = "You have access to historical Slack conversations. Reference relevant discussions when answering questions."
+}
+```
+
+```hcl Multiple Channels
+resource "kubiya_external_knowledge" "slack_multi" {
+  vendor = "slack"
+  config = {
+    channel_ids = [
+      "C1234567890",  # #general
+      "C0987654321",  # #engineering
+      "C1111111111",  # #product
+      "C2222222222"   # #support
+    ]
+  }
+}
+
+resource "kubiya_agent" "knowledge_agent" {
+  name         = "knowledge-assistant"
+  runner       = "kubiya-hosted"
+  description  = "Agent with broad organizational knowledge"
+  instructions = <<-EOT
+    You have access to conversations from multiple Slack channels.
+    Use this knowledge to:
+    - Answer questions about past discussions
+    - Provide context on decisions made
+    - Reference relevant team communications
+    - Help find information shared in Slack
+  EOT
+}
+```
+
+```hcl Department-Specific
+resource "kubiya_external_knowledge" "engineering_slack" {
+  vendor = "slack"
+  config = {
+    channel_ids = [
+      "C3333333333",  # #eng-general
+      "C4444444444",  # #eng-backend
+      "C5555555555"   # #eng-frontend
+    ]
+  }
+}
+
+resource "kubiya_agent" "engineering_agent" {
+  name         = "engineering-knowledge-agent"
+  runner       = "kubiya-hosted"
+  description  = "Engineering team knowledge assistant"
+  instructions = "You have access to engineering team Slack channels. Help with technical discussions and decisions."
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Incident Response Knowledge">
+    Set up knowledge integration for incident response and post-mortem analysis:
+
+    ```hcl
+    resource "kubiya_external_knowledge" "incident_channels" {
+      vendor = "slack"
+      config = {
+        channel_ids = [
+          "C9999999999",  # #incidents
+          "CAAAAAAAAAA",  # #incident-postmortems
+          "CBBBBBBBBBB"   # #incident-logs
+        ]
+      }
+    }
+
+    resource "kubiya_agent" "incident_historian" {
+      name         = "incident-historian"
+      runner       = "kubiya-hosted"
+      description  = "Incident response knowledge agent"
+      instructions = <<-EOT
+        You have access to incident-related Slack channels.
+        Use this knowledge to:
+        - Provide context on past incidents
+        - Identify patterns in recurring issues
+        - Reference previous solutions
+        - Help with post-mortem analysis
+        - Suggest preventive measures based on history
+      EOT
+      
+      integrations = ["slack", "pagerduty"]
+      groups       = ["DevOps", "SRE", "Engineering"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Project-Based Knowledge">
+    Configure knowledge for specific projects with dedicated agents:
+
+    ```hcl
+    locals {
+      project_channels = {
+        "project-alpha" = {
+          channels    = ["CCCCCCCCCCC", "CDDDDDDDDDD"]
+          description = "Next-generation API platform"
+        }
+        "project-beta" = {
+          channels    = ["CEEEEEEEEE", "CFFFFFFFFFF"]
+          description = "Mobile application rewrite"
+        }
+        "project-gamma" = {
+          channels    = ["CGGGGGGGGG", "CHHHHHHHHH"]
+          description = "Data analytics pipeline"
+        }
+      }
+    }
+
+    resource "kubiya_external_knowledge" "project_knowledge" {
+      for_each = local.project_channels
+      
+      vendor = "slack"
+      config = {
+        channel_ids = each.value.channels
+      }
+    }
+
+    resource "kubiya_agent" "project_agents" {
+      for_each = local.project_channels
+      
+      name         = "${each.key}-agent"
+      runner       = "kubiya-hosted"
+      description  = "Knowledge agent for ${each.key}: ${each.value.description}"
+      instructions = <<-EOT
+        You have access to ${each.key} Slack channels.
+        Project context: ${each.value.description}
+        
+        Help team members with:
+        - Project-specific questions and context
+        - Historical decision rationale
+        - Technical discussions and solutions
+        - Progress tracking and status updates
+      EOT
+      
+      groups = ["Engineering", "Product"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Support Knowledge Base">
+    Create comprehensive support knowledge integration:
+
+    ```hcl
+    resource "kubiya_external_knowledge" "support_knowledge" {
+      vendor = "slack"
+      config = {
+        channel_ids = [
+          "CIIIIIIIIII",  # #customer-support
+          "CJJJJJJJJJJ",  # #support-escalations
+          "CKKKKKKKKKK",  # #support-internal
+          "CLLLLLLLLLLL"  # #customer-feedback
+        ]
+      }
+    }
+
+    resource "kubiya_agent" "support_assistant" {
+      name         = "support-knowledge-assistant"
+      runner       = "kubiya-hosted"
+      description  = "Customer support knowledge agent"
+      instructions = <<-EOT
+        You have access to support-related Slack channels.
+        Use this knowledge to:
+        - Find solutions to common customer issues
+        - Reference past support interactions
+        - Identify trending problems
+        - Provide context on customer feedback
+        - Help create support documentation
+        
+        Always prioritize customer satisfaction and escalate when appropriate.
+      EOT
+      
+      integrations = ["slack", "zendesk"]
+      groups       = ["Support", "Customer Success"]
+    }
+
+    # Specialized agent for support escalations
+    resource "kubiya_agent" "escalation_specialist" {
+      name         = "escalation-specialist"
+      runner       = "kubiya-hosted"
+      description  = "Support escalation specialist with historical context"
+      instructions = <<-EOT
+        You specialize in support escalations with access to escalation history.
+        Use knowledge to:
+        - Understand escalation patterns
+        - Provide context on complex issues
+        - Reference successful resolution strategies
+        - Identify customers with recurring issues
+      EOT
+      
+      integrations = ["slack", "zendesk", "jira"]
+      groups       = ["Support", "Engineering"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Compliance and Security Knowledge">
+  Set up secure knowledge integration for compliance and security teams:
+
+  ```hcl
+  resource "kubiya_external_knowledge" "compliance_knowledge" {
+    vendor = "slack"
+    config = {
+      channel_ids = [
+        "CMMMMMMMMMMM",  # #compliance
+        "CNNNNNNNNNNN",  # #security-alerts
+        "COOOOOOOOOO"    # #audit-logs
+      ]
+    }
+  }
+
+  resource "kubiya_agent" "compliance_agent" {
+    name         = "compliance-knowledge-agent"
+    runner       = "kubiya-hosted"
+    description  = "Compliance and security knowledge agent"
+    instructions = <<-EOT
+      You have access to compliance and security Slack channels.
+      IMPORTANT: This information is sensitive.
+      
+      Use this knowledge to:
+      - Answer compliance-related questions
+      - Provide context on security decisions
+      - Reference audit discussions
+      - Help with compliance reporting
+      
+      Always maintain confidentiality and follow security protocols.
+      Only share information with authorized personnel.
+    EOT
+    
+    groups = ["Compliance", "Security", "Legal"]
+  }
+
+  # Security incident response agent
+  resource "kubiya_agent" "security_responder" {
+    name         = "security-incident-responder"
+    runner       = "kubiya-hosted"
+    description  = "Security incident response agent with historical context"
+    instructions = <<-EOT
+      You have access to security-related channels and specialize in incident response.
+      
+      Use knowledge to:
+      - Analyze patterns in security incidents
+      - Reference previous incident responses
+      - Provide context on threat landscape
+      - Assist with forensic analysis
+      
+      Always follow security protocols and escalate appropriately.
+    EOT
+    
+    integrations = ["slack", "crowdstrike", "splunk"]
+    groups       = ["Security", "SOC"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Multi-Vendor Knowledge Strategy">
+  Plan for future multi-vendor integrations:
+
+  ```hcl
+  # Current Slack integration
+  resource "kubiya_external_knowledge" "current_slack" {
+    vendor = "slack"
+    config = {
+      channel_ids = [
+        "C1234567890",
+        "C0987654321",
+        "C1111111111"
+      ]
+    }
+  }
+
+  # Placeholder for future integrations
+  # resource "kubiya_external_knowledge" "confluence_docs" {
+  #   vendor = "confluence"
+  #   config = {
+  #     space_keys = ["ENG", "PROD", "OPS"]
+  #     page_labels = ["documentation", "runbook", "architecture"]
+  #   }
+  # }
+
+  # Multi-source knowledge agent
+  resource "kubiya_agent" "comprehensive_assistant" {
+    name         = "comprehensive-knowledge-assistant"
+    runner       = "kubiya-hosted"
+    description  = "Agent with access to multiple knowledge sources"
+    instructions = <<-EOT
+      You have access to multiple knowledge sources:
+      - Historical Slack conversations
+      - [Future: Confluence documentation]
+      - [Future: Notion pages]
+      - [Future: GitHub discussions]
+      
+      Use all available knowledge to provide comprehensive, well-informed responses.
+      Always cite your sources when referencing specific information.
+    EOT
+    
+    groups = ["Engineering", "Product", "Support"]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Knowledge Governance and Monitoring">
+  Implement governance and monitoring for knowledge integrations:
+
+  ```hcl
+  locals {
+    knowledge_integrations = {
+      engineering = {
+        channels = ["C111", "C222", "C333"]
+        groups   = ["Engineering"]
+        sensitive = false
+      }
+      security = {
+        channels = ["C444", "C555"]
+        groups   = ["Security", "Compliance"]
+        sensitive = true
+      }
+      customer_success = {
+        channels = ["C666", "C777", "C888"]
+        groups   = ["Support", "Customer Success"]
+        sensitive = false
+      }
+    }
+  }
+
+  resource "kubiya_external_knowledge" "managed_integrations" {
+    for_each = local.knowledge_integrations
+    
+    vendor = "slack"
+    config = {
+      channel_ids = each.value.channels
+    }
+  }
+
+  resource "kubiya_agent" "knowledge_governance" {
+    name         = "knowledge-governance-agent"
+    runner       = "kubiya-hosted"
+    description  = "Monitor and govern knowledge integrations"
+    instructions = <<-EOT
+      You monitor knowledge integration usage and governance:
+      - Track which knowledge sources are being accessed
+      - Monitor for potential privacy issues
+      - Generate usage reports
+      - Alert on unusual access patterns
+      
+      Maintain strict confidentiality and follow data governance policies.
+    EOT
+    
+    groups = ["Data Governance", "Compliance"]
+  }
+
+  # Monitoring agents for each integration
+  resource "kubiya_agent" "integration_monitors" {
+    for_each = local.knowledge_integrations
+    
+    name         = "${each.key}-knowledge-monitor"
+    runner       = "kubiya-hosted"
+    description  = "Monitor ${each.key} knowledge integration"
+    instructions = <<-EOT
+      You monitor the ${each.key} knowledge integration.
+      ${each.value.sensitive ? "This integration contains sensitive information." : ""}
+      
+      Responsibilities:
+      - Track usage patterns
+      - Monitor for compliance issues
+      - Generate usage reports
+      ${each.value.sensitive ? "- Ensure sensitive information is properly protected" : ""}
+    EOT
+    
+    groups = concat(each.value.groups, ["Data Governance"])
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="vendor" type="string" required>
+  The vendor/provider for the knowledge integration. Currently supported values:
+  - `slack` - Slack channel integrations
+</ParamField>
+
+<ParamField path="config" type="object" required>
+  Dynamic configuration map with vendor-specific keys and values. The structure depends on the vendor being used.
+</ParamField>
+
+## Vendor-Specific Configuration
+
+### Slack Configuration
+
+For `vendor = "slack"`, the config object requires:
+
+<ParamField path="config.channel_ids" type="array" required>
+  List of Slack channel IDs to integrate. Each ID should be in the format "C1234567890". You can find channel IDs in Slack by:
+  1. Right-clicking on a channel
+  2. Selecting "Copy link"
+  3. The ID is the part after "/channels/" in the URL
+</ParamField>
+
+Example Slack configuration:
+```hcl
+config = {
+  channel_ids = ["C1234567890", "C0987654321"]
+}
+```
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the external knowledge integration.
+</ParamField>
+
+<ParamField path="org" type="string">
+  The organization associated with the integration.
+</ParamField>
+
+<ParamField path="start_date" type="string">
+  The start date from which knowledge is indexed.
+</ParamField>
+
+<ParamField path="integration_type" type="string">
+  The type of integration (matches the vendor).
+</ParamField>
+
+<ParamField path="created_at" type="string">
+  The timestamp when the integration was created.
+</ParamField>
+
+<ParamField path="updated_at" type="string">
+  The timestamp when the integration was last updated.
+</ParamField>
+
+## How to Find Slack Channel IDs
+
+<CodeGroup>
+
+```bash Via Slack Web App
+1. Open Slack in your web browser
+2. Navigate to the desired channel
+3. Look at the URL: https://app.slack.com/client/T123/C1234567890
+4. The channel ID is the part after the last slash (C1234567890)
+```
+
+```bash Via Slack API
+curl -H "Authorization: Bearer xoxb-your-token" \
+  https://slack.com/api/conversations.list
+```
+
+```bash Via Right-Click
+1. Right-click on the channel name in Slack
+2. Select "Copy link"
+3. Extract ID from: https://yourworkspace.slack.com/archives/C1234567890
+```
+
+</CodeGroup>
+
+## Import
+
+External knowledge integrations can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_external_knowledge.example <external-knowledge-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_external_knowledge.example
+  id = "<external-knowledge-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Channel Selection" icon="filter">
+  - Choose channels with valuable, relevant knowledge content
+  - Avoid extremely high-volume channels that may create noise
+  - Select channels with good signal-to-noise ratio
+  - Consider the longevity and relevance of channel content
+</Card>
+
+<Card title="Privacy & Compliance" icon="shield-halved">
+  - Ensure compliance with data privacy policies and regulations
+  - Review channel content for sensitive information before integration
+  - Implement appropriate access controls for sensitive knowledge
+  - Regular audit of integrated channels and their content
+</Card>
+
+<Card title="Access Control" icon="lock">
+  - Limit agent access to sensitive knowledge integrations
+  - Use groups to control which users can access specific knowledge
+  - Regularly review and update access permissions
+  - Implement least-privilege access principles
+</Card>
+
+<Card title="Performance & Maintenance" icon="wrench">
+  - Monitor knowledge usage and relevance over time
+  - Regular cleanup of obsolete or irrelevant integrations
+  - Update channel lists as organizational structure changes
+  - Test knowledge retrieval effectiveness in non-production environments
+</Card>
+
+## Knowledge Integration Patterns
+
+<Tabs>
+  <Tab title="Team-Based Integration">
+    ```hcl
+    # Separate integrations per team
+    resource "kubiya_external_knowledge" "frontend_team" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_FRONTEND_1", "C_FRONTEND_2"]
+      }
+    }
+
+    resource "kubiya_external_knowledge" "backend_team" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_BACKEND_1", "C_BACKEND_2"]
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Function-Based Integration">
+    ```hcl
+    # Integration by organizational function
+    resource "kubiya_external_knowledge" "product_function" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_PRODUCT", "C_DESIGN", "C_RESEARCH"]
+      }
+    }
+
+    resource "kubiya_external_knowledge" "operations_function" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_DEVOPS", "C_SRE", "C_INFRA"]
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Sensitivity-Based Integration">
+    ```hcl
+    # Public knowledge
+    resource "kubiya_external_knowledge" "public_knowledge" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_GENERAL", "C_ANNOUNCEMENTS", "C_SOCIAL"]
+      }
+    }
+
+    # Restricted knowledge
+    resource "kubiya_external_knowledge" "restricted_knowledge" {
+      vendor = "slack"
+      config = {
+        channel_ids = ["C_LEADERSHIP", "C_CONFIDENTIAL", "C_HR"]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Slack integration requires OAuth setup in Kubiya dashboard
+- Channel IDs must be valid and accessible
+</Note>
+
+<Note>
+**Processing Time:**
+- Knowledge indexing may take time after initial creation
+- Historical data retrieval limits may apply based on platform tier
+- Large channels may require additional processing time
+- Changes to channel content are indexed incrementally
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Ensure proper permissions in Slack workspace
+- Be aware of data privacy and compliance requirements  
+- Monitor for sensitive information in indexed content
+- Consider impact on system performance with large integrations
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Integration Setup Issues">
+  - Verify Slack OAuth setup is completed in Kubiya dashboard
+  - Check that channel IDs are correctly formatted (start with 'C')
+  - Ensure the Kubiya bot has access to specified channels
+  - Confirm workspace permissions allow external integrations
+</Accordion>
+
+<Accordion title="Knowledge Indexing Problems">
+  - Allow time for initial indexing to complete (can take hours for large channels)
+  - Verify channels contain accessible content
+  - Check that historical data limits haven't been exceeded
+  - Monitor indexing status through Kubiya dashboard
+</Accordion>
+
+<Accordion title="Agent Access Issues">
+  - Confirm agents have appropriate group memberships
+  - Verify knowledge integration is properly configured
+  - Check that agents' instructions reference the available knowledge
+  - Test knowledge queries with simple, known information
+</Accordion>

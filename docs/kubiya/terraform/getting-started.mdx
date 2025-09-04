@@ -1,0 +1,1187 @@
+---
+title: "Getting Started"
+sidebarTitle: "Getting Started"
+description: "Set up your first Kubiya AI agent with Terraform in minutes - from provider configuration to advanced automation workflows"
+icon: "rocket"
+---
+
+Transform your infrastructure automation with AI-powered agents managed through Infrastructure as Code. This comprehensive guide will take you from zero to production-ready automation in just a few steps.
+
+<CardGroup cols={2}>
+  <Card title="Quick Setup" icon="bolt">
+    Get your first agent running in under 10 minutes
+  </Card>
+  <Card title="Production Ready" icon="shield-check">
+    Learn enterprise patterns and best practices
+  </Card>
+  <Card title="Event Driven" icon="webhook">
+    Build reactive automation with webhooks and triggers
+  </Card>
+  <Card title="Scalable Architecture" icon="chart-line">
+    Design systems that grow with your organization
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+Before diving in, ensure you have:
+
+<Tabs>
+  <Tab title="Required">
+    - **Kubiya Account** - Sign up at [kubiya.ai](https://kubiya.ai) with API access
+    - **Terraform** - Version 1.0+ installed ([Download here](https://terraform.io/downloads))
+    - **Basic Terraform Knowledge** - Understanding of resources and providers
+  </Tab>
+  
+  <Tab title="Recommended">
+    - **Git** - For version controlling your configurations
+    - **IDE** - VS Code with Terraform extension for better experience  
+    - **CLI Tools** - kubectl, aws-cli, or other tools your agents will use
+  </Tab>
+</Tabs>
+
+<Info>
+**New to Terraform?** Check out the [Terraform Getting Started Guide](https://learn.hashicorp.com/terraform) first.
+</Info>
+
+## Step 1: Provider Setup
+
+Let's start by configuring the Kubiya Terraform provider in your project.
+
+<Steps>
+  <Step title="Initialize Your Project">
+    Create a new directory and initialize your Terraform configuration:
+    
+    ```bash
+    mkdir kubiya-automation
+    cd kubiya-automation
+    ```
+  </Step>
+  
+  <Step title="Configure the Provider">
+    Create your main configuration file:
+    
+    <CodeGroup>
+    ```hcl main.tf
+    terraform {
+      required_version = ">= 1.0"
+      
+      required_providers {
+        kubiya = {
+          source  = "kubiya-terraform/kubiya"
+          version = "~> 1.0"
+        }
+      }
+    }
+
+    provider "kubiya" {
+      # API key will be read from KUBIYA_API_KEY environment variable
+      # Optionally specify a custom endpoint if using on-premises
+      # endpoint = "https://your-kubiya-instance.com/api"
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Set Your API Key">
+    Generate an API key from your Kubiya dashboard and set it as an environment variable:
+    
+    <CodeGroup>
+    ```bash Terminal
+    # Set your API key (get this from Admin → Kubiya API Keys in the dashboard)
+    export KUBIYA_API_KEY="kby_your_api_key_here"
+    
+    # Verify it's set correctly
+    echo "API Key configured: ${KUBIYA_API_KEY:0:10}..."
+    ```
+    
+    ```bash .env (Alternative)
+    # For development, you can use a .env file (don't commit this!)
+    KUBIYA_API_KEY=kby_your_api_key_here
+    ```
+    </CodeGroup>
+    
+    <Warning>
+    Never commit API keys to version control. Always use environment variables or secret management systems.
+    </Warning>
+  </Step>
+  
+  <Step title="Initialize Terraform">
+    Download the provider and initialize your workspace:
+    
+    ```bash
+    terraform init
+    ```
+    
+    You should see output confirming the Kubiya provider was downloaded successfully.
+  </Step>
+</Steps>
+
+## Step 2: Create Your Infrastructure
+
+Now let's build the foundational infrastructure for your AI agents.
+
+<Steps>
+  <Step title="Set Up a Runner">
+    Runners are the compute environments where your agents execute tasks. Think of them as the "servers" for your AI agents:
+    
+    <CodeGroup>
+    ```hcl runner.tf
+    # Create a runner for your agents
+    resource "kubiya_runner" "main" {
+      name        = "primary-runner"
+      description = "Main execution environment for AI agents"
+      type        = "vcluster" # or "kubernetes" for existing clusters
+      
+      # Optional: Configure resource limits
+      metadata = {
+        environment = "production"
+        team        = "platform"
+      }
+    }
+    ```
+    </CodeGroup>
+    
+    <Note>
+    After creating the runner through Terraform, you'll need to deploy its Helm chart. The Kubiya dashboard will provide the complete deployment instructions.
+    </Note>
+  </Step>
+  
+  <Step title="Add Knowledge Sources">
+    Sources provide tools and capabilities to your agents. **Every agent must have at least one source** - this is mandatory:
+    
+    <CodeGroup>
+    ```hcl sources.tf
+    # Basic tooling source (essential for most agents)
+    resource "kubiya_source" "essential_tools" {
+      name        = "essential-tools"
+      description = "Core tools for basic agent operations"
+      url         = "https://github.com/kubiyabot/community-tools/tree/main/basics"
+      runner      = kubiya_runner.main.name
+    }
+
+    # Infrastructure management tools
+    resource "kubiya_source" "infrastructure" {
+      name        = "infra-tools"
+      description = "Tools for infrastructure management"
+      url         = "https://github.com/kubiyabot/community-tools/tree/main/infrastructure"
+      branch      = "main"
+      runner      = kubiya_runner.main.name
+      
+      # Optional: Sync on a schedule
+      sync_schedule = "0 */4 * * *" # Every 4 hours
+    }
+
+    # Custom private source
+    resource "kubiya_source" "custom_tools" {
+      name        = "company-tools"
+      description = "Custom tools for our organization"
+      url         = "https://github.com/yourorg/kubiya-tools"
+      branch      = "production"
+      runner      = kubiya_runner.main.name
+      
+      # For private repositories, you'll need authentication
+      # This will be configured in the Kubiya dashboard
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Create Knowledge Resources">
+    Knowledge resources contain information your agents can reference during conversations:
+    
+    <CodeGroup>
+    ```hcl knowledge.tf
+    # Company procedures and FAQs
+    resource "kubiya_knowledge" "company_handbook" {
+      name        = "company-handbook"
+      description = "Employee handbook and company procedures"
+      content     = file("${path.module}/docs/handbook.md")
+      format      = "markdown"
+      
+      # Optional: Specify which agents can access this knowledge
+      labels = ["hr", "onboarding", "policies"]
+    }
+
+    # Technical documentation
+    resource "kubiya_knowledge" "api_docs" {
+      name        = "api-documentation"
+      description = "Internal API documentation and examples"
+      content     = file("${path.module}/docs/api-reference.md")
+      format      = "markdown"
+      
+      # Restrict to specific agents
+      supported_agents = ["api-assistant", "developer-helper"]
+    }
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## Step 3: Deploy Your First Agent
+
+Now comes the exciting part - creating your first AI agent!
+
+<CodeGroup>
+```hcl agent.tf
+# Your first AI agent
+resource "kubiya_agent" "assistant" {
+  name        = "platform-assistant"
+  runner      = kubiya_runner.main.name
+  description = "Intelligent assistant for platform operations and support"
+  
+  # Sources are REQUIRED - every agent must have at least one
+  sources = [
+    kubiya_source.essential_tools.name,
+    kubiya_source.infrastructure.name
+  ]
+  
+  # Optional: Add custom instructions to guide the agent's behavior
+  instructions = <<-EOT
+    You are a helpful platform operations assistant. Your role is to:
+    1. Help with infrastructure monitoring and troubleshooting
+    2. Assist with deployment and configuration tasks
+    3. Provide guidance on best practices
+    4. Always explain your actions clearly and ask for confirmation on destructive operations
+  EOT
+  
+  # Conversation starters to help users get started
+  starters = [
+    {
+      name    = "System Status"
+      command = "Check the current status of our infrastructure"
+    },
+    {
+      name    = "Deploy Application"
+      command = "Help me deploy an application to our staging environment"
+    },
+    {
+      name    = "Troubleshoot Issue"
+      command = "I'm having an issue with a service, can you help troubleshoot?"
+    }
+  ]
+  
+  # Access control - specify who can use this agent
+  users  = ["devops-team@company.com", "admin@company.com"]
+  groups = ["Platform Engineering", "DevOps"]
+  
+  # Environment variables the agent can access
+  environment_variables = {
+    DEFAULT_NAMESPACE = "production"
+    LOG_LEVEL        = "info"
+    TIMEOUT_MINUTES  = "30"
+  }
+}
+```
+</CodeGroup>
+
+<Tip>
+Start with basic functionality and gradually add more capabilities as you learn what works best for your team.
+</Tip>
+
+## Step 4: Add Secure Credentials
+
+Manage sensitive information securely with secrets:
+
+<CodeGroup>
+```hcl secrets.tf
+# API credentials for external services
+resource "kubiya_secret" "external_apis" {
+  name        = "external-api-credentials"
+  description = "API keys for third-party services"
+  
+  data = {
+    github_token    = var.github_token
+    aws_access_key  = var.aws_access_key_id
+    aws_secret_key  = var.aws_secret_access_key
+    slack_bot_token = var.slack_bot_token
+  }
+}
+
+# Database credentials
+resource "kubiya_secret" "database_creds" {
+  name        = "database-credentials"
+  description = "Database connection information"
+  
+  data = {
+    db_host     = var.db_host
+    db_username = var.db_username
+    db_password = var.db_password
+  }
+}
+
+# Enhanced agent with secrets
+resource "kubiya_agent" "devops_agent" {
+  name        = "devops-automation-agent"
+  runner      = kubiya_runner.main.name
+  description = "DevOps agent with access to external services"
+  
+  # Required sources
+  sources = [
+    kubiya_source.essential_tools.name,
+    kubiya_source.infrastructure.name
+  ]
+  
+  # Link secrets to provide secure access
+  secrets = [
+    kubiya_secret.external_apis.name,
+    kubiya_secret.database_creds.name
+  ]
+  
+  instructions = <<-EOT
+    You are a DevOps automation agent with access to our infrastructure tools.
+    You can safely interact with GitHub, AWS, and our databases.
+    Always follow security best practices and confirm destructive operations.
+  EOT
+}
+```
+</CodeGroup>
+
+<CodeGroup>
+```hcl variables.tf
+# Define variables for sensitive data
+variable "github_token" {
+  description = "GitHub personal access token"
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_access_key_id" {
+  description = "AWS access key ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS secret access key"
+  type        = string
+  sensitive   = true
+}
+
+variable "slack_bot_token" {
+  description = "Slack bot token for notifications"
+  type        = string
+  sensitive   = true
+}
+```
+
+```bash terraform.tfvars.example
+# Copy this to terraform.tfvars and fill in your actual values
+github_token           = "ghp_your_github_token"
+aws_access_key_id     = "AKIA_your_aws_key"
+aws_secret_access_key = "your_aws_secret"
+slack_bot_token       = "xoxb-your-slack-token"
+```
+</CodeGroup>
+
+## Step 5: Set Up Integrations
+
+Connect your agents to external services and platforms:
+
+<CodeGroup>
+```hcl integrations.tf
+# GitHub integration for repository management
+resource "kubiya_integration" "github" {
+  name        = "github-org"
+  type        = "github"
+  description = "GitHub organization integration"
+  
+  configuration = {
+    org_name     = "your-org-name"
+    api_version  = "v4"
+    base_url     = "https://api.github.com"
+  }
+}
+
+# Slack integration for notifications
+resource "kubiya_integration" "slack" {
+  name        = "company-slack"
+  type        = "slack"
+  description = "Company Slack workspace"
+  
+  configuration = {
+    workspace_id = "T1234567890"
+    bot_scope    = "chat:write,channels:read"
+  }
+}
+
+# AWS integration for cloud resources
+resource "kubiya_integration" "aws" {
+  name        = "aws-production"
+  type        = "aws"
+  description = "Production AWS account"
+  
+  configuration = {
+    region         = "us-west-2"
+    account_alias  = "production"
+  }
+}
+```
+</CodeGroup>
+
+## Step 6: Deploy and Test
+
+Let's deploy your infrastructure and test your first agent:
+
+<Steps>
+  <Step title="Plan Your Deployment">
+    Review what Terraform will create:
+    
+    ```bash
+    terraform plan
+    ```
+    
+    This shows you exactly what resources will be created, modified, or destroyed.
+  </Step>
+  
+  <Step title="Apply Your Configuration">
+    Deploy your infrastructure:
+    
+    ```bash
+    terraform apply
+    ```
+    
+    Type `yes` when prompted to confirm the deployment.
+  </Step>
+  
+  <Step title="Verify Your Agent">
+    After deployment completes, your agent will be available in the Kubiya dashboard. Test it with a simple command like:
+    
+    > "Hello, can you tell me what tools you have access to?"
+  </Step>
+</Steps>
+
+<Note>
+Remember to deploy your runner's Helm chart using the instructions provided in the Kubiya dashboard after the Terraform deployment completes.
+</Note>
+
+## Step 7: Advanced Automation
+
+Now let's add event-driven automation and scheduling:
+
+<Accordion title="Webhooks - React to External Events">
+<CodeGroup>
+```hcl webhooks.tf
+# Webhook for GitHub events
+resource "kubiya_webhook" "github_alerts" {
+  name        = "github-workflow-failures"
+  agent       = kubiya_agent.devops_agent.name
+  source      = "GitHub"
+  
+  # Filter for failed workflow runs
+  filter = "workflow_run.conclusion == 'failure' && workflow_run.event == 'push'"
+  
+  # What the agent should do when triggered
+  prompt = <<-EOT
+    A GitHub workflow has failed!
+    
+    Repository: {{.event.repository.full_name}}
+    Workflow: {{.event.workflow_run.name}}
+    Branch: {{.event.workflow_run.head_branch}}
+    Commit: {{.event.workflow_run.head_sha}}
+    
+    Please investigate the failure and provide a summary of the issue.
+  EOT
+  
+  # Send results to Slack
+  method      = "Slack"
+  destination = "#ci-cd-alerts"
+}
+
+# Webhook for monitoring alerts
+resource "kubiya_webhook" "monitoring_alerts" {
+  name        = "critical-system-alerts"
+  agent       = kubiya_agent.devops_agent.name
+  source      = "Prometheus"
+  
+  filter = "alert.severity == 'critical'"
+  
+  prompt = <<-EOT
+    Critical alert received from monitoring system:
+    
+    Alert: {{.event.alert.alertname}}
+    Instance: {{.event.alert.instance}}
+    Severity: {{.event.alert.severity}}
+    Description: {{.event.alert.description}}
+    
+    Please investigate immediately and provide remediation steps.
+  EOT
+  
+  method      = "Slack"
+  destination = "#critical-alerts"
+}
+```
+</CodeGroup>
+</Accordion>
+
+<Accordion title="Scheduled Tasks - Automate Recurring Operations">
+<CodeGroup>
+```hcl scheduled-tasks.tf
+# Daily health check
+resource "kubiya_scheduled_task" "daily_health_check" {
+  name        = "daily-infrastructure-health"
+  description = "Comprehensive daily health check of infrastructure"
+  agent       = kubiya_agent.devops_agent.name
+  
+  # Run at 8 AM every weekday
+  schedule = "0 8 * * MON-FRI"
+  
+  prompt = <<-EOT
+    Perform a comprehensive health check of our infrastructure:
+    1. Check all critical services status
+    2. Review resource utilization
+    3. Identify any alerts or warnings
+    4. Provide a summary with actionable recommendations
+  EOT
+  
+  notification {
+    method      = "Slack"
+    destination = "#daily-reports"
+  }
+}
+
+# Weekly security audit
+resource "kubiya_scheduled_task" "security_audit" {
+  name        = "weekly-security-scan"
+  description = "Weekly security audit and compliance check"
+  agent       = kubiya_agent.devops_agent.name
+  
+  # Run every Sunday at 6 AM
+  schedule = "0 6 * * SUN"
+  
+  prompt = <<-EOT
+    Conduct a weekly security audit:
+    1. Check for outdated packages and vulnerabilities
+    2. Review access logs for anomalies
+    3. Verify compliance with security policies
+    4. Generate a security report with recommendations
+  EOT
+  
+  notification {
+    method      = "Email"
+    destination = "security-team@company.com"
+  }
+}
+```
+</CodeGroup>
+</Accordion>
+
+## Complete Production Example
+
+Here's a comprehensive example that demonstrates enterprise-ready patterns:
+
+<CodeGroup>
+```hcl complete-example.tf
+terraform {
+  required_version = ">= 1.0"
+  
+  required_providers {
+    kubiya = {
+      source  = "kubiya-terraform/kubiya"
+      version = "~> 1.0"
+    }
+  }
+  
+  # Use remote state for team collaboration
+  backend "s3" {
+    bucket = "company-terraform-state"
+    key    = "kubiya/production/terraform.tfstate"
+    region = "us-west-2"
+  }
+}
+
+# Local values for better organization
+locals {
+  environment = "production"
+  team        = "platform-engineering"
+  
+  common_labels = {
+    environment = local.environment
+    team        = local.team
+    managed_by  = "terraform"
+  }
+}
+
+# Provider configuration
+provider "kubiya" {
+  # API key from environment variable KUBIYA_API_KEY
+}
+
+# Primary runner for production workloads
+resource "kubiya_runner" "production" {
+  name        = "${local.environment}-runner"
+  description = "Production runner for ${local.team}"
+  type        = "vcluster"
+  
+  metadata = merge(local.common_labels, {
+    capacity = "high"
+    zone     = "us-west-2a"
+  })
+}
+
+# Essential sources for all agents
+resource "kubiya_source" "core_tools" {
+  name        = "core-tools"
+  description = "Essential tools for all production agents"
+  url         = "https://github.com/kubiyabot/community-tools/tree/main/basics"
+  runner      = kubiya_runner.production.name
+}
+
+resource "kubiya_source" "kubernetes_tools" {
+  name        = "kubernetes-management"
+  description = "Kubernetes management and troubleshooting tools"
+  url         = "https://github.com/kubiyabot/community-tools/tree/main/kubernetes"
+  runner      = kubiya_runner.production.name
+  
+  sync_schedule = "0 */6 * * *" # Sync every 6 hours
+}
+
+resource "kubiya_source" "monitoring_tools" {
+  name        = "monitoring-tools"
+  description = "Monitoring and observability tools"
+  url         = "https://github.com/yourorg/monitoring-tools"
+  branch      = "production"
+  runner      = kubiya_runner.production.name
+}
+
+# Knowledge bases
+resource "kubiya_knowledge" "runbooks" {
+  name        = "operational-runbooks"
+  description = "Step-by-step operational procedures"
+  content     = file("${path.module}/knowledge/runbooks.md")
+  format      = "markdown"
+  
+  labels = ["operations", "troubleshooting", "procedures"]
+}
+
+resource "kubiya_knowledge" "architecture_docs" {
+  name        = "system-architecture"
+  description = "System architecture and service dependencies"
+  content     = file("${path.module}/knowledge/architecture.md")
+  format      = "markdown"
+  
+  supported_agents = ["platform-agent", "incident-response-agent"]
+}
+
+# Secure credential management
+resource "kubiya_secret" "production_credentials" {
+  name        = "production-api-keys"
+  description = "Production API keys and credentials"
+  
+  data = {
+    github_token     = var.github_token
+    aws_access_key   = var.aws_access_key_id
+    aws_secret_key   = var.aws_secret_access_key
+    datadog_api_key  = var.datadog_api_key
+    pagerduty_token  = var.pagerduty_token
+  }
+}
+
+# Integrations
+resource "kubiya_integration" "github_org" {
+  name        = "github-production"
+  type        = "github"
+  description = "Production GitHub organization"
+  
+  configuration = {
+    org_name = var.github_organization
+  }
+}
+
+resource "kubiya_integration" "slack_workspace" {
+  name        = "company-slack"
+  type        = "slack"
+  description = "Company Slack workspace"
+  
+  configuration = {
+    workspace_id = var.slack_workspace_id
+  }
+}
+
+# Primary platform agent
+resource "kubiya_agent" "platform_agent" {
+  name        = "platform-engineering-agent"
+  runner      = kubiya_runner.production.name
+  description = "Primary agent for platform engineering operations"
+  
+  sources = [
+    kubiya_source.core_tools.name,
+    kubiya_source.kubernetes_tools.name,
+    kubiya_source.monitoring_tools.name
+  ]
+  
+  secrets = [
+    kubiya_secret.production_credentials.name
+  ]
+  
+  integrations = [
+    kubiya_integration.github_org.name,
+    kubiya_integration.slack_workspace.name
+  ]
+  
+  instructions = <<-EOT
+    You are the Platform Engineering AI Assistant for our production environment.
+    
+    Your primary responsibilities:
+    1. Infrastructure monitoring and alerting
+    2. Kubernetes cluster management and troubleshooting
+    3. CI/CD pipeline support and debugging
+    4. Security compliance and best practices
+    5. Performance optimization recommendations
+    
+    Security Guidelines:
+    - Always confirm destructive operations before executing
+    - Follow the principle of least privilege
+    - Document all significant changes
+    - Escalate critical issues to on-call engineers
+    
+    Communication Style:
+    - Be clear and concise in explanations
+    - Provide step-by-step guidance for complex tasks
+    - Include relevant links and documentation
+    - Use appropriate technical terminology
+  EOT
+  
+  users = [
+    "platform-team@company.com",
+    "devops@company.com",
+    "sre-team@company.com"
+  ]
+  
+  groups = [
+    "Platform Engineering",
+    "DevOps",
+    "Site Reliability Engineering"
+  ]
+  
+  starters = [
+    {
+      name    = "Infrastructure Status"
+      command = "Provide a comprehensive status report of our infrastructure"
+    },
+    {
+      name    = "Investigate Alert"
+      command = "Help me investigate a critical alert or incident"
+    },
+    {
+      name    = "Deploy Service"
+      command = "Guide me through deploying a new service"
+    },
+    {
+      name    = "Performance Analysis"
+      command = "Analyze system performance and identify optimization opportunities"
+    }
+  ]
+  
+  environment_variables = {
+    DEFAULT_NAMESPACE    = "production"
+    KUBECTL_CONTEXT      = "production-cluster"
+    LOG_LEVEL           = "info"
+    TIMEOUT_MINUTES     = "30"
+    SLACK_CHANNEL       = "#platform-engineering"
+  }
+}
+
+# Incident response agent
+resource "kubiya_agent" "incident_response" {
+  name        = "incident-response-agent"
+  runner      = kubiya_runner.production.name
+  description = "Specialized agent for incident response and troubleshooting"
+  
+  sources = [
+    kubiya_source.core_tools.name,
+    kubiya_source.kubernetes_tools.name,
+    kubiya_source.monitoring_tools.name
+  ]
+  
+  secrets = [
+    kubiya_secret.production_credentials.name
+  ]
+  
+  integrations = [
+    kubiya_integration.slack_workspace.name
+  ]
+  
+  instructions = <<-EOT
+    You are an Incident Response specialist focused on rapid diagnosis and resolution.
+    
+    During incidents:
+    1. Quickly assess the scope and impact
+    2. Follow established runbooks and procedures
+    3. Coordinate with on-call engineers
+    4. Document findings and actions taken
+    5. Suggest preventive measures post-incident
+    
+    Always prioritize system stability and customer impact minimization.
+  EOT
+  
+  users = ["on-call@company.com", "incident-commander@company.com"]
+  groups = ["Incident Response Team", "On-Call Engineers"]
+}
+
+# Webhooks for automated responses
+resource "kubiya_webhook" "critical_alerts" {
+  name        = "critical-infrastructure-alerts"
+  agent       = kubiya_agent.incident_response.name
+  source      = "Datadog"
+  
+  filter = "alert.priority == 'P1' || alert.tags contains 'critical'"
+  
+  prompt = <<-EOT
+    CRITICAL ALERT RECEIVED
+    
+    Alert: {{.event.alert_name}}
+    Service: {{.event.host}}
+    Environment: ${local.environment}
+    Priority: {{.event.priority}}
+    Message: {{.event.alert_message}}
+    
+    Immediate actions required:
+    1. Assess impact and affected services
+    2. Begin troubleshooting procedures
+    3. Update incident channel with findings
+    4. Escalate to on-call if needed
+  EOT
+  
+  method      = "Slack"
+  destination = "#incident-response"
+}
+
+# Scheduled maintenance tasks
+resource "kubiya_scheduled_task" "daily_health_check" {
+  name        = "production-daily-health"
+  description = "Comprehensive daily health check"
+  agent       = kubiya_agent.platform_agent.name
+  
+  schedule = "0 7 * * MON-FRI"
+  
+  prompt = <<-EOT
+    Perform daily production health check:
+    
+    1. Cluster Resource Utilization
+       - CPU and memory usage across nodes
+       - Disk space on all volumes
+       - Network performance metrics
+    
+    2. Application Health
+       - Pod status and restart counts
+       - Service availability checks
+       - Database connection health
+    
+    3. Security and Compliance
+       - Certificate expiration status
+       - Security scan results
+       - Access log analysis
+    
+    4. Performance Metrics
+       - Response times and throughput
+       - Error rates and patterns
+       - Resource bottlenecks
+    
+    Generate a comprehensive report with recommendations.
+  EOT
+  
+  notification {
+    method      = "Slack"
+    destination = "#daily-reports"
+  }
+  
+  notification {
+    method      = "Email"
+    destination = "platform-team@company.com"
+  }
+}
+
+# Outputs for reference
+output "platform_agent" {
+  description = "Platform engineering agent details"
+  value = {
+    name = kubiya_agent.platform_agent.name
+    id   = kubiya_agent.platform_agent.id
+  }
+}
+
+output "webhook_urls" {
+  description = "Webhook URLs for external system integration"
+  value = {
+    critical_alerts = kubiya_webhook.critical_alerts.url
+  }
+  sensitive = true
+}
+```
+</CodeGroup>
+
+## Best Practices & Patterns
+
+<CardGroup cols={2}>
+  <Card title="Security First" icon="shield-check">
+    - Never hardcode secrets in Terraform files
+    - Use least-privilege access controls
+    - Regularly rotate API keys and tokens
+    - Implement proper secret management
+  </Card>
+  
+  <Card title="Infrastructure as Code" icon="code">
+    - Version control all configurations
+    - Use remote state for team collaboration
+    - Implement proper branching strategies
+    - Document architectural decisions
+  </Card>
+  
+  <Card title="Monitoring & Observability" icon="chart-mixed">
+    - Set up comprehensive logging
+    - Implement health checks and metrics
+    - Create alerting for critical failures
+    - Monitor agent performance and costs
+  </Card>
+  
+  <Card title="Operational Excellence" icon="gear">
+    - Create detailed runbooks and procedures
+    - Implement automated testing
+    - Plan for disaster recovery
+    - Regular security audits and updates
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Agent Not Responding" icon="robot">
+    **Symptoms:** Agent appears in dashboard but doesn't respond to commands
+    
+    **Solutions:**
+    1. Verify runner is deployed and healthy
+    2. Check that sources are accessible and synced
+    3. Ensure API key has sufficient permissions
+    4. Review agent logs in the Kubiya dashboard
+    
+    ```bash
+    # Check Terraform state
+    terraform state show kubiya_agent.your_agent_name
+    
+    # Verify runner deployment
+    kubectl get pods -n kubiya-system
+    ```
+  </Accordion>
+  
+  <Accordion title="Source Sync Failures" icon="sync">
+    **Symptoms:** Tools or workflows not available to agent
+    
+    **Solutions:**
+    1. Verify repository URL and branch are correct
+    2. Check authentication for private repositories
+    3. Ensure runner has network access to repository
+    4. Review source sync logs
+    
+    ```bash
+    # Force source sync
+    terraform apply -replace="kubiya_source.your_source_name"
+    ```
+  </Accordion>
+  
+  <Accordion title="Permission Denied Errors" icon="lock">
+    **Symptoms:** Agent can't access external services or APIs
+    
+    **Solutions:**
+    1. Verify secrets are properly configured
+    2. Check integration permissions
+    3. Ensure agent has necessary groups/users assigned
+    4. Review service account permissions
+    
+    ```bash
+    # Check secret configuration
+    terraform state show kubiya_secret.your_secret_name
+    ```
+  </Accordion>
+  
+  <Accordion title="Webhook Not Triggering" icon="webhook">
+    **Symptoms:** External events not triggering agent actions
+    
+    **Solutions:**
+    1. Verify webhook URL in external system
+    2. Check filter conditions are correct
+    3. Test webhook with sample payload
+    4. Review webhook logs for errors
+    
+    ```bash
+    # Test webhook locally
+    curl -X POST "your-webhook-url" \
+      -H "Content-Type: application/json" \
+      -d '{"test": "payload"}'
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Steps>
+  <Step title="Expand Your Automation">
+    Now that you have a working foundation, consider adding:
+    - More specialized agents for different teams
+    - Additional integrations (monitoring, ticketing, etc.)
+    - Custom knowledge bases specific to your organization
+    - Advanced workflow automation
+  </Step>
+  
+  <Step title="Implement GitOps">
+    Set up a proper GitOps workflow:
+    - Create separate environments (dev, staging, prod)
+    - Implement automated testing for your configurations  
+    - Set up CI/CD pipelines for Terraform deployments
+    - Add approval processes for production changes
+  </Step>
+  
+  <Step title="Monitor and Optimize">
+    Establish ongoing operational practices:
+    - Set up monitoring and alerting for your agents
+    - Regular performance reviews and optimization
+    - User feedback collection and agent improvements
+    - Cost monitoring and resource optimization
+  </Step>
+</Steps>
+
+## Advanced Examples
+
+<Tabs>
+  <Tab title="Multi-Environment Setup">
+    ```hcl
+    # environments/production/main.tf
+    module "kubiya_platform" {
+      source = "../../modules/kubiya-platform"
+      
+      environment = "production"
+      runner_type = "vcluster"
+      
+      agents = {
+        platform = {
+          sources = ["essential-tools", "kubernetes-tools", "monitoring-tools"]
+          users   = ["platform-team@company.com"]
+        }
+        
+        incident_response = {
+          sources = ["essential-tools", "incident-tools"]  
+          users   = ["on-call@company.com"]
+        }
+      }
+      
+      integrations = {
+        github_org      = var.github_organization
+        slack_workspace = var.slack_workspace_id
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="CI/CD Integration">
+    ```yaml
+    # .github/workflows/deploy-kubiya.yml
+    name: Deploy Kubiya Infrastructure
+    
+    on:
+      push:
+        branches: [main]
+        paths: ['terraform/**']
+      
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Setup Terraform
+            uses: hashicorp/setup-terraform@v2
+            with:
+              terraform_version: 1.5.0
+              
+          - name: Terraform Init
+            run: terraform init
+            env:
+              AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              
+          - name: Terraform Plan
+            run: terraform plan
+            env:
+              KUBIYA_API_KEY: ${{ secrets.KUBIYA_API_KEY }}
+              TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
+              
+          - name: Terraform Apply
+            if: github.ref == 'refs/heads/main'
+            run: terraform apply -auto-approve
+            env:
+              KUBIYA_API_KEY: ${{ secrets.KUBIYA_API_KEY }}
+    ```
+  </Tab>
+  
+  <Tab title="Advanced Monitoring">
+    ```hcl
+    # monitoring.tf
+    resource "kubiya_scheduled_task" "performance_monitoring" {
+      name        = "agent-performance-monitoring"
+      description = "Monitor agent performance and usage"
+      agent       = kubiya_agent.platform_agent.name
+      
+      schedule = "*/15 * * * *" # Every 15 minutes
+      
+      prompt = <<-EOT
+        Monitor agent performance metrics:
+        
+        1. Response times and success rates
+        2. Resource utilization
+        3. Error patterns and trends
+        4. User satisfaction metrics
+        
+        Alert if:
+        - Response time > 30 seconds
+        - Error rate > 5%
+        - CPU utilization > 80%
+        - Memory usage > 2GB
+      EOT
+      
+      notification {
+        method      = "Slack"
+        destination = "#monitoring"
+        
+        # Only notify on issues
+        condition = "metrics.error_rate > 0.05 || metrics.response_time > 30"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Resources & Support
+
+<CardGroup cols={3}>
+  <Card title="Documentation" icon="book" href="/terraform/resources/agent">
+    Complete resource reference and API documentation
+  </Card>
+  
+  <Card title="Examples" icon="code" href="/terraform/examples">
+    Production-ready configuration examples and patterns
+  </Card>
+  
+  <Card title="Community" icon="users" href="https://community.kubiya.ai">
+    Join the Kubiya community for support and discussions
+  </Card>
+  
+  <Card title="GitHub" icon="github" href="https://github.com/kubiya-terraform/terraform-provider-kubiya">
+    Provider source code and issue tracking
+  </Card>
+  
+  <Card title="Support" icon="life-ring" href="https://support.kubiya.ai">
+    Get help from the Kubiya support team
+  </Card>
+  
+  <Card title="Blog" icon="newspaper" href="https://kubiya.ai/blog">
+    Latest updates, tutorials, and best practices
+  </Card>
+</CardGroup>
+
+---
+
+<Info>
+**Congratulations!** You've successfully set up your first Kubiya AI agent with Terraform. Your intelligent automation platform is now ready to transform how your team manages infrastructure and operations.
+
+Start with simple tasks and gradually build more sophisticated automation as you learn what works best for your organization.
+</Info>
