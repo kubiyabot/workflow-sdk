@@ -1,0 +1,655 @@
+---
+title: "kubiya_webhook"
+sidebarTitle: "Webhook Resource"
+description: "Manage webhook triggers for agents and workflows with event-driven automation"
+icon: "webhook"
+---
+
+The `kubiya_webhook` resource allows you to create and manage webhooks in the Kubiya platform. Webhooks enable external systems to trigger Kubiya agents or workflows via HTTP requests, facilitating event-driven automation and real-time integrations.
+
+<Tip>
+Webhooks are essential for building responsive automation systems that react to external events like code pushes, deployment notifications, alerts, and data changes.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. At least one configured agent or workflow to trigger
+4. Appropriate integrations configured for notification methods (Slack, Teams)
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic Agent Webhook
+resource "kubiya_agent" "support_agent" {
+  name         = "support-assistant"
+  runner       = "kubiya-hosted"
+  description  = "Customer support agent"
+  instructions = "You are a support assistant that helps resolve customer issues."
+}
+
+resource "kubiya_webhook" "support_webhook" {
+  name   = "customer-support-webhook"
+  agent  = kubiya_agent.support_agent.name
+  source = "zendesk"
+  prompt = "New support ticket received. Please analyze and provide initial response."
+}
+```
+
+```hcl Webhook with Notifications
+resource "kubiya_webhook" "github_webhook" {
+  name        = "github-pr-webhook"
+  agent       = "code-review-agent"
+  source      = "github"
+  filter      = "pull_request"
+  prompt      = "Review the new pull request and provide feedback"
+  
+  method      = "Slack"
+  destination = "#code-reviews"
+}
+```
+
+```hcl Workflow Webhook
+resource "kubiya_webhook" "backup_webhook" {
+  name   = "nightly-backup"
+  source = "scheduler"
+  prompt = "Execute nightly backup workflow"
+  
+  workflow = jsonencode({
+    name        = "nightly-backup-workflow"
+    description = "Automated nightly backup process"
+    steps = [
+      {
+        name        = "backup-database"
+        description = "Backup production database"
+        executor = {
+          type = "command"
+          config = {
+            command = "pg_dump production_db > /backups/db_$(date +%Y%m%d).sql"
+          }
+        }
+      },
+      {
+        name        = "upload-to-s3"
+        description = "Upload backup to S3"
+        depends     = ["backup-database"]
+        executor = {
+          type = "command"
+          config = {
+            command = "aws s3 cp /backups/db_$(date +%Y%m%d).sql s3://company-backups/"
+          }
+        }
+      }
+    ]
+  })
+  
+  runner = "kubiya-hosted"
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Incident Response">
+    Create a webhook for automated incident response:
+
+    ```hcl
+    resource "kubiya_agent" "incident_agent" {
+      name         = "incident-responder"
+      runner       = "kubiya-hosted"
+      description  = "Automated incident response agent"
+      instructions = <<-EOT
+        You are an incident response agent. When triggered:
+        1. Analyze the incident severity
+        2. Gather relevant logs and metrics
+        3. Create a JIRA ticket
+        4. Notify the on-call team
+        5. Start initial remediation steps
+      EOT
+      
+      integrations = ["pagerduty", "jira_cloud", "datadog", "slack_integration"]
+    }
+
+    resource "kubiya_webhook" "incident_webhook" {
+      name        = "critical-incident-webhook"
+      agent       = kubiya_agent.incident_agent.name
+      source      = "datadog"
+      filter      = "severity:critical"
+      prompt      = "Critical incident detected. Initiate incident response protocol."
+      
+      method      = "Slack"
+      destination = "#incidents-critical"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="CI/CD Pipeline">
+    Configure a comprehensive CI/CD pipeline webhook:
+
+    ```hcl
+    resource "kubiya_webhook" "cicd_webhook" {
+      name   = "cicd-pipeline"
+      source = "github"
+      filter = "push:main"
+      prompt = "Execute CI/CD pipeline for main branch push"
+      
+      workflow = jsonencode({
+        name        = "cicd-pipeline"
+        description = "Complete CI/CD pipeline with testing and deployment"
+        steps = [
+          {
+            name        = "run-tests"
+            description = "Execute unit and integration tests"
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "test-runner"
+                  description = "Run test suite"
+                  type        = "docker"
+                  image       = "node:18"
+                  content     = "npm test && npm run test:integration"
+                }
+              }
+            }
+            output = "TEST_RESULTS"
+          },
+          {
+            name        = "build-application"
+            description = "Build Docker image"
+            depends     = ["run-tests"]
+            executor = {
+              type = "command"
+              config = {
+                command = "docker build -t myapp:${GITHUB_SHA} ."
+              }
+            }
+            output = "BUILD_STATUS"
+          },
+          {
+            name        = "security-scan"
+            description = "Run security vulnerability scan"
+            depends     = ["build-application"]
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "security-scanner"
+                  description = "Scan for vulnerabilities"
+                  type        = "docker"
+                  image       = "aquasec/trivy"
+                  content     = "trivy image myapp:${GITHUB_SHA}"
+                }
+              }
+            }
+            output = "SCAN_RESULTS"
+          },
+          {
+            name        = "deploy-staging"
+            description = "Deploy to staging environment"
+            depends     = ["security-scan"]
+            executor = {
+              type = "command"
+              config = {
+                command = "kubectl set image deployment/myapp myapp=myapp:${GITHUB_SHA} -n staging"
+              }
+            }
+          },
+          {
+            name        = "notify-team"
+            description = "Send deployment notification"
+            depends     = ["deploy-staging"]
+            executor = {
+              type = "agent"
+              config = {
+                teammate_name = "notification-agent"
+                message       = "Deployment to staging complete. Build: ${BUILD_STATUS}"
+              }
+            }
+          }
+        ]
+      })
+      
+      runner      = "kubiya-hosted"
+      method      = "Slack"
+      destination = "#deployments"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Data Processing ETL">
+    Set up a data processing ETL pipeline webhook:
+
+    ```hcl
+    resource "kubiya_webhook" "data_processing_webhook" {
+      name   = "etl-pipeline"
+      source = "s3"
+      filter = "bucket:raw-data"
+      prompt = "New data file uploaded, process ETL pipeline"
+      
+      workflow = jsonencode({
+        name        = "etl-workflow"
+        description = "Extract, Transform, Load data pipeline"
+        steps = [
+          {
+            name        = "extract-data"
+            description = "Extract data from source"
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "data-extractor"
+                  description = "Extract and validate data"
+                  type        = "docker"
+                  image       = "python:3.11-slim"
+                  with_files = [
+                    {
+                      destination = "/extract.py"
+                      content     = <<-PYTHON
+                        import pandas as pd
+                        import sys
+                        
+                        # Read data from S3
+                        df = pd.read_csv(sys.argv[1])
+                        
+                        # Validate data
+                        assert not df.empty, "Data is empty"
+                        assert df.columns.tolist() == ['id', 'name', 'value'], "Invalid schema"
+                        
+                        # Save validated data
+                        df.to_csv('/tmp/validated_data.csv', index=False)
+                        print(f"Extracted {len(df)} records")
+                      PYTHON
+                    }
+                  ]
+                  content = "python /extract.py ${DATA_FILE}"
+                  args = [
+                    {
+                      name        = "DATA_FILE"
+                      type        = "string"
+                      description = "Input data file path"
+                      required    = true
+                    }
+                  ]
+                }
+              }
+            }
+            output = "EXTRACTED_COUNT"
+          },
+          {
+            name        = "transform-data"
+            description = "Apply business transformations"
+            depends     = ["extract-data"]
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "data-transformer"
+                  description = "Transform data according to business rules"
+                  type        = "docker"
+                  image       = "python:3.11-slim"
+                  with_files = [
+                    {
+                      destination = "/transform.py"
+                      content     = <<-PYTHON
+                        import pandas as pd
+                        import numpy as np
+                        
+                        # Load validated data
+                        df = pd.read_csv('/tmp/validated_data.csv')
+                        
+                        # Apply transformations
+                        df['value_normalized'] = (df['value'] - df['value'].mean()) / df['value'].std()
+                        df['category'] = pd.cut(df['value'], bins=3, labels=['low', 'medium', 'high'])
+                        df['processed_date'] = pd.Timestamp.now()
+                        
+                        # Save transformed data
+                        df.to_parquet('/tmp/transformed_data.parquet')
+                        print(f"Transformed {len(df)} records")
+                      PYTHON
+                    }
+                  ]
+                  content = "python /transform.py"
+                }
+              }
+            }
+            output = "TRANSFORMED_COUNT"
+          },
+          {
+            name        = "load-to-warehouse"
+            description = "Load data to data warehouse"
+            depends     = ["transform-data"]
+            executor = {
+              type = "command"
+              config = {
+                command = "aws s3 cp /tmp/transformed_data.parquet s3://data-warehouse/processed/$(date +%Y%m%d)/"
+              }
+            }
+          }
+        ]
+      })
+      
+      runner = "kubiya-hosted"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Conditional Workflows">
+  Create webhooks with conditional logic based on runtime conditions:
+
+  ```hcl
+  resource "kubiya_webhook" "conditional_webhook" {
+    name   = "smart-deployment"
+    source = "github"
+    filter = "release"
+    prompt = "New release created, execute smart deployment"
+    
+    workflow = jsonencode({
+      name        = "conditional-deployment"
+      description = "Deployment with environment-based conditions"
+      steps = [
+        {
+          name        = "check-environment"
+          description = "Determine target environment based on tag"
+          executor = {
+            type = "tool"
+            config = {
+              tool_def = {
+                name        = "env-checker"
+                description = "Check deployment environment"
+                type        = "docker"
+                image       = "alpine:latest"
+                content     = <<-BASH
+                  if [[ "${RELEASE_TAG}" == *"-prod"* ]]; then
+                    echo "production"
+                  elif [[ "${RELEASE_TAG}" == *"-staging"* ]]; then
+                    echo "staging"
+                  else
+                    echo "development"
+                  fi
+                BASH
+                args = [
+                  {
+                    name        = "RELEASE_TAG"
+                    type        = "string"
+                    description = "Release tag name"
+                    required    = true
+                  }
+                ]
+              }
+              args = {
+                RELEASE_TAG = "${GITHUB_RELEASE_TAG}"
+              }
+            }
+          }
+          output = "TARGET_ENV"
+        },
+        {
+          name        = "deploy-to-environment"
+          description = "Deploy to determined environment"
+          depends     = ["check-environment"]
+          executor = {
+            type = "agent"
+            config = {
+              teammate_name = "deployment-agent"
+              message       = "Deploy release ${GITHUB_RELEASE_TAG} to ${TARGET_ENV} environment"
+            }
+          }
+        },
+        {
+          name        = "run-environment-tests"
+          description = "Run environment-specific tests"
+          depends     = ["deploy-to-environment"]
+          executor = {
+            type = "command"
+            config = {
+              command = "npm run test:${TARGET_ENV}"
+            }
+          }
+        }
+      ]
+    })
+    
+    runner      = "kubiya-hosted"
+    method      = "Slack"
+    destination = "#releases"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Teams Integration">
+  Configure webhook with Microsoft Teams notifications:
+
+  ```hcl
+  resource "kubiya_webhook" "deployment_webhook" {
+    name        = "deployment-notification"
+    agent       = "deployment-agent"
+    source      = "github-actions"
+    filter      = "workflow:deploy"
+    prompt      = "Deployment completed. Verify deployment health and report status."
+    
+    method      = "Teams"
+    team_name   = "DevOps Team"
+    destination = "Deployments"  # Channel name in Teams
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  The name of the webhook. Must be unique within your organization.
+</ParamField>
+
+### Conditional Required Arguments
+
+Either `agent` or `workflow` must be specified:
+
+<ParamField path="agent" type="string">
+  The name of the agent to trigger with this webhook. Required if no workflow is specified.
+</ParamField>
+
+<ParamField path="workflow" type="string">
+  JSON-encoded workflow definition to execute when webhook is triggered. Required if no agent is specified.
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="source" type="string">
+  Source identification for the webhook (e.g., "github", "datadog", "custom"). Helps with organizing and filtering webhooks.
+</ParamField>
+
+<ParamField path="filter" type="string">
+  Filter expression for events that will trigger the webhook. Use to restrict webhook triggers to specific conditions.
+</ParamField>
+
+<ParamField path="prompt" type="string">
+  Prompt to send to the agent or workflow when triggered. Provides context for the execution.
+</ParamField>
+
+<ParamField path="runner" type="string">
+  The runner to use for workflow execution. Required when using `workflow` parameter.
+</ParamField>
+
+<ParamField path="method" type="string" default="Slack">
+  Notification method for webhook results. Available options:
+  - `Slack` - Send notifications to Slack channels or users
+  - `Teams` - Send notifications to Microsoft Teams
+  - `Http` - Send HTTP notifications
+</ParamField>
+
+<ParamField path="destination" type="string">
+  Destination for notifications (varies by method):
+  - **Slack**: Channel name with "#" prefix (e.g., "#alerts") or username with "@" prefix
+  - **Teams**: Channel name within the team specified by `team_name`
+  - **Http**: Not required
+</ParamField>
+
+<ParamField path="team_name" type="string">
+  Team name for Microsoft Teams notifications. Required when `method` is "Teams".
+</ParamField>
+
+## Workflow Structure
+
+When using the `workflow` parameter, the JSON structure should include:
+
+<ParamField path="workflow.name" type="string" required>
+  Name of the workflow for identification.
+</ParamField>
+
+<ParamField path="workflow.description" type="string" required>
+  Description of the workflow's purpose.
+</ParamField>
+
+<ParamField path="workflow.steps" type="array" required>
+  Array of workflow steps, each containing:
+  
+  <ParamField path="workflow.steps[].name" type="string" required>
+    Unique name for the step.
+  </ParamField>
+  
+  <ParamField path="workflow.steps[].description" type="string" required>
+    Description of what the step does.
+  </ParamField>
+  
+  <ParamField path="workflow.steps[].executor" type="object" required>
+    Executor configuration with `type` and `config` properties.
+  </ParamField>
+  
+  <ParamField path="workflow.steps[].depends" type="array">
+    Array of step names this step depends on for execution order.
+  </ParamField>
+  
+  <ParamField path="workflow.steps[].output" type="string">
+    Variable name to store step output for use in subsequent steps.
+  </ParamField>
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the webhook.
+</ParamField>
+
+<ParamField path="url" type="string">
+  The URL to trigger the webhook (sensitive).
+</ParamField>
+
+<ParamField path="created_at" type="string">
+  The timestamp when the webhook was created.
+</ParamField>
+
+<ParamField path="created_by" type="string">
+  The user who created the webhook.
+</ParamField>
+
+<ParamField path="status" type="string">
+  The current status of the webhook.
+</ParamField>
+
+<ParamField path="workflow_id" type="string">
+  The ID of the associated workflow (when using workflow parameter).
+</ParamField>
+
+## Import
+
+Webhooks can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_webhook.example <webhook-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_webhook.example
+  id = "<webhook-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Security" icon="shield-halved">
+  - Use filters to restrict webhook triggers to specific events
+  - Implement proper authentication and authorization for webhook endpoints
+  - Validate webhook payloads to prevent malicious triggers
+  - Monitor webhook execution for suspicious activity
+</Card>
+
+<Card title="Performance" icon="gauge-high">
+  - Design workflows to be efficient and avoid long-running operations
+  - Use appropriate timeouts and retry mechanisms
+  - Consider rate limiting for high-frequency webhooks
+  - Implement proper error handling and recovery
+</Card>
+
+<Card title="Reliability" icon="shield-check">
+  - Include error handling steps in workflows
+  - Set up monitoring and alerting for webhook failures
+  - Test webhooks with sample payloads before production use
+  - Implement idempotent operations where possible
+</Card>
+
+<Card title="Maintenance" icon="wrench">
+  - Use descriptive names that indicate the webhook's purpose and source
+  - Document expected payload formats and trigger conditions
+  - Version control your webhook configurations
+  - Regularly review and update webhook configurations
+</Card>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Workflow support requires appropriate runner configuration
+- Notification methods require corresponding integrations to be configured
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Some features may require specific Kubiya platform tier
+- Be aware of rate limits when designing high-frequency webhooks
+- Ensure proper network access for webhook URL endpoints
+- Test webhook integrations thoroughly before production deployment
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Webhook Not Triggering">
+  - Verify the webhook URL is accessible from the source system
+  - Check filter expressions for syntax and logic errors
+  - Ensure the source system is sending requests in the expected format
+  - Review webhook logs for error messages
+</Accordion>
+
+<Accordion title="Workflow Execution Issues">
+  - Verify the runner is active and has proper permissions
+  - Check that all required dependencies are available in the execution environment
+  - Review workflow step dependencies for circular references
+  - Ensure proper variable passing between workflow steps
+</Accordion>
+
+<Accordion title="Notification Delivery Problems">
+  - Verify integration configurations for Slack/Teams
+  - Check channel names and team configurations
+  - Ensure proper permissions for notification delivery
+  - Test notification methods independently
+</Accordion>

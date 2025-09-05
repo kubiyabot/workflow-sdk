@@ -1,0 +1,809 @@
+---
+title: "kubiya_trigger"
+sidebarTitle: "Trigger Resource"
+description: "Manage workflow triggers with webhook capabilities for automated execution"
+icon: "bolt"
+---
+
+The `kubiya_trigger` resource allows you to create and manage workflow triggers in the Kubiya platform. This resource creates a workflow and automatically publishes it with a webhook trigger, providing a URL that can be used to execute the workflow via HTTP requests.
+
+<Tip>
+Triggers combine the power of workflows with webhook accessibility, enabling external systems to initiate complex automation processes with a simple HTTP call.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. A configured runner (or use "kubiya-hosted" for cloud execution)
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Simple Echo Workflow
+resource "kubiya_trigger" "simple_trigger" {
+  name   = "hello-world-trigger"
+  runner = "kubiya-hosted"
+  
+  workflow = jsonencode({
+    name    = "Hello World Workflow"
+    version = 1
+    steps = [
+      {
+        name = "greeting"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Hello from Kubiya Workflow!'"
+          }
+        }
+      }
+    ]
+  })
+}
+
+output "webhook_url" {
+  value       = kubiya_trigger.simple_trigger.url
+  sensitive   = true
+  description = "POST to this URL to trigger the workflow"
+}
+```
+
+```hcl Multi-Step Pipeline
+resource "kubiya_trigger" "deployment_trigger" {
+  name   = "deployment-pipeline"
+  runner = "kubiya-hosted"
+  
+  workflow = jsonencode({
+    name    = "Deployment Pipeline"
+    version = 1
+    steps = [
+      {
+        name = "validate-config"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Validating configuration...'"
+          }
+        }
+      },
+      {
+        name = "run-tests"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Running tests...' && sleep 2 && echo 'Tests passed!'"
+          }
+        }
+      },
+      {
+        name = "deploy"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Deploying application...'"
+          }
+        }
+      },
+      {
+        name = "notify"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Deployment completed successfully!'"
+          }
+        }
+      }
+    ]
+  })
+}
+```
+
+```hcl Data Processing ETL
+resource "kubiya_trigger" "data_processing" {
+  name   = "data-etl-pipeline"
+  runner = "kubiya-hosted"
+  
+  workflow = jsonencode({
+    name    = "ETL Data Pipeline"
+    version = 1
+    steps = [
+      {
+        name = "fetch-data"
+        executor = {
+          type = "command"
+          config = {
+            command = "curl -s https://api.example.com/data | jq '.'"
+          }
+        }
+      },
+      {
+        name = "transform-data"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Transforming data...' && jq '.items | map({id: .id, value: .value * 2})'"
+          }
+        }
+      },
+      {
+        name = "load-data"
+        executor = {
+          type = "command"
+          config = {
+            command = "echo 'Loading data to warehouse...' && echo 'Data loaded successfully'"
+          }
+        }
+      }
+    ]
+  })
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="System Health Monitoring">
+    Create a trigger with custom tool executors for system monitoring:
+
+    ```hcl
+    resource "kubiya_trigger" "monitoring_trigger" {
+      name   = "system-health-check"
+      runner = "kubiya-hosted"
+      
+      workflow = jsonencode({
+        name    = "System Health Monitoring"
+        version = 1
+        steps = [
+          {
+            name        = "check-disk-usage"
+            description = "Check disk usage on all systems"
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "disk-checker"
+                  description = "Check disk usage"
+                  type        = "docker"
+                  image       = "alpine:latest"
+                  content     = "df -h | awk '$5+0 > 80 {print \"Warning: \" $1 \" is \" $5 \" full\"}'"
+                }
+              }
+            }
+            output = "DISK_STATUS"
+          },
+          {
+            name        = "check-memory"
+            description = "Check memory usage"
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "memory-checker"
+                  description = "Check memory usage"
+                  type        = "docker"
+                  image       = "alpine:latest"
+                  content     = "free -m | awk 'NR==2{printf \"Memory Usage: %.2f%%\\n\", $3*100/$2}'"
+                }
+              }
+            }
+            output = "MEMORY_STATUS"
+          },
+          {
+            name        = "generate-report"
+            description = "Generate health report"
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'System Health Report Generated'"
+              }
+            }
+          }
+        ]
+      })
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Parallel Processing">
+    Create a trigger with step dependencies for parallel execution:
+
+    ```hcl
+    resource "kubiya_trigger" "parallel_workflow" {
+      name   = "parallel-processing"
+      runner = "kubiya-hosted"
+      
+      workflow = jsonencode({
+        name    = "Parallel Processing Workflow"
+        version = 1
+        steps = [
+          {
+            name = "prepare-environment"
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'Preparing environment...'"
+              }
+            }
+          },
+          {
+            name    = "process-batch-1"
+            depends = ["prepare-environment"]
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'Processing batch 1...'"
+              }
+            }
+          },
+          {
+            name    = "process-batch-2"
+            depends = ["prepare-environment"]
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'Processing batch 2...'"
+              }
+            }
+          },
+          {
+            name    = "process-batch-3"
+            depends = ["prepare-environment"]
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'Processing batch 3...'"
+              }
+            }
+          },
+          {
+            name    = "aggregate-results"
+            depends = ["process-batch-1", "process-batch-2", "process-batch-3"]
+            executor = {
+              type = "command"
+              config = {
+                command = "echo 'Aggregating results from all batches...'"
+              }
+            }
+          }
+        ]
+      })
+    }
+    ```
+  </Tab>
+  
+  <Tab title="CI/CD Pipeline">
+    Create a comprehensive CI/CD pipeline trigger:
+
+    ```hcl
+    resource "kubiya_trigger" "cicd_trigger" {
+      name   = "cicd-pipeline"
+      runner = "kubiya-hosted"
+      
+      workflow = jsonencode({
+        name    = "CI/CD Pipeline"
+        version = 2
+        steps = [
+          {
+            name        = "checkout-code"
+            description = "Checkout latest code"
+            executor = {
+              type = "command"
+              config = {
+                command = "git clone https://github.com/example/repo.git /tmp/repo && cd /tmp/repo && git log -1"
+              }
+            }
+            output = "COMMIT_SHA"
+          },
+          {
+            name        = "run-unit-tests"
+            description = "Execute unit tests"
+            depends     = ["checkout-code"]
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "test-runner"
+                  description = "Run unit tests"
+                  type        = "docker"
+                  image       = "node:18"
+                  content     = "cd /tmp/repo && npm install && npm test"
+                }
+              }
+            }
+            output = "TEST_RESULTS"
+          },
+          {
+            name        = "build-docker-image"
+            description = "Build Docker image"
+            depends     = ["run-unit-tests"]
+            executor = {
+              type = "command"
+              config = {
+                command = "docker build -t myapp:latest /tmp/repo"
+              }
+            }
+            output = "IMAGE_ID"
+          },
+          {
+            name        = "security-scan"
+            description = "Scan for vulnerabilities"
+            depends     = ["build-docker-image"]
+            executor = {
+              type = "tool"
+              config = {
+                tool_def = {
+                  name        = "security-scanner"
+                  description = "Scan Docker image for vulnerabilities"
+                  type        = "docker"
+                  image       = "aquasec/trivy"
+                  content     = "trivy image --severity HIGH,CRITICAL myapp:latest"
+                }
+              }
+            }
+            output = "SCAN_REPORT"
+          },
+          {
+            name        = "deploy-to-kubernetes"
+            description = "Deploy to Kubernetes"
+            depends     = ["security-scan"]
+            executor = {
+              type = "command"
+              config = {
+                command = "kubectl apply -f /tmp/repo/k8s/deployment.yaml && kubectl rollout status deployment/myapp"
+              }
+            }
+          }
+        ]
+      })
+    }
+
+    output "cicd_webhook_url" {
+      value       = kubiya_trigger.cicd_trigger.url
+      sensitive   = true
+      description = "CI/CD pipeline trigger URL"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Database Backup Automation">
+  Create a trigger for automated database backups with S3 upload:
+
+  ```hcl
+  resource "kubiya_trigger" "backup_trigger" {
+    name   = "database-backup"
+    runner = "kubiya-hosted"
+    
+    workflow = jsonencode({
+      name    = "Database Backup Workflow"
+      version = 1
+      steps = [
+        {
+          name        = "create-backup"
+          description = "Create database backup"
+          executor = {
+            type = "command"
+            config = {
+              command = "pg_dump -h localhost -U postgres -d production > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql"
+            }
+          }
+          output = "BACKUP_FILE"
+        },
+        {
+          name        = "compress-backup"
+          description = "Compress backup file"
+          depends     = ["create-backup"]
+          executor = {
+            type = "command"
+            config = {
+              command = "gzip /tmp/backup_*.sql"
+            }
+          }
+        },
+        {
+          name        = "upload-to-s3"
+          description = "Upload backup to S3"
+          depends     = ["compress-backup"]
+          executor = {
+            type = "command"
+            config = {
+              command = "aws s3 cp /tmp/backup_*.sql.gz s3://company-backups/postgres/$(date +%Y/%m/%d)/"
+            }
+          }
+        },
+        {
+          name        = "cleanup-local"
+          description = "Clean up local backup files"
+          depends     = ["upload-to-s3"]
+          executor = {
+            type = "command"
+            config = {
+              command = "rm -f /tmp/backup_*.sql.gz"
+            }
+          }
+        },
+        {
+          name        = "verify-backup"
+          description = "Verify backup in S3"
+          depends     = ["upload-to-s3"]
+          executor = {
+            type = "command"
+            config = {
+              command = "aws s3 ls s3://company-backups/postgres/$(date +%Y/%m/%d)/ --recursive"
+            }
+          }
+          output = "BACKUP_VERIFICATION"
+        }
+      ]
+    })
+  }
+  ```
+</Accordion>
+
+<Accordion title="Incident Response Automation">
+  Create a trigger for automated incident response:
+
+  ```hcl
+  resource "kubiya_trigger" "incident_response" {
+    name   = "incident-response"
+    runner = "kubiya-hosted"
+    
+    workflow = jsonencode({
+      name    = "Incident Response Automation"
+      version = 1
+      steps = [
+        {
+          name        = "gather-metrics"
+          description = "Collect system metrics"
+          executor = {
+            type = "tool"
+            config = {
+              tool_def = {
+                name        = "metrics-collector"
+                description = "Gather system metrics"
+                type        = "docker"
+                image       = "python:3.11-slim"
+                with_files = [
+                  {
+                    destination = "/collect_metrics.py"
+                    content     = <<-PYTHON
+                      import json
+                      import datetime
+                      
+                      metrics = {
+                          "timestamp": datetime.datetime.now().isoformat(),
+                          "cpu_usage": "75%",
+                          "memory_usage": "82%",
+                          "disk_usage": "65%",
+                          "active_connections": 1250,
+                          "error_rate": "2.5%"
+                      }
+                      
+                      print(json.dumps(metrics, indent=2))
+                    PYTHON
+                  }
+                ]
+                content = "python /collect_metrics.py"
+              }
+            }
+          }
+          output = "SYSTEM_METRICS"
+        },
+        {
+          name        = "analyze-logs"
+          description = "Analyze error logs"
+          depends     = ["gather-metrics"]
+          executor = {
+            type = "command"
+            config = {
+              command = "tail -n 100 /var/log/application.log | grep -i error | head -10"
+            }
+          }
+          output = "ERROR_LOGS"
+        },
+        {
+          name        = "create-incident-ticket"
+          description = "Create JIRA incident ticket"
+          depends     = ["analyze-logs"]
+          executor = {
+            type = "agent"
+            config = {
+              teammate_name = "incident-agent"
+              message       = "Create a JIRA ticket for incident with metrics: ${SYSTEM_METRICS} and errors: ${ERROR_LOGS}"
+            }
+          }
+          output = "TICKET_ID"
+        },
+        {
+          name        = "notify-oncall"
+          description = "Notify on-call team"
+          depends     = ["create-incident-ticket"]
+          executor = {
+            type = "agent"
+            config = {
+              teammate_name = "notification-agent"
+              message       = "Send Slack alert to #incidents about ticket ${TICKET_ID}"
+            }
+          }
+        },
+        {
+          name        = "initiate-remediation"
+          description = "Start auto-remediation"
+          depends     = ["notify-oncall"]
+          executor = {
+            type = "command"
+            config = {
+              command = "kubectl scale deployment/app --replicas=5 && kubectl rollout restart deployment/app"
+            }
+          }
+        }
+      ]
+    })
+  }
+  ```
+</Accordion>
+
+## Triggering Workflows
+
+Once the trigger resource is created, you can execute the workflow by making HTTP requests to the webhook URL.
+
+<CodeGroup>
+
+```bash Basic Trigger
+# Get the webhook URL from Terraform output
+WEBHOOK_URL=$(terraform output -raw webhook_url)
+
+# Trigger the workflow
+curl -X POST "$WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: UserKey YOUR_API_KEY" \
+  -d '{}'
+```
+
+```bash Trigger with Payload
+# Send data to the workflow
+curl -X POST "$WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: UserKey YOUR_API_KEY" \
+  -d '{
+    "environment": "production",
+    "version": "1.2.3",
+    "user": "deploy-bot"
+  }'
+```
+
+```bash Streaming Output
+# For real-time execution output
+curl -X POST "$WEBHOOK_URL?stream=true" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: UserKey YOUR_API_KEY" \
+  -d '{}'
+```
+
+</CodeGroup>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="name" type="string" required>
+  Name of the trigger. This will be used as the workflow name and must be unique within your organization.
+</ParamField>
+
+<ParamField path="runner" type="string" required>
+  Runner to use for executing the workflow. Common values:
+  - `kubiya-hosted` - Use Kubiya's cloud-hosted runners
+  - Custom runner names from your organization
+</ParamField>
+
+<ParamField path="workflow" type="string" required>
+  JSON-encoded workflow definition. Use `jsonencode()` for better readability. Structure includes:
+  
+  <ParamField path="workflow.name" type="string" required>
+    Name of the workflow for identification.
+  </ParamField>
+  
+  <ParamField path="workflow.version" type="number" required>
+    Version number of the workflow. Increment when making changes.
+  </ParamField>
+  
+  <ParamField path="workflow.steps" type="array" required>
+    Array of workflow steps, each containing:
+    
+    <ParamField path="workflow.steps[].name" type="string" required>
+      Unique name for the step within the workflow.
+    </ParamField>
+    
+    <ParamField path="workflow.steps[].description" type="string">
+      Description of what the step does.
+    </ParamField>
+    
+    <ParamField path="workflow.steps[].executor" type="object" required>
+      Executor configuration with `type` and `config`:
+      - `type`: "command", "tool", or "agent"
+      - `config`: Configuration object specific to the executor type
+    </ParamField>
+    
+    <ParamField path="workflow.steps[].depends" type="array">
+      Array of step names this step depends on for execution order.
+    </ParamField>
+    
+    <ParamField path="workflow.steps[].output" type="string">
+      Variable name to store step output for use in subsequent steps.
+    </ParamField>
+  </ParamField>
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the trigger.
+</ParamField>
+
+<ParamField path="url" type="string">
+  The webhook URL for triggering the workflow (sensitive).
+</ParamField>
+
+<ParamField path="status" type="string">
+  Current status of the workflow (e.g., "draft", "published").
+</ParamField>
+
+<ParamField path="workflow_id" type="string">
+  The ID of the created workflow in Kubiya.
+</ParamField>
+
+## Import
+
+Trigger resources can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_trigger.example <trigger-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_trigger.example
+  id = "<trigger-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Security" icon="shield-halved">
+  - Store the webhook URL as a sensitive output to prevent accidental exposure
+  - Use proper authentication headers when triggering workflows
+  - Implement input validation in your workflow steps
+  - Restrict webhook access through network controls when possible
+</Card>
+
+<Card title="Workflow Design" icon="diagram-project">
+  - Use descriptive names and descriptions for steps to improve maintainability
+  - Design workflows to be idempotent where possible
+  - Include error checking and recovery steps in your workflows
+  - Use step dependencies to control execution order and enable parallelism
+</Card>
+
+<Card title="Versioning & Updates" icon="code-branch">
+  - Increment the workflow version when making significant changes
+  - Test workflows in a non-production environment first
+  - Document breaking changes in version updates
+  - Keep backward compatibility when possible
+</Card>
+
+<Card title="Monitoring & Operations" icon="chart-line">
+  - Set up logging and monitoring for workflow executions
+  - Implement proper error handling and notifications
+  - Use output variables to pass data between steps
+  - Monitor execution times and resource usage
+</Card>
+
+## Executor Types
+
+<Tabs>
+  <Tab title="Command Executor">
+    Execute shell commands directly:
+
+    ```json
+    {
+      "type": "command",
+      "config": {
+        "command": "echo 'Hello World' && ls -la"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Tool Executor">
+    Execute custom tools with Docker containers:
+
+    ```json
+    {
+      "type": "tool",
+      "config": {
+        "tool_def": {
+          "name": "custom-tool",
+          "description": "Custom processing tool",
+          "type": "docker",
+          "image": "python:3.11-slim",
+          "content": "python /app/process.py",
+          "with_files": [
+            {
+              "destination": "/app/process.py",
+              "content": "print('Processing data...')"
+            }
+          ]
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Agent Executor">
+    Delegate tasks to other Kubiya agents:
+
+    ```json
+    {
+      "type": "agent",
+      "config": {
+        "teammate_name": "notification-agent",
+        "message": "Send deployment notification with status: ${DEPLOY_STATUS}"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- The workflow is automatically published when the trigger resource is created
+- The webhook URL remains stable across updates unless the resource is recreated
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Updating the workflow definition will update the published workflow
+- Deleting the trigger resource will delete both the workflow and webhook
+- Ensure proper runner permissions for workflow execution
+- Test complex workflows thoroughly before production deployment
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Workflow Execution Issues">
+  - Verify the runner is active and has proper permissions
+  - Check workflow step dependencies for circular references
+  - Ensure all required tools and images are accessible
+  - Review step executor configurations for syntax errors
+</Accordion>
+
+<Accordion title="Webhook Trigger Problems">
+  - Verify the webhook URL is accessible and not blocked
+  - Check authorization headers and API key validity
+  - Ensure payload format matches workflow expectations
+  - Review webhook logs for error messages
+</Accordion>
+
+<Accordion title="Step Dependency Issues">
+  - Validate that dependency step names match exactly
+  - Check for circular dependencies in the workflow
+  - Ensure dependent steps produce expected output variables
+  - Review execution logs for dependency resolution errors
+</Accordion>

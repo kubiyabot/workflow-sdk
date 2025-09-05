@@ -1,0 +1,370 @@
+---
+title: "Kubiya Terraform Provider"
+sidebarTitle: "Overview"
+description: "Manage Kubiya AI resources including agents, workflows, and integrations via Terraform"
+icon: "cube"
+---
+
+# Kubiya Terraform Provider
+
+The Kubiya Terraform provider enables Infrastructure as Code (IaC) management of your Kubiya AI platform resources. Define, version, and deploy agents, workflows, integrations, and more through declarative Terraform configurations.
+
+<Info>
+The Kubiya provider is officially supported and maintained by Kubiya. For support, visit [support.kubiya.ai](https://support.kubiya.ai).
+</Info>
+
+## Why Use the Terraform Provider?
+
+<CardGroup cols={2}>
+  <Card title="Infrastructure as Code" icon="code">
+    Version control your AI agents and workflows alongside your infrastructure
+  </Card>
+  <Card title="Reproducible Deployments" icon="rotate">
+    Deploy consistent configurations across environments
+  </Card>
+  <Card title="GitOps Ready" icon="git-alt">
+    Integrate with your existing CI/CD pipelines
+  </Card>
+  <Card title="Drift Detection" icon="magnifying-glass">
+    Automatically detect and correct configuration drift
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+<Steps>
+  <Step title="Install Provider">
+    Add the provider to your Terraform configuration:
+    
+    <CodeGroup>
+    ```hcl terraform/main.tf
+    terraform {
+      required_providers {
+        kubiya = {
+          source  = "kubiya-terraform/kubiya"
+          version = "~> 1.0"
+        }
+      }
+    }
+    
+    provider "kubiya" {
+      # API key is read from KUBIYA_API_KEY environment variable
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Set Authentication">
+    Export your API key as an environment variable:
+    
+    ```bash
+    export KUBIYA_API_KEY="your-api-key-here"
+    ```
+    
+    <Note>
+    Generate an API key from the Kubiya dashboard under **Admin → Kubiya API Keys**.
+    </Note>
+  </Step>
+  
+  <Step title="Create Resources">
+    Define your first agent:
+    
+    <CodeGroup>
+    ```hcl terraform/agent.tf
+    resource "kubiya_agent" "my_assistant" {
+      name         = "terraform-assistant"
+      runner       = "kubiya-hosted"
+      description  = "AI assistant managed by Terraform"
+      instructions = "You are a helpful AI assistant."
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Deploy">
+    Initialize and apply your configuration:
+    
+    ```bash
+    terraform init
+    terraform plan
+    terraform apply
+    ```
+  </Step>
+</Steps>
+
+## Authentication
+
+The Kubiya provider supports authentication via environment variable for security best practices.
+
+<Tabs>
+  <Tab title="Environment Variable">
+    ```bash
+    export KUBIYA_API_KEY="your-api-key"
+    ```
+    
+    The provider automatically reads from `KUBIYA_API_KEY`:
+    
+    ```hcl
+    provider "kubiya" {
+      # No explicit configuration needed
+    }
+    ```
+  </Tab>
+  
+  <Tab title="CI/CD Integration">
+    For GitHub Actions:
+    ```yaml
+    env:
+      KUBIYA_API_KEY: ${{ secrets.KUBIYA_API_KEY }}
+    ```
+    
+    For GitLab CI:
+    ```yaml
+    variables:
+      KUBIYA_API_KEY: $KUBIYA_API_KEY
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Never commit API keys to version control. Always use environment variables or secret management systems.
+</Warning>
+
+## Available Resources
+
+The Kubiya provider offers comprehensive resource management:
+
+### Core Resources
+
+<AccordionGroup>
+  <Accordion title="Agents" icon="robot">
+    **[kubiya_agent](/terraform/resources/agent)** - AI agents that can execute tasks and workflows
+    
+    - Define agent behaviors and capabilities
+    - Configure access controls and permissions
+    - Set up integrations and tools
+  </Accordion>
+  
+  <Accordion title="Workflows" icon="diagram-project">
+    **[kubiya_source](/terraform/resources/source)** - Workflow and tool definitions
+    
+    - Define reusable workflow templates
+    - Create custom tool integrations
+    - Version control your automation logic
+  </Accordion>
+  
+  <Accordion title="Integrations" icon="plug">
+    **[kubiya_integration](/terraform/resources/integration)** - Third-party service connections
+    
+    - Connect to external APIs and services
+    - Configure OAuth and API key authentication
+    - Manage integration lifecycles
+  </Accordion>
+</AccordionGroup>
+
+### Automation Resources
+
+<AccordionGroup>
+  <Accordion title="Webhooks" icon="webhook">
+    **[kubiya_webhook](/terraform/resources/webhook)** - Event-driven automation endpoints
+    
+    - Receive events from external systems
+    - Trigger workflows automatically
+    - Process incoming data
+  </Accordion>
+  
+  <Accordion title="Triggers" icon="bolt">
+    **[kubiya_trigger](/terraform/resources/trigger)** - HTTP endpoints for workflow execution
+    
+    - Create custom API endpoints
+    - Handle HTTP requests
+    - Return structured responses
+  </Accordion>
+  
+  <Accordion title="Scheduled Tasks" icon="clock">
+    **[kubiya_scheduled_task](/terraform/resources/scheduled-task)** - Cron-based automation
+    
+    - Schedule recurring tasks
+    - Define time-based workflows
+    - Automate maintenance operations
+  </Accordion>
+</AccordionGroup>
+
+### Infrastructure Resources
+
+<AccordionGroup>
+  <Accordion title="Runners" icon="server">
+    **[kubiya_runner](/terraform/resources/runner)** - Execution environments for agents
+    
+    - Configure compute resources
+    - Set up isolated environments
+    - Manage runner pools
+  </Accordion>
+  
+  <Accordion title="Secrets" icon="key">
+    **[kubiya_secret](/terraform/resources/secret)** - Secure credential storage
+    
+    - Store API keys and tokens
+    - Manage sensitive configuration
+    - Control access permissions
+  </Accordion>
+  
+  <Accordion title="Knowledge Bases" icon="brain">
+    **[kubiya_knowledge](/terraform/resources/knowledge)** - AI knowledge repositories
+    
+    - Configure knowledge sources
+    - Set up vector databases
+    - Manage context for agents
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Cards>
+  <Card title="Use Modules" icon="cube">
+    Create reusable Terraform modules for common agent patterns and configurations.
+  </Card>
+  
+  <Card title="Environment Separation" icon="layer-group">
+    Maintain separate configurations for development, staging, and production environments.
+  </Card>
+  
+  <Card title="State Management" icon="database">
+    Use remote state backends (S3, Azure Storage, etc.) for team collaboration.
+  </Card>
+  
+  <Card title="Secret Management" icon="lock">
+    Never hardcode secrets. Use environment variables or secret management tools.
+  </Card>
+</Cards>
+
+## Example Configurations
+
+<Tabs>
+  <Tab title="Simple Agent">
+    ```hcl
+    resource "kubiya_agent" "support_bot" {
+      name         = "support-assistant"
+      runner       = "kubiya-hosted"
+      description  = "Customer support AI assistant"
+      instructions = "Help users with technical support inquiries."
+      
+      allowed_users  = ["support-team@company.com"]
+      allowed_groups = ["customer-support"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Agent with Integration">
+    ```hcl
+    resource "kubiya_integration" "slack" {
+      name        = "slack-workspace"
+      description = "Slack integration for notifications"
+      type        = "slack"
+      config      = jsonencode({
+        workspace_id = "T1234567"
+      })
+    }
+    
+    resource "kubiya_agent" "slack_bot" {
+      name         = "slack-assistant"
+      runner       = "kubiya-hosted"
+      description  = "Slack-integrated AI assistant"
+      instructions = "Respond to Slack messages and send notifications."
+      
+      integrations = [kubiya_integration.slack.name]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Scheduled Automation">
+    ```hcl
+    resource "kubiya_scheduled_task" "daily_report" {
+      name        = "daily-metrics-report"
+      description = "Generate daily metrics report"
+      schedule    = "0 9 * * *"  # 9 AM daily
+      
+      agent = kubiya_agent.analytics_bot.name
+      
+      prompt = <<-EOT
+        Generate the daily metrics report for ${var.team_name}.
+        Include key performance indicators and trends.
+      EOT
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Migration Guide
+
+If you're migrating from manual configuration to Terraform:
+
+<Steps>
+  <Step title="Import Existing Resources">
+    ```bash
+    terraform import kubiya_agent.existing agent-id-here
+    ```
+  </Step>
+  
+  <Step title="Generate Configuration">
+    Use `terraform show` to view imported resource configuration
+  </Step>
+  
+  <Step title="Refine and Apply">
+    Adjust the configuration and apply changes incrementally
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Authentication Errors">
+    Ensure your API key is correctly set:
+    ```bash
+    echo $KUBIYA_API_KEY
+    ```
+    
+    Verify the key has appropriate permissions in the Kubiya dashboard.
+  </Accordion>
+  
+  <Accordion title="Resource Not Found">
+    Check that resource names are unique within your organization and follow naming conventions.
+  </Accordion>
+  
+  <Accordion title="Rate Limiting">
+    The Kubiya API has rate limits. Use `-parallelism=1` for large deployments:
+    ```bash
+    terraform apply -parallelism=1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Getting Started Guide" icon="rocket" href="/terraform/getting-started">
+    Step-by-step tutorial for your first deployment
+  </Card>
+  
+  <Card title="Example Configurations" icon="code" href="/terraform/examples">
+    Production-ready configuration examples
+  </Card>
+  
+  <Card title="Resource Reference" icon="book" href="/terraform/resources/agent">
+    Detailed documentation for all resources
+  </Card>
+  
+  <Card title="Best Practices" icon="star" href="/terraform/best-practices">
+    Advanced patterns and recommendations
+  </Card>
+</CardGroup>
+
+## Support
+
+<Info>
+**Need Help?**
+- Documentation: [docs.kubiya.ai](https://docs.kubiya.ai)
+- Support: [support.kubiya.ai](https://support.kubiya.ai)
+- Community: [community.kubiya.ai](https://community.kubiya.ai)
+- GitHub: [github.com/kubiya-terraform/terraform-provider-kubiya](https://github.com/kubiya-terraform/terraform-provider-kubiya)
+</Info>

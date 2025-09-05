@@ -1,0 +1,593 @@
+---
+title: "kubiya_source"
+sidebarTitle: "Source Resource"
+description: "Manage Git-based tool and workflow repositories for agent functionality"
+icon: "code-branch"
+---
+
+The `kubiya_source` resource allows you to connect Git repositories containing tools and workflows to the Kubiya platform. These repositories provide agents with the functionality needed to perform tasks. For inline tool and workflow definitions, use the `kubiya_inline_source` resource instead.
+
+<Tip>
+Sources are the foundation for extending agent capabilities. They allow you to version control your tools and workflows while making them available across your organization.
+</Tip>
+
+## Prerequisites
+
+Before using this resource, ensure you have:
+
+1. A Kubiya account with API access
+2. An API key (generated from Kubiya dashboard under Admin → Kubiya API Keys)
+3. A Git repository containing tools and workflows (public or with appropriate credentials)
+4. The repository URL accessible from your Kubiya environment
+
+## Quick Start
+
+<CodeGroup>
+
+```hcl Basic GitHub Source
+resource "kubiya_source" "github_tools" {
+  name        = "community-tools"
+  description = "Kubiya community tools repository"
+  url         = "https://github.com/kubiyabot/community-tools"
+  runner      = "kubiya-hosted"
+}
+
+resource "kubiya_agent" "basic_agent" {
+  name         = "basic-agent"
+  runner       = "kubiya-hosted"
+  description  = "Agent with community tools"
+  instructions = "You are an agent with access to community tools."
+  
+  sources = [kubiya_source.github_tools.id]
+}
+```
+
+```hcl Private Repository
+resource "kubiya_source" "private_tools" {
+  url    = "https://github.com/myorg/private-tools"
+  runner = "kubiya-hosted"
+  
+  # Authentication handled via Kubiya GitHub integration
+  dynamic_config = jsonencode({
+    branch = "main"
+    auth   = "github-integration"
+  })
+}
+
+resource "kubiya_agent" "private_agent" {
+  name         = "private-tools-agent"
+  runner       = "kubiya-hosted"
+  description  = "Agent with access to private tools"
+  instructions = "You have access to proprietary tools from our private repository."
+  
+  sources = [kubiya_source.private_tools.id]
+}
+```
+
+```hcl GitLab Repository
+resource "kubiya_source" "gitlab_tools" {
+  url    = "https://gitlab.com/myorg/devops-tools"
+  runner = "kubiya-hosted"
+  
+  dynamic_config = jsonencode({
+    branch = "develop"
+    path   = "tools/"
+  })
+}
+
+resource "kubiya_agent" "gitlab_agent" {
+  name         = "gitlab-tools-agent"
+  runner       = "kubiya-hosted"
+  description  = "Agent with GitLab-hosted tools"
+  instructions = "You have access to DevOps tools from our GitLab repository."
+  
+  sources = [kubiya_source.gitlab_tools.id]
+}
+```
+
+</CodeGroup>
+
+## Configuration Examples
+
+<Tabs>
+  <Tab title="Multi-Environment Sources">
+    Create environment-specific sources for different deployment stages:
+
+    ```hcl
+    locals {
+      environments = {
+        dev = {
+          url    = "https://github.com/org/dev-tools"
+          branch = "develop"
+        }
+        staging = {
+          url    = "https://github.com/org/staging-tools"
+          branch = "staging"
+        }
+        prod = {
+          url    = "https://github.com/org/prod-tools"
+          branch = "main"
+        }
+      }
+    }
+
+    resource "kubiya_source" "env_sources" {
+      for_each = local.environments
+      
+      url    = each.value.url
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        environment = each.key
+        branch      = each.value.branch
+        restricted  = each.key == "prod" ? true : false
+      })
+    }
+
+    resource "kubiya_agent" "env_agents" {
+      for_each = local.environments
+      
+      name         = "${each.key}-agent"
+      runner       = "kubiya-hosted"
+      description  = "Agent for ${each.key} environment"
+      instructions = "You manage the ${each.key} environment with appropriate tools."
+      
+      sources = [kubiya_source.env_sources[each.key].id]
+      
+      environment_variables = {
+        ENVIRONMENT = each.key
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Monorepo Configuration">
+    Connect to different paths within a monorepo:
+
+    ```hcl
+    resource "kubiya_source" "monorepo_backend" {
+      url    = "https://github.com/org/monorepo"
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        path   = "backend/tools/"
+        branch = "main"
+      })
+    }
+
+    resource "kubiya_source" "monorepo_frontend" {
+      url    = "https://github.com/org/monorepo"
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        path   = "frontend/tools/"
+        branch = "main"
+      })
+    }
+
+    resource "kubiya_source" "monorepo_infra" {
+      url    = "https://github.com/org/monorepo"
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        path   = "infrastructure/tools/"
+        branch = "main"
+      })
+    }
+
+    resource "kubiya_agent" "fullstack_agent" {
+      name         = "fullstack-agent"
+      runner       = "kubiya-hosted"
+      description  = "Full-stack development agent"
+      instructions = "You have access to backend, frontend, and infrastructure tools from our monorepo."
+      
+      sources = [
+        kubiya_source.monorepo_backend.id,
+        kubiya_source.monorepo_frontend.id,
+        kubiya_source.monorepo_infra.id
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Version-Pinned Sources">
+    Use specific versions or tags for stable deployments:
+
+    ```hcl
+    resource "kubiya_source" "stable_tools" {
+      url    = "https://github.com/org/stable-tools"
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        tag = "v2.1.0"  # Pin to specific version
+      })
+    }
+
+    resource "kubiya_source" "beta_tools" {
+      url    = "https://github.com/org/stable-tools"
+      runner = "kubiya-hosted"
+      
+      dynamic_config = jsonencode({
+        branch = "beta"  # Use beta branch for testing
+      })
+    }
+
+    # Production agent uses stable version
+    resource "kubiya_agent" "prod_agent" {
+      name         = "production-agent"
+      runner       = "kubiya-hosted"
+      description  = "Production agent with stable tools"
+      instructions = "You use stable, version-pinned tools for production operations."
+      
+      sources = [kubiya_source.stable_tools.id]
+    }
+
+    # Beta agent uses latest features
+    resource "kubiya_agent" "beta_agent" {
+      name         = "beta-agent"
+      runner       = "kubiya-hosted"
+      description  = "Beta testing agent"
+      instructions = "You use beta tools for testing new features."
+      
+      sources = [kubiya_source.beta_tools.id]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configurations
+
+<Accordion title="Multiple Git Providers">
+  Configure sources from different Git providers:
+
+  ```hcl
+  # GitHub source
+  resource "kubiya_source" "github_source" {
+    url    = "https://github.com/org/github-tools"
+    runner = "kubiya-hosted"
+    
+    dynamic_config = jsonencode({
+      branch = "main"
+      auth   = "github-integration"
+    })
+  }
+
+  # GitLab source
+  resource "kubiya_source" "gitlab_source" {
+    url    = "https://gitlab.com/org/gitlab-tools"
+    runner = "kubiya-hosted"
+    
+    dynamic_config = jsonencode({
+      branch = "master"
+      path   = "kubiya-tools/"
+    })
+  }
+
+  # Bitbucket source
+  resource "kubiya_source" "bitbucket_source" {
+    url    = "https://bitbucket.org/workspace/bitbucket-tools"
+    runner = "kubiya-hosted"
+    
+    dynamic_config = jsonencode({
+      branch = "main"
+      tag    = "v1.5.0"
+    })
+  }
+
+  # Agent with tools from multiple providers
+  resource "kubiya_agent" "multi_provider_agent" {
+    name         = "multi-provider-agent"
+    runner       = "kubiya-hosted"
+    description  = "Agent with tools from multiple Git providers"
+    instructions = "You have access to tools from GitHub, GitLab, and Bitbucket repositories."
+    
+    sources = [
+      kubiya_source.github_source.id,
+      kubiya_source.gitlab_source.id,
+      kubiya_source.bitbucket_source.id
+    ]
+  }
+  ```
+</Accordion>
+
+<Accordion title="Team-Specific Tool Sources">
+  Organize sources by team or function:
+
+  ```hcl
+  locals {
+    teams = {
+      devops = {
+        url         = "https://github.com/org/devops-tools"
+        path        = "devops/"
+        description = "DevOps automation tools"
+      }
+      security = {
+        url         = "https://github.com/org/security-tools"
+        path        = "security/"
+        description = "Security scanning and compliance tools"
+      }
+      data = {
+        url         = "https://github.com/org/data-tools"
+        path        = "data-engineering/"
+        description = "Data processing and analytics tools"
+      }
+    }
+  }
+
+  resource "kubiya_source" "team_sources" {
+    for_each = local.teams
+    
+    url    = each.value.url
+    runner = "kubiya-hosted"
+    
+    dynamic_config = jsonencode({
+      path        = each.value.path
+      branch      = "main"
+      team        = each.key
+      description = each.value.description
+    })
+  }
+
+  # DevOps team agent
+  resource "kubiya_agent" "devops_agent" {
+    name         = "devops-team-agent"
+    runner       = "kubiya-hosted"
+    description  = "DevOps team automation agent"
+    instructions = "You are a DevOps agent with access to infrastructure and deployment tools."
+    
+    sources = [kubiya_source.team_sources["devops"].id]
+    
+    groups = ["DevOps", "SRE"]
+  }
+
+  # Security team agent
+  resource "kubiya_agent" "security_agent" {
+    name         = "security-team-agent"
+    runner       = "kubiya-hosted"
+    description  = "Security team automation agent"
+    instructions = "You are a security agent with access to scanning and compliance tools."
+    
+    sources = [kubiya_source.team_sources["security"].id]
+    
+    groups = ["Security", "Compliance"]
+  }
+  ```
+</Accordion>
+
+## Arguments Reference
+
+### Required Arguments
+
+<ParamField path="url" type="string" required>
+  URL to a Git repository containing tools and workflows. Supports HTTP/HTTPS URLs for public and private repositories.
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="runner" type="string" default="kubiya-hosted">
+  The runner to use for executing tools from this source. Use "kubiya-hosted" for cloud execution or specify your custom runner.
+</ParamField>
+
+<ParamField path="dynamic_config" type="string">
+  JSON-encoded configuration for the source. Common options include:
+  
+  - `branch` - Git branch to use (e.g., "main", "develop")
+  - `tag` - Git tag to use for version pinning (e.g., "v1.2.0")
+  - `path` - Subdirectory within the repository containing tools
+  - `auth` - Authentication method for private repositories
+  - `environment` - Environment identifier for organization
+</ParamField>
+
+## Attributes Reference
+
+In addition to all arguments above, the following attributes are exported:
+
+<ParamField path="id" type="string">
+  The unique identifier of the source.
+</ParamField>
+
+<ParamField path="name" type="string">
+  The computed name of the source (derived from repository name).
+</ParamField>
+
+## Repository Structure
+
+Your Git repository should follow these conventions for tools and workflows:
+
+<CodeGroup>
+
+```yaml Tools Structure
+repository/
+├── tools/
+│   ├── tool1/
+│   │   ├── tool.yaml      # Tool definition
+│   │   └── scripts/       # Tool scripts
+│   ├── tool2/
+│   │   ├── tool.yaml
+│   │   └── Dockerfile     # Custom container
+│   └── shared/
+│       └── common.sh      # Shared utilities
+├── workflows/
+│   ├── workflow1.yaml     # Workflow definitions
+│   └── workflow2.yaml
+└── README.md             # Documentation
+```
+
+```yaml Tool Definition Example
+# tools/example-tool/tool.yaml
+name: example-tool
+description: "Example tool for demonstration"
+type: docker
+image: alpine:latest
+content: |
+  #!/bin/bash
+  echo "Running example tool"
+  echo "Input: $1"
+args:
+  - name: input
+    description: "Input parameter"
+    type: string
+    required: true
+```
+
+```yaml Workflow Definition Example
+# workflows/example-workflow.yaml
+name: "Example Workflow"
+description: "Example workflow for demonstration"
+version: 1
+steps:
+  - name: "step1"
+    description: "First step"
+    executor:
+      type: "tool"
+      config:
+        tool_name: "example-tool"
+        args:
+          input: "Hello World"
+```
+
+</CodeGroup>
+
+## Import
+
+Sources can be imported using their ID:
+
+<CodeGroup>
+
+```bash Import Command
+terraform import kubiya_source.example <source-id>
+```
+
+```hcl Import Block
+import {
+  to = kubiya_source.example
+  id = "<source-id>"
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Card title="Version Control" icon="code-branch">
+  - Use specific branches or tags for production deployments
+  - Implement proper Git branching strategy (main, develop, feature branches)
+  - Tag releases with semantic versioning (v1.2.3)
+  - Use different branches for different environments
+</Card>
+
+<Card title="Repository Organization" icon="folder-tree">
+  - Organize tools logically within your repository structure
+  - Use clear naming conventions for tools and workflows
+  - Include comprehensive README files and documentation
+  - Group related tools in subdirectories by function or team
+</Card>
+
+<Card title="Security" icon="shield-halved">
+  - Use private repositories for proprietary or sensitive tools
+  - Configure appropriate Git credentials via Kubiya integrations
+  - Implement access controls and code review processes
+  - Audit tool usage and repository access regularly
+</Card>
+
+<Card title="Testing & Deployment" icon="flask">
+  - Test repository connections in development environments first
+  - Validate tool definitions before committing to main branches
+  - Implement CI/CD pipelines for tool repositories
+  - Monitor source health and tool execution success rates
+</Card>
+
+## Dynamic Configuration Options
+
+<Tabs>
+  <Tab title="Branch & Tag Configuration">
+    ```json
+    {
+      "branch": "main",
+      "tag": "v1.2.0",
+      "path": "tools/production"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Authentication Configuration">
+    ```json
+    {
+      "auth": "github-integration",
+      "branch": "private-tools",
+      "credentials": "github-token"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Environment Configuration">
+    ```json
+    {
+      "environment": "production",
+      "restricted": true,
+      "team": "devops",
+      "approval_required": true
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Path & Filter Configuration">
+    ```json
+    {
+      "path": "kubiya/tools",
+      "include": ["*.yaml", "*/tool.yaml"],
+      "exclude": ["test/*", "deprecated/*"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+<Note>
+**Requirements:**
+- Kubiya Terraform Provider version >= 1.0.0
+- Terraform >= 1.0
+- Git repositories must be accessible (public or with appropriate credentials)
+- Sources must be created before agents can reference them
+</Note>
+
+<Note>
+**Supported Providers:**
+- GitHub (github.com)
+- GitLab (gitlab.com and self-hosted)
+- Bitbucket (bitbucket.org)
+- Azure DevOps
+- Other Git providers accessible via HTTP/HTTPS
+</Note>
+
+<Warning>
+**Important Considerations:**
+- Repository URLs must be accessible from the Kubiya environment
+- Private repositories require proper authentication setup
+- Tool definitions must follow Kubiya schema specifications
+- Large repositories may impact source loading times
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Repository Access Issues">
+  - Verify the repository URL is correct and accessible
+  - Check authentication configuration for private repositories
+  - Ensure the Kubiya service has network access to the Git provider
+  - Validate credentials and permissions for the repository
+</Accordion>
+
+<Accordion title="Tool Loading Problems">
+  - Check that tool definitions follow the correct schema
+  - Verify file paths and directory structure in the repository
+  - Review dynamic_config path settings for accuracy
+  - Ensure tool files have proper YAML syntax
+</Accordion>
+
+<Accordion title="Branch/Tag Resolution">
+  - Verify that specified branches or tags exist in the repository
+  - Check for typos in branch/tag names (case-sensitive)
+  - Ensure the branch/tag contains the expected tool files
+  - Review Git provider permissions for tag/branch access
+</Accordion>
