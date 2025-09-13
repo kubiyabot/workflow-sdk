@@ -1,0 +1,431 @@
+---
+title: "AI Models"
+description: "Bring your own model - flexible AI providers for workflow generation"
+icon: "brain"
+---
+
+Kubiya's model-agnostic design means you're never locked into a single AI provider. Choose from leading commercial models, open-source alternatives, or even run your own models on-premises while Kubiya handles the orchestration and execution.
+
+## The Model-Agnostic Advantage
+
+Unlike platforms tied to specific AI providers, Kubiya separates intelligence from execution:
+
+<Tabs>
+  <Tab title="Flexibility">
+    **Switch models based on needs:**
+    - Use GPT-4 for complex reasoning tasks
+    - Use Claude for detailed analysis and planning
+    - Use local models for sensitive data processing
+    - Use specialized models for domain-specific tasks
+  </Tab>
+  
+  <Tab title="Cost Optimization">
+    **Right-size AI costs:**
+    - Expensive models for critical decisions
+    - Cheaper models for routine operations  
+    - Local models to eliminate API costs
+    - Mixed strategies for different workflow types
+  </Tab>
+  
+  <Tab title="Security & Privacy">
+    **Control data exposure:**
+    - Keep sensitive data on-premises with local models
+    - Use cloud models for non-sensitive operations
+    - Implement data residency requirements
+    - Meet compliance standards for AI usage
+  </Tab>
+</Tabs>
+
+<img
+  src="/assets/images/agent_playground_model_selection.png"
+  alt="AI Model Selection Interface"
+  caption="Choose from multiple AI providers or bring your own model"
+/>
+
+## Supported AI Providers
+
+### **Commercial Models**
+
+<CardGroup cols={2}>
+  <Card title="OpenAI" icon="openai">
+    GPT-4, GPT-4 Turbo, GPT-3.5 Turbo with function calling and structured outputs
+  </Card>
+  <Card title="Anthropic" icon="anthropic">
+    Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku with tool use capabilities
+  </Card>
+  <Card title="Google" icon="google">
+    Gemini Pro, Gemini Ultra with multimodal understanding
+  </Card>
+  <Card title="Microsoft" icon="microsoft">
+    Azure OpenAI Service with enterprise features and compliance
+  </Card>
+</CardGroup>
+
+### **Open Source & Self-Hosted**
+
+<CardGroup cols={2}>
+  <Card title="Together AI" icon="code">
+    Llama 2, CodeLlama, and other open-source models
+  </Card>
+  <Card title="Groq" icon="microchip">
+    Ultra-fast inference for real-time automation
+  </Card>
+  <Card title="Ollama" icon="server">
+    Run Llama, Mistral, and other models locally
+  </Card>
+  <Card title="vLLM" icon="rocket">
+    High-performance serving for production deployments
+  </Card>
+</CardGroup>
+
+## How AI Models Work with Kubiya
+
+### **Workflow Generation Process**
+
+AI models don't execute operations directly. Instead, they generate structured workflows that [runners](/core-concepts/runners) execute deterministically:
+
+<Steps>
+  <Step title="Context Analysis">
+    AI analyzes your request along with infrastructure context from the [context graph](/core-concepts/context-graph)
+  </Step>
+  <Step title="Tool Selection">
+    Based on available [integrations](/core-concepts/integrations), AI chooses appropriate tools for the task
+  </Step>
+  <Step title="Workflow Generation">
+    AI creates a structured, deterministic workflow with proper error handling and safety checks
+  </Step>
+  <Step title="Human Review">
+    Complex or sensitive workflows can require approval before execution
+  </Step>
+  <Step title="Deterministic Execution">
+    Runners execute the workflow using [serverless tools](/core-concepts/serverless-tools) with full audit trails
+  </Step>
+</Steps>
+
+### **Example: Model Selection by Use Case**
+
+```yaml
+# Different models for different workflow types
+model_selection:
+  incident_response:
+    provider: anthropic
+    model: claude-3-sonnet
+    reason: "Excellent at analyzing logs and suggesting solutions"
+    
+  routine_deployments:
+    provider: openai  
+    model: gpt-3.5-turbo
+    reason: "Cost-effective for standard operations"
+    
+  sensitive_operations:
+    provider: local
+    model: llama-3-8b
+    reason: "Keep sensitive context on-premises"
+    
+  complex_troubleshooting:
+    provider: openai
+    model: gpt-4-turbo
+    reason: "Best reasoning for complex multi-system issues"
+```
+
+## Model Configuration
+
+### **API-Based Models**
+
+Configure cloud-based AI services:
+
+```yaml
+# OpenAI configuration
+ai_providers:
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    organization: "org-xyz123"
+    models:
+      - gpt-4-turbo
+      - gpt-3.5-turbo
+    default_model: gpt-4-turbo
+    
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    models:
+      - claude-3-5-sonnet
+      - claude-3-haiku
+    default_model: claude-3-5-sonnet
+    
+  azure_openai:
+    endpoint: "https://mycompany.openai.azure.com"
+    api_key: "${AZURE_OPENAI_KEY}"
+    deployment_name: "gpt-4-deployment"
+```
+
+### **Self-Hosted Models**
+
+Run models on your own infrastructure:
+
+```yaml
+# Local model configuration
+ai_providers:
+  local_llama:
+    type: ollama
+    endpoint: "http://ollama-service:11434"
+    model: "llama3:8b"
+    
+  vllm_cluster:
+    type: openai_compatible
+    endpoint: "http://vllm-cluster:8000/v1"
+    model: "meta-llama/Llama-2-13b-chat-hf"
+    api_key: "not-required"
+    
+  azure_ml:
+    type: azure_ml
+    endpoint: "${AZURE_ML_ENDPOINT}"  
+    api_key: "${AZURE_ML_KEY}"
+    deployment_name: "custom-model-deployment"
+```
+
+<img
+  src="/assets/images/agent_playground_capabilities.png"
+  alt="AI Model Capabilities Testing"
+  caption="Test different AI models' capabilities for your specific use cases"
+/>
+
+## Advanced AI Features
+
+### **Function Calling & Tool Use**
+
+Modern AI models can call functions and use tools directly:
+
+```python
+# AI model with tool access
+from kubiya_sdk import Kubiya
+
+client = Kubiya()
+
+# Models can directly query context and execute workflows
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_cluster_status",
+            "description": "Get current status of Kubernetes cluster",
+            "parameters": {
+                "cluster_name": {"type": "string"},
+                "namespace": {"type": "string", "required": False}
+            }
+        }
+    },
+    {
+        "type": "function", 
+        "function": {
+            "name": "scale_deployment",
+            "description": "Scale a Kubernetes deployment",
+            "parameters": {
+                "deployment": {"type": "string"},
+                "replicas": {"type": "integer"},
+                "namespace": {"type": "string"}
+            }
+        }
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-4-turbo",
+    messages=[{
+        "role": "user", 
+        "content": "The payment service seems slow. Can you investigate and scale if needed?"
+    }],
+    tools=tools
+)
+```
+
+### **Structured Output Generation**
+
+AI models generate properly formatted workflows:
+
+```json
+{
+  "workflow": {
+    "name": "investigate-payment-service",
+    "steps": [
+      {
+        "name": "check-current-status",
+        "tool": "kubectl",
+        "args": ["get", "deployment", "payment-service", "-o", "json"],
+        "namespace": "production"
+      },
+      {
+        "name": "analyze-metrics",
+        "tool": "datadog-query",
+        "query": "avg:kubernetes.cpu.usage{service:payment}",
+        "timeframe": "1h"
+      },
+      {
+        "name": "scale-if-needed",
+        "tool": "kubectl", 
+        "args": ["scale", "deployment", "payment-service", "--replicas=5"],
+        "condition": "${analyze-metrics.cpu_usage} > 80"
+      }
+    ]
+  }
+}
+```
+
+### **Model Context Protocol (MCP)**
+
+Kubiya supports the Model Context Protocol for seamless AI agent integration:
+
+<img
+  src="/assets/images/agent_playground_chat_interface.png"
+  alt="MCP Chat Interface"
+  caption="Use MCP to integrate external AI agents with Kubiya's execution engine"
+/>
+
+```bash
+# Start MCP server for external AI agents
+kubiya mcp serve --port 3000
+
+# External AI agents can now:  
+# - Query your infrastructure context
+# - Generate and execute workflows
+# - Access your integrations securely
+# - Use Kubiya's audit and compliance features
+```
+
+This enables AI agents like:
+- **Claude Desktop** with Kubiya context
+- **ChatGPT** with workflow execution capabilities  
+- **Custom agents** built with LangChain or similar frameworks
+- **Enterprise copilots** with infrastructure automation
+
+## Model Performance & Optimization
+
+### **Response Time Optimization**
+
+Different models excel at different tasks:
+
+<Tabs>
+  <Tab title="Fast Models">
+    **For real-time operations:**
+    - GPT-3.5 Turbo: ~2-3 seconds response time
+    - Claude Haiku: Fastest Claude model for simple tasks
+    - Local models with Groq: Sub-second inference
+    - Good for: Status checks, simple deployments, routine operations
+  </Tab>
+  
+  <Tab title="Powerful Models">
+    **For complex analysis:**
+    - GPT-4 Turbo: ~5-8 seconds, best reasoning
+    - Claude Sonnet: Excellent for detailed planning
+    - Gemini Ultra: Strong multimodal capabilities
+    - Good for: Incident response, complex workflows, troubleshooting
+  </Tab>
+</Tabs>
+
+### **Cost Optimization Strategies**
+
+```yaml
+# Intelligent model routing based on complexity
+routing_rules:
+  - condition: "workflow_complexity == 'simple'"
+    model: "gpt-3.5-turbo"
+    
+  - condition: "incident_severity >= 'critical'"
+    model: "gpt-4-turbo"
+    
+  - condition: "contains_sensitive_data == true"
+    model: "local_llama"
+    
+  - condition: "user_tier == 'premium'"  
+    model: "claude-3-opus"
+    
+  default_model: "gpt-3.5-turbo"
+```
+
+### **Quality Assurance**
+
+Ensure consistent AI performance across models:
+
+```python
+# Model quality testing
+test_scenarios = [
+    {
+        "input": "Scale the frontend service to handle increased traffic",
+        "expected_tools": ["kubectl", "monitoring-check"],
+        "expected_safety_checks": ["resource_limits", "rollback_plan"]
+    },
+    {
+        "input": "Investigate database connection issues",  
+        "expected_tools": ["database-client", "network-test", "log-analyzer"],
+        "required_context": ["database_endpoints", "connection_pools"]
+    }
+]
+
+for scenario in test_scenarios:
+    for model in ["gpt-4", "claude-3", "local-llama"]:
+        result = test_model_quality(model, scenario)
+        assert_workflow_quality(result, scenario["requirements"])
+```
+
+<img
+  src="/assets/images/agent_playground_test_conversation.png"
+  alt="AI Model Testing Interface"
+  caption="Test AI model responses for consistency and quality"
+/>
+
+## Security & Privacy
+
+### **Data Handling Policies**
+
+Control what data AI models can access:
+
+```yaml
+# Data classification and model access rules
+data_policies:
+  public:
+    allowed_models: ["openai/*", "anthropic/*", "google/*"]
+    
+  internal:
+    allowed_models: ["azure_openai/*", "local/*"]
+    
+  confidential:
+    allowed_models: ["local/*"]
+    data_masking: true
+    
+  restricted:
+    allowed_models: ["air_gapped_local/*"]
+    no_cloud_access: true
+```
+
+### **Audit & Compliance**
+
+Track all AI model interactions:
+
+- **Prompt logging**: Record all inputs sent to AI models
+- **Response tracking**: Store AI-generated workflows and decisions  
+- **Model attribution**: Track which model generated each workflow
+- **Cost tracking**: Monitor AI API usage and costs by team/project
+
+<Warning>
+**Privacy Notice**: When using cloud-based AI models, your prompts and context may be processed by third-party services. Use local models or data masking for sensitive information.
+</Warning>
+
+## What's Next?
+
+AI models generate the intelligence, but [workflows](/core-concepts/workflows) provide the structure and safety guardrails that make automation reliable in production. Learn how AI-generated workflows become deterministic, auditable operations.
+
+<CardGroup cols={2}>
+  <Card
+    title="Workflows →"
+    href="/core-concepts/workflows"
+    icon="diagram-project"
+  >
+    Understand how AI generates structured, reliable workflows
+  </Card>
+  <Card
+    title="MCP Integration"
+    href="/how-to/mcp-custom-agents"
+    icon="plug"
+  >
+    Connect external AI agents to Kubiya's execution engine
+  </Card>
+</CardGroup>

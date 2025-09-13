@@ -1,0 +1,137 @@
+---
+title: "Get Started in 5 Minutes"
+description: "Choose your preferred way to experience Kubiya"
+icon: "play"
+---
+
+Get up and running with Kubiya in just 5 minutes using your preferred interface. Each path gives you a complete experience—choose the one that fits your workflow best.
+
+<CardGroup cols={3}>
+  <Card
+    title="Web Composer"
+    icon="globe"
+    href="/quickstart/web-composer-quickstart"
+    color="#6366f1"
+  >
+    Visual interface with drag-and-drop workflow builder. Perfect for getting started.
+  </Card>
+  <Card
+    title="CLI"
+    icon="terminal"
+    href="/quickstart/cli-quickstart"
+    color="#8b5cf6"
+  >
+    Command-line tool for developers who prefer terminal workflows.
+  </Card>
+  <Card
+    title="SDK"
+    icon="code"
+    href="/quickstart/sdk-quickstart"  
+    color="#4f46e5"
+  >
+    Python SDK for building custom automations and integrations.
+  </Card>
+</CardGroup>
+
+## What You'll Experience
+
+Regardless of which path you choose, you'll see how Kubiya:
+
+<Steps>
+  <Step title="Understands Natural Language">
+    Describe what you want in plain English: "Deploy my app to staging" or "Scale down the test environment"
+  </Step>
+  <Step title="Generates Deterministic Workflows">
+    Watch as your request becomes a structured, repeatable workflow with safety checks
+  </Step>
+  <Step title="Executes Safely">
+    See containerized tools perform operations with real-time feedback and audit trails
+  </Step>
+  <Step title="Provides Full Visibility">
+    Monitor execution, view logs, and understand exactly what happened
+  </Step>
+</Steps>
+
+## Quick Demo: First Automation
+
+Here's a preview of what you'll build in the next 5 minutes:
+
+<CodeGroup>
+
+```bash CLI Example
+# Install and authenticate
+kubiya auth login
+
+# Run your first automation
+kubiya task run "Show me the health of my production cluster"
+
+# Save successful operations as reusable workflows
+kubiya workflow save "cluster-health-check"
+```
+
+```python SDK Example
+from kubiya_sdk import Kubiya
+
+# Initialize client
+client = Kubiya(api_key="your-api-key")
+
+# Generate and execute workflow
+result = client.compose(
+    goal="Check cluster health and send summary to Slack",
+    mode="act"  # Execute immediately
+)
+
+print(result.workflow_execution.status)
+```
+
+```yaml Generated Workflow
+name: cluster-health-check
+steps:
+  - name: get-cluster-status
+    tool: kubectl
+    args: ["get", "nodes", "-o", "json"]
+    
+  - name: check-pod-health  
+    tool: kubectl
+    args: ["get", "pods", "--all-namespaces"]
+    
+  - name: send-slack-summary
+    tool: slack
+    channel: "#ops-alerts"
+    message: "Cluster health check complete ✅"
+```
+
+</CodeGroup>
+
+## What's Next?
+
+After completing your quickstart:
+
+1. **Explore Core Concepts**: Understand [how integrations work](/core-concepts/integrations) and why [workflows are deterministic](/core-concepts/workflows)
+
+2. **Try Real Use Cases**: Check out [common automation patterns](/core-concepts/use-cases) like deployments, incident response, and infrastructure management
+
+3. **Customize Your Setup**: Learn about [runners](/core-concepts/runners) for on-premises execution and [AI models](/core-concepts/ai-models) for different providers
+
+4. **Go Production**: Review our [deployment guide](/admin/deployment-guide) and [security best practices](/admin/security-access)
+
+<Note>
+**New to AI automation?** No problem! Our interfaces are designed to be intuitive whether you're an AI expert or just getting started. The workflows Kubiya generates are transparent and easy to understand.
+</Note>
+
+Choose your path below to begin:
+
+<CardGroup cols={2}>
+  <Card
+    title="🌐 Start with Web Composer"
+    href="/quickstart/web-composer-quickstart"
+  >
+    Visual interface, no installation required. Great for first-time users and workflow builders.
+  </Card>
+  <Card
+    title="⚡ Jump to CLI"
+    href="/quickstart/cli-quickstart"
+  >
+    Direct command-line access. Perfect for developers and operators who live in the terminal.
+  </Card>
+</CardGroup>

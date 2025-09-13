@@ -1,0 +1,441 @@
+---
+title: "Serverless Tools"
+description: "Stateless, containerized execution for reliable automation"
+icon: "box"
+---
+
+Kubiya's serverless tools architecture ensures every automation operation runs in an isolated, ephemeral environment. This approach eliminates the common problems of state drift, dependency conflicts, and security vulnerabilities that plague traditional automation scripts.
+
+## Why Serverless Tools Matter
+
+Traditional automation approaches suffer from persistent state problems:
+
+<Tabs>
+  <Tab title="Stateful Scripts">
+    **Problems with persistent environments:**
+    - Configuration drift over time
+    - Dependency conflicts between different scripts
+    - Leftover state from previous executions
+    - Security vulnerabilities from long-running processes
+    - Difficult to reproduce issues across environments
+  </Tab>
+  
+  <Tab title="Serverless Tools">
+    **Benefits of ephemeral execution:**
+    - Every execution starts with a clean slate
+    - No dependency conflicts between operations
+    - Consistent behavior regardless of previous runs
+    - Enhanced security through isolation
+    - Easy to debug and reproduce issues
+  </Tab>
+</Tabs>
+
+## How Serverless Tools Work
+
+### **Container-Native Execution**
+
+Every operation in Kubiya runs as a containerized tool:
+
+```yaml
+# Example: Kubernetes health check tool
+name: kubectl-health-check
+image: kubiya/kubectl:latest
+command: 
+  - kubectl
+  - get
+  - pods
+  - --all-namespaces
+  - --field-selector=status.phase!=Running
+environment:
+  - KUBECONFIG=/secrets/kubeconfig
+volumes:
+  - name: kubeconfig
+    secret: prod-cluster-config
+```
+
+<img
+  src="/assets/images/tool_playground_interface.png"
+  alt="Tool Playground Interface"
+  caption="Test and debug tools in isolated container environments"
+/>
+
+### **Zero Setup Required**
+
+Tools run anywhere without installation or configuration:
+
+- **No dependencies** to install on target machines
+- **No version conflicts** between different tools
+- **No environment-specific** setup requirements
+- **No state pollution** from previous executions
+
+<img
+  src="/assets/images/tool_playground_python_script.png"
+  alt="Python Tool Example"
+  caption="Create custom tools with any programming language"
+/>
+
+### **Built-in Security**
+
+Container isolation provides multiple security benefits:
+
+<CardGroup cols={2}>
+  <Card title="Process Isolation" icon="shield">
+    Each tool runs in its own process namespace with no access to host processes
+  </Card>
+  <Card title="Network Segmentation" icon="globe">
+    Network policies control which services tools can communicate with
+  </Card>
+  <Card title="Filesystem Protection" icon="folder">
+    Read-only filesystems prevent unauthorized file modifications
+  </Card>
+  <Card title="Resource Limits" icon="gauge">
+    CPU, memory, and disk limits prevent resource exhaustion attacks
+  </Card>
+</CardGroup>
+
+## Tool Categories
+
+### **Infrastructure Tools**
+
+<Tabs>
+  <Tab title="Kubernetes">
+    ```bash
+    # Native kubectl operations
+    kubectl get pods --selector=app=nginx
+    kubectl scale deployment nginx --replicas=5
+    kubectl rollout status deployment/nginx
+    
+    # Helm operations  
+    helm upgrade myapp ./chart --values prod-values.yaml
+    helm rollback myapp 1
+    ```
+  </Tab>
+  
+  <Tab title="Cloud Providers">
+    ```bash
+    # AWS CLI operations
+    aws ec2 describe-instances --filters "Name=tag:Environment,Values=prod"
+    aws ecs update-service --cluster prod --service myapp --desired-count 3
+    
+    # Terraform operations
+    terraform plan -var-file=prod.tfvars
+    terraform apply -auto-approve
+    ```
+  </Tab>
+  
+  <Tab title="Monitoring">
+    ```python
+    # Custom monitoring tools
+    import datadog
+    
+    # Query metrics with context awareness
+    cpu_usage = datadog.api.Metric.query(
+        query="avg:system.cpu.user{service:payment}",
+        from_time=int(time.time()) - 3600
+    )
+    
+    if cpu_usage['series'][0]['pointlist'][-1][1] > 80:
+        trigger_alert("High CPU usage detected")
+    ```
+  </Tab>
+</Tabs>
+
+<img
+  src="/assets/images/tool_playground_execution.png"
+  alt="Tool Execution Environment"
+  caption="Rich execution environment with real-time logs and output"
+/>
+
+### **Custom Application Tools**
+
+Build tools specific to your applications:
+
+```python
+# Custom deployment health checker
+#!/usr/bin/env python3
+
+import requests
+import time
+import os
+
+def check_service_health(service_url, timeout=300):
+    """Check if newly deployed service is healthy"""
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        try:
+            response = requests.get(f"{service_url}/health")
+            if response.status_code == 200:
+                health_data = response.json()
+                if health_data.get('status') == 'healthy':
+                    return True
+        except requests.RequestException:
+            pass
+        
+        time.sleep(10)
+    
+    return False
+
+if __name__ == "__main__":
+    service_url = os.environ['SERVICE_URL']
+    if check_service_health(service_url):
+        print("✅ Service is healthy")
+    else:
+        print("❌ Service failed health check")
+        exit(1)
+```
+
+### **Integration Tools**
+
+Tools that bridge between systems:
+
+<img
+  src="/assets/images/tool_playground_services_tab.png"
+  alt="Service Integration Tools"
+  caption="Manage integrations and service dependencies"
+/>
+
+```yaml
+# Slack notification tool
+name: slack-notify
+image: alpine/curl:latest
+script: |
+  curl -X POST \
+    -H "Authorization: Bearer ${SLACK_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "{\"channel\": \"${CHANNEL}\", \"text\": \"${MESSAGE}\"}" \
+    https://slack.com/api/chat.postMessage
+environment:
+  - SLACK_TOKEN=/secrets/slack_token
+  - CHANNEL=#alerts
+  - MESSAGE="Deployment completed successfully"
+```
+
+## Execution Environment
+
+### **Runtime Configuration**
+
+Each tool execution includes:
+
+<img
+  src="/assets/images/tool_playground_environment_config.png"
+  alt="Environment Configuration"
+  caption="Configure runtime environment for each tool execution"
+/>
+
+- **Resource limits**: CPU, memory, disk space, network bandwidth
+- **Security context**: User permissions, security policies, network access
+- **Environment variables**: Configuration, credentials, context data
+- **Volume mounts**: Access to configuration files, secrets, temporary storage
+
+### **Real-Time Monitoring**
+
+Track tool execution with detailed observability:
+
+<img
+  src="/assets/images/tool_playground_live_logs.png"
+  alt="Live Execution Logs"
+  caption="Real-time logs and metrics during tool execution"
+/>
+
+- **Live logs**: Stream stdout/stderr in real-time
+- **Performance metrics**: CPU, memory, network usage
+- **Exit status**: Success/failure with detailed error information
+- **Execution timeline**: Start time, duration, completion status
+
+### **Secrets Management**
+
+Securely inject credentials without exposing them:
+
+<img
+  src="/assets/images/tool_playground_secrets_config.png"
+  alt="Secrets Configuration"
+  caption="Secure credential injection for tool authentication"
+/>
+
+```yaml
+# Secrets are mounted as files or environment variables
+volumes:
+  - name: aws-credentials  
+    secret: aws-prod-creds
+    mount_path: /root/.aws/credentials
+    
+  - name: kubeconfig
+    secret: k8s-prod-config  
+    mount_path: /root/.kube/config
+
+environment:
+  - DATABASE_PASSWORD=/secrets/db_password
+  - API_KEY=/secrets/api_key
+```
+
+## Tool Development
+
+### **Using the Tool Playground**
+
+Develop and test tools interactively:
+
+1. **Write your script** in the embedded editor
+2. **Configure environment** variables and secrets
+3. **Set resource limits** for testing
+4. **Execute and debug** with live feedback
+
+<img
+  src="/assets/images/tool_playground_script_editor.png"
+  alt="Script Editor"
+  caption="Built-in editor with syntax highlighting and debugging"
+/>
+
+### **Testing Framework**
+
+Built-in testing capabilities:
+
+```python
+# test_deployment_tool.py
+import unittest
+from kubiya_sdk import ToolTest
+
+class TestDeploymentTool(ToolTest):
+    def setUp(self):
+        self.tool = self.load_tool('deployment-checker')
+        self.mock_environment({
+            'SERVICE_URL': 'http://localhost:8080',
+            'TIMEOUT': '60'
+        })
+    
+    def test_healthy_service(self):
+        self.mock_http_response('GET', '/health', 200, {'status': 'healthy'})
+        result = self.tool.execute()
+        self.assertEqual(result.exit_code, 0)
+    
+    def test_unhealthy_service(self):
+        self.mock_http_response('GET', '/health', 500)  
+        result = self.tool.execute()
+        self.assertEqual(result.exit_code, 1)
+```
+
+### **CI/CD Integration**
+
+Tools can be versioned and deployed like any application:
+
+```yaml
+# .github/workflows/build-tools.yml
+name: Build Kubiya Tools
+on:
+  push:
+    paths: ['tools/**']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build tool images
+        run: |
+          for tool in tools/*/; do
+            docker build -t "myorg/$(basename $tool):${{ github.sha }}" $tool
+            docker push "myorg/$(basename $tool):${{ github.sha }}"
+          done
+```
+
+## Advanced Features
+
+### **Multi-Stage Tools**
+
+Chain operations within a single container:
+
+```dockerfile
+# Multi-stage deployment tool
+FROM alpine/git as source
+WORKDIR /app
+RUN git clone https://github.com/myorg/app.git .
+
+FROM node:18-alpine as builder  
+COPY --from=source /app /app
+WORKDIR /app
+RUN npm install && npm run build
+
+FROM nginx:alpine as runtime
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+```
+
+### **Parallel Execution**
+
+Run multiple tools concurrently for performance:
+
+<img
+  src="/assets/images/tool_playground_with_live_execution.png"
+  alt="Parallel Tool Execution"
+  caption="Monitor multiple concurrent tool executions"
+/>
+
+```yaml
+# Parallel health checks across environments
+parallel_tools:
+  - name: check-prod
+    tool: health-checker
+    environment:
+      ENV: production
+      
+  - name: check-staging  
+    tool: health-checker
+    environment:
+      ENV: staging
+      
+  - name: check-dev
+    tool: health-checker  
+    environment:
+      ENV: development
+```
+
+### **Tool Chaining**
+
+Pass outputs between tools safely:
+
+```yaml
+# Tool chain: build -> test -> deploy
+workflow:
+  - name: build-app
+    tool: docker-builder
+    outputs:
+      - IMAGE_TAG
+      
+  - name: run-tests
+    tool: test-runner
+    inputs:
+      IMAGE_TAG: ${build-app.IMAGE_TAG}
+    outputs:
+      - TEST_RESULTS
+      
+  - name: deploy-app
+    tool: kubernetes-deployer
+    inputs:
+      IMAGE_TAG: ${build-app.IMAGE_TAG}
+    condition: ${run-tests.TEST_RESULTS} == "PASSED"
+```
+
+<Note>
+**Performance Tip**: Tools start quickly because they use optimized base images and cached layers. Most tools start executing within 2-3 seconds, making them suitable for interactive workflows.
+</Note>
+
+## What's Next?
+
+Serverless tools run on [Kubiya Runners](/core-concepts/runners)—the execution engine that manages containers on your infrastructure. Runners handle resource allocation, security policies, and cross-environment orchestration.
+
+<CardGroup cols={2}>
+  <Card
+    title="Runners →"
+    href="/core-concepts/runners"
+    icon="server"
+  >
+    Learn how runners execute tools on your infrastructure
+  </Card>
+  <Card
+    title="Build Custom Tools"
+    href="/how-to/workflow-dsl#custom-tools"
+    icon="hammer"
+  >
+    Create tools specific to your applications and processes
+  </Card>
+</CardGroup>

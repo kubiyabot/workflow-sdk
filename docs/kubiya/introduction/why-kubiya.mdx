@@ -1,0 +1,205 @@
+---
+title: "Why Choose Kubiya?"
+description: "The platform engineering approach to AI automation"
+icon: "lightbulb"
+---
+
+## The Platform Engineering Mindset
+
+Modern engineering teams need automation that scales with their organization. Kubiya applies platform engineering principles to AI automation, creating a foundation that:
+
+- **Reduces cognitive load** for developers and operators
+- **Standardizes operations** across teams and environments  
+- **Maintains reliability** even as systems grow in complexity
+- **Enables self-service** without compromising security
+
+## Kubiya vs. Traditional Approaches
+
+<Tabs>
+  <Tab title="Pure AI Agents">
+    **Challenges with Autonomous AI**
+    - Unpredictable outputs for the same inputs
+    - Difficulty maintaining context over long operations
+    - Hard to debug when things go wrong
+    - Security risks from uncontrolled system access
+    - No clear audit trail for compliance
+
+    **Example**: An AI agent asked to "scale the production cluster" might:
+    - Scale the wrong service
+    - Use outdated configuration
+    - Miss dependencies between services
+    - Provide no rollback mechanism
+  </Tab>
+
+  <Tab title="Rigid Automation">
+    **Limitations of Traditional Scripts**
+    - Brittle when APIs or systems change
+    - Require constant maintenance and updates
+    - Poor user experience with complex parameters
+    - Limited error handling and recovery
+    - Difficult to modify for new use cases
+
+    **Example**: A deployment script that:
+    - Breaks when Kubernetes API versions change
+    - Requires specific parameter formats users forget
+    - Fails silently on network issues
+    - Can't adapt to new deployment patterns
+  </Tab>
+
+  <Tab title="Kubiya's Approach">
+    **Best of Both Worlds**
+    - Natural language understanding with deterministic execution
+    - AI-powered workflow generation with human oversight
+    - Self-healing integrations that adapt to changes
+    - Comprehensive audit trails and policy enforcement
+    - Extensible platform for custom use cases
+
+    **Example**: "Scale production cluster" becomes:
+    - AI understands intent and current state
+    - Generates deterministic workflow steps
+    - Executes with proper safety checks
+    - Provides real-time status and rollback options
+  </Tab>
+</Tabs>
+
+## Core Differentiators
+
+### 🎯 **Deterministic by Design**
+
+<CodeGroup>
+
+```yaml Same Input, Same Output
+# Every execution follows the same logical path
+workflow:
+  name: "scale-cluster"
+  steps:
+    - check_current_capacity
+    - validate_resource_limits  
+    - update_replica_count
+    - verify_health_checks
+    - send_notification
+```
+
+```python Context-Aware Execution
+# AI provides context, workflows provide reliability
+if current_replicas < target_replicas:
+    scale_up_gradually()
+    monitor_resource_usage()
+    rollback_if_unhealthy()
+```
+
+</CodeGroup>
+
+### 🔒 **Security First**
+
+- **Container Isolation**: Every operation runs in ephemeral, isolated environments
+- **Least Privilege**: Fine-grained permissions for each workflow step
+- **Audit Everything**: Complete activity logs for compliance and debugging
+- **Policy Enforcement**: Define what actions are allowed for different users/teams
+
+### 🔧 **Self-Healing Integrations**
+
+Unlike static API clients, Kubiya's integrations:
+- Automatically discover API changes and adapt
+- Provide consistent interfaces across tool versions
+- Handle authentication and credential rotation
+- Offer unified error handling and retry logic
+
+### 🌐 **Multi-Environment Operations**
+
+Orchestrate operations across:
+- Multiple Kubernetes clusters
+- Different cloud providers
+- Development, staging, and production environments
+- On-premises and cloud-native services
+
+<img
+  src="/images/context_catalog_network_view.png"
+  alt="Multi-environment context visualization"
+  caption="Kubiya automatically maps relationships across your entire infrastructure"
+/>
+
+## Real-World Impact
+
+### Before Kubiya
+
+<Accordion title="DevOps Team: Manual Toil">
+- 2 hours to investigate and resolve a typical incident
+- 15+ tools to check during troubleshooting
+- Multiple team members needed for complex deployments
+- Inconsistent processes between team members
+- Weekend escalations for "simple" operations
+</Accordion>
+
+<Accordion title="Platform Team: Maintenance Overhead">
+- 30% of time spent maintaining automation scripts
+- Frequent breakages when APIs change
+- Difficult to onboard new team members
+- Limited visibility into what automation is doing
+- Security reviews required for every script change
+</Accordion>
+
+### After Kubiya
+
+<Accordion title="DevOps Team: Intelligent Automation">
+- 15 minutes to resolve incidents with AI-guided workflows
+- Single interface provides all necessary context
+- Self-service operations for the entire engineering team
+- Consistent, auditable processes every time
+- Automated incident response outside business hours
+</Accordion>
+
+<Accordion title="Platform Team: Strategic Focus">
+- 80% reduction in maintenance overhead
+- Self-healing integrations adapt to API changes
+- New workflows created through natural language
+- Complete observability into all automation
+- Policy-based security without review bottlenecks
+</Accordion>
+
+## Built for Your Stack
+
+Kubiya integrates with the tools you already use:
+
+<CardGroup cols={3}>
+  <Card
+    title="Cloud Platforms" 
+    icon="cloud"
+  >
+    AWS, Azure, GCP, DigitalOcean, and more
+  </Card>
+  <Card
+    title="Container Orchestration"
+    icon="dharmachakra"
+  >
+    Kubernetes, Docker, OpenShift, Rancher
+  </Card>
+  <Card
+    title="CI/CD Pipelines"
+    icon="code-branch"
+  >
+    GitHub Actions, GitLab CI, Jenkins, CircleCI
+  </Card>
+  <Card
+    title="Monitoring & Observability"
+    icon="chart-line"
+  >
+    Datadog, New Relic, Grafana, Prometheus
+  </Card>
+  <Card
+    title="Communication"
+    icon="comments"
+  >
+    Slack, Microsoft Teams, Discord, PagerDuty
+  </Card>
+  <Card
+    title="Infrastructure as Code"
+    icon="file-code"
+  >
+    Terraform, Pulumi, CloudFormation, Ansible
+  </Card>
+</CardGroup>
+
+<Note>
+**Ready to transform your automation?** Start with our [quickstart guide](/quickstart/get-started) or explore how [integrations](/core-concepts/integrations) make it all possible.
+</Note>

@@ -1,0 +1,643 @@
+---
+title: "Use Cases & Examples"
+description: "Real-world applications of AI-powered automation across DevOps, SRE, and platform engineering"
+icon: "lightbulb"
+---
+
+Kubiya transforms common operational tasks from time-consuming manual processes into intelligent, automated workflows. Here are the most impactful use cases teams implement, with concrete examples and benefits.
+
+## DevOps Automation
+
+### **Application Deployments**
+
+Transform deployment processes from error-prone manual steps to reliable, auditable workflows:
+
+<Tabs>
+  <Tab title="Traditional Process">
+    **Manual deployment steps (45-90 minutes):**
+    1. Developer requests deployment in Slack
+    2. DevOps engineer validates readiness
+    3. Manual kubectl commands or CI/CD trigger
+    4. Manual monitoring of health checks
+    5. Manual rollback if issues detected
+    6. Status updates scattered across tools
+  </Tab>
+  
+  <Tab title="Kubiya Automation">
+    **Automated workflow (5-15 minutes):**
+    ```text
+    "Deploy user-service v2.3.1 to production with gradual rollout"
+    ```
+    - AI validates deployment prerequisites automatically
+    - Executes canary deployment with traffic shifting  
+    - Monitors key metrics during rollout
+    - Auto-rollback on threshold breaches
+    - Updates all stakeholders via Slack/Teams
+  </Tab>
+</Tabs>
+
+<img
+  src="/assets/images/workflows_dashboard_overview.png"
+  alt="Deployment Workflows Dashboard"
+  caption="Monitor all deployment workflows from a centralized dashboard"
+/>
+
+**Real example workflow:**
+```yaml
+name: microservice-deployment
+trigger: slack_command("/deploy user-service v2.3.1")
+
+steps:
+  - name: validate-prerequisites
+    checks: [no-blocking-incidents, green-build-status, approval-received]
+    
+  - name: canary-deployment
+    traffic_split: [5%, 25%, 50%, 100%]
+    health_checks: [http-200, avg-latency < 200ms, error-rate < 1%]
+    
+  - name: auto-rollback  
+    condition: health_checks.failed
+    rollback_to: previous_stable_version
+```
+
+### **Infrastructure Provisioning**
+
+Automate infrastructure changes with safety and consistency:
+
+<img
+  src="/assets/images/workflow_designer_terraform.png"
+  alt="Terraform Workflow Integration"
+  caption="Infrastructure as Code workflows with Terraform integration"
+/>
+
+**Common scenarios:**
+- *"Spin up a development environment for the mobile team"*
+- *"Scale production cluster capacity for Black Friday traffic"*  
+- *"Create disaster recovery environment in us-east-2"*
+- *"Decommission old staging resources to reduce costs"*
+
+```yaml
+# Auto-scaling workflow example
+name: traffic-surge-response
+trigger: 
+  type: metric_threshold
+  condition: "avg(cpu_utilization) > 75% for 10 minutes"
+  
+steps:
+  - name: analyze-traffic-patterns
+    tool: datadog-analyzer
+    
+  - name: provision-additional-nodes
+    tool: terraform-executor
+    inputs:
+      action: apply
+      var_file: surge-scaling.tfvars
+      
+  - name: update-load-balancer
+    tool: aws-alb
+    inputs:
+      targets: ${provision-additional-nodes.new_instances}
+      
+  - name: notify-team
+    tool: slack
+    message: "🚀 Auto-scaled cluster for traffic surge: +${new_node_count} nodes"
+```
+
+### **Release Management**
+
+Coordinate complex releases across multiple services and teams:
+
+<img
+  src="/assets/images/workflow_designer_monitoring_alerts.png"
+  alt="Release Monitoring Integration"
+  caption="Monitor release health and automatically respond to issues"
+/>
+
+**Multi-service release workflow:**
+```yaml
+name: quarterly-release-q2-2024
+description: "Coordinated release across 12 microservices"
+
+phases:
+  - name: pre-release-validation
+    parallel_checks:
+      - database-migration-tests
+      - api-compatibility-validation  
+      - security-vulnerability-scans
+      - performance-regression-tests
+      
+  - name: staged-rollout
+    sequence:
+      - services: [auth-service, user-service] # Foundation services first
+        strategy: blue-green
+      - services: [payment-service, order-service] # Business logic
+        strategy: canary
+        depends_on: [auth-service, user-service]
+      - services: [notification-service, analytics-service] # Supporting services
+        strategy: rolling
+        depends_on: [payment-service, order-service]
+        
+  - name: post-release-verification
+    checks:
+      - end-to-end-user-journey-tests
+      - business-metrics-validation
+      - error-rate-monitoring
+      - performance-benchmarks
+```
+
+## Site Reliability Engineering (SRE)
+
+### **Incident Response & Remediation**
+
+Accelerate mean time to resolution (MTTR) with intelligent automation:
+
+<CardGroup cols={2}>
+  <Card title="Before Kubiya" icon="clock">
+    **MTTR: 45-120 minutes**
+    - Manual log collection from multiple systems
+    - Context switching between monitoring tools
+    - Tribal knowledge required for diagnosis
+    - Manual remediation steps
+  </Card>
+  <Card title="With Kubiya" icon="rocket">
+    **MTTR: 10-25 minutes**
+    - Automated evidence collection
+    - AI-assisted root cause analysis  
+    - Context-aware remediation suggestions
+    - One-click remediation execution
+  </Card>
+</CardGroup>
+
+**Example incident response workflow:**
+```text
+PagerDuty Alert: "Payment API 5xx errors spiking"
+↓
+Kubiya automatically:
+1. Collects logs from payment service pods
+2. Queries database connection metrics  
+3. Checks recent deployments and changes
+4. Analyzes error patterns with AI
+5. Suggests remediation: "Scale payment-db connection pool"
+6. Presents one-click remediation options
+```
+
+<img
+  src="/assets/images/workflow_step_output_logs.png"
+  alt="Incident Response Workflow Logs"
+  caption="Detailed logs from automated incident response workflows"
+/>
+
+### **Capacity Planning & Scaling**
+
+Proactive resource management based on usage patterns and business events:
+
+```yaml
+name: black-friday-capacity-preparation  
+schedule: "October 1st annually"
+
+steps:
+  - name: analyze-historical-traffic
+    tool: traffic-analyzer
+    inputs:
+      timeframe: "last 3 black fridays"
+      services: ["web-frontend", "api-gateway", "payment-service"]
+      
+  - name: forecast-capacity-needs
+    tool: ml-forecaster
+    inputs:
+      historical_data: ${analyze-historical-traffic.patterns}
+      growth_rate: 15% # Expected YoY growth
+      
+  - name: pre-scale-infrastructure
+    tool: multi-cloud-scaler
+    inputs:
+      aws_scaling: ${forecast-capacity-needs.aws_requirements}
+      gcp_scaling: ${forecast-capacity-needs.gcp_requirements}
+      
+  - name: validate-scaling
+    tool: load-tester
+    inputs:
+      traffic_multiplier: ${forecast-capacity-needs.peak_multiplier}
+      
+  - name: create-runbook
+    tool: documentation-generator
+    inputs:
+      scaling_decisions: ${pre-scale-infrastructure.actions}
+      validation_results: ${validate-scaling.performance_metrics}
+```
+
+### **Chaos Engineering & Testing**
+
+Automated resilience testing with safe failure injection:
+
+```yaml
+name: monthly-chaos-testing
+description: "Automated resilience validation"
+
+experiments:
+  - name: database-connection-failure
+    target: payment-service
+    failure_type: network_partition
+    blast_radius: 25% # Only affect 25% of instances
+    duration: 5m
+    success_criteria:
+      - circuit_breaker_triggered: true
+      - fallback_mechanism_activated: true
+      - user_impact: < 0.1% # Less than 0.1% user errors
+      
+  - name: memory-pressure-test
+    target: recommendation-engine  
+    failure_type: memory_leak_simulation
+    ramp_up: gradual # Increase memory pressure slowly
+    abort_conditions:
+      - pod_restart_required: true
+      - response_latency: > 2000ms
+```
+
+### **Automated Runbooks**
+
+Convert tribal knowledge into executable, maintainable automation:
+
+<img
+  src="/assets/images/knowledge_troubleshooting_guide.png"
+  alt="Automated Runbook Generation"
+  caption="Transform manual runbooks into automated workflows"
+/>
+
+**Database performance investigation runbook:**
+```yaml
+name: database-performance-investigation
+trigger: 
+  alert: "Database query latency > 500ms for 5 minutes"
+
+investigation_steps:
+  - name: collect-slow-queries
+    tool: postgres-analyzer
+    outputs: [slow_query_log, query_plans]
+    
+  - name: check-connection-pool
+    tool: pgbouncer-metrics
+    outputs: [pool_utilization, wait_times]
+    
+  - name: analyze-resource-usage
+    tool: system-metrics
+    inputs:
+      resources: [cpu, memory, disk_io, network]
+      timeframe: 1h
+      
+  - name: generate-recommendations
+    tool: ai-analyzer
+    inputs:
+      slow_queries: ${collect-slow-queries.slow_query_log}
+      resource_metrics: ${analyze-resource-usage.metrics}
+      pool_metrics: ${check-connection-pool.utilization}
+      
+automated_remediation:
+  - condition: "connection_pool_exhausted"
+    action: scale_connection_pool
+    parameters:
+      new_pool_size: ${current_pool_size * 1.5}
+      
+  - condition: "missing_index_detected"  
+    action: create_maintenance_ticket
+    parameters:
+      priority: high
+      description: "Index needed: ${generate-recommendations.suggested_indexes}"
+```
+
+## Platform Engineering
+
+### **Self-Service Workflows**
+
+Enable development teams with safe, governed self-service capabilities:
+
+<img
+  src="/assets/images/workflow_creation_choose_method.png"
+  alt="Self-Service Workflow Creation"
+  caption="Teams can create their own workflows through multiple interfaces"
+/>
+
+**Developer self-service scenarios:**
+- *"Create a preview environment for PR #1234"*
+- *"Run end-to-end tests against staging"*
+- *"Scale down my development environment overnight"*
+- *"Get performance metrics for my service over the last week"*
+
+```yaml
+name: developer-environment-management
+permissions:
+  - role: developer
+    allowed_environments: [dev, staging]
+    restricted_operations: [production_access, resource_deletion]
+
+templates:
+  - name: create-preview-env
+    description: "Spin up isolated environment for feature testing"
+    inputs:
+      - name: branch_name
+        type: string
+        required: true
+      - name: services_to_deploy  
+        type: array
+        default: ["frontend", "api"]
+        
+  - name: run-test-suite
+    description: "Execute comprehensive test suite"
+    inputs:
+      - name: test_type
+        type: select
+        options: ["unit", "integration", "e2e", "performance"]
+      - name: target_environment
+        type: select  
+        options: ["dev", "staging"]
+```
+
+### **Compliance & Security Automation**
+
+Automate security checks and compliance reporting:
+
+<img
+  src="/assets/images/workflow_jira_integration.png"
+  alt="Compliance Workflow Integration"
+  caption="Automated compliance workflows with ticketing integration"
+/>
+
+```yaml
+name: security-compliance-scan
+schedule: "daily at 2 AM"
+
+scans:
+  - name: vulnerability-assessment
+    tool: trivy-scanner
+    targets: [container-images, kubernetes-manifests]
+    
+  - name: configuration-drift-check
+    tool: config-validator
+    policies: [cis-benchmarks, company-policies]
+    
+  - name: access-review
+    tool: rbac-analyzer
+    checks: [unused-permissions, overprivileged-accounts]
+    
+  - name: secret-scanning
+    tool: secret-scanner
+    repositories: [all-active-repos]
+    
+reporting:
+  - format: pdf
+    recipients: [security-team@company.com, compliance@company.com]
+  - format: dashboard
+    url: https://security-dashboard.company.com
+  - format: jira_tickets
+    condition: critical_vulnerabilities_found
+    assignee: security-team
+```
+
+### **Cost Optimization**
+
+Automated resource management to control cloud spending:
+
+<img
+  src="/assets/images/activity_center_system_health.png"
+  alt="Cost Optimization Monitoring"
+  caption="Monitor cost optimization workflows and their impact"
+/>
+
+```yaml
+name: cost-optimization-automation
+triggers:
+  - schedule: "weekdays at 7 PM" # Scale down after hours
+  - metric: "monthly_spend > budget_threshold"
+  
+actions:
+  - name: scale-down-dev-environments
+    condition: "time.hour >= 19" # After 7 PM
+    tool: multi-environment-scaler
+    inputs:
+      environments: [dev, qa, staging]
+      scale_factor: 0.3 # Scale to 30% capacity
+      
+  - name: identify-unused-resources
+    tool: resource-analyzer
+    age_threshold: 30d # Unused for 30+ days
+    
+  - name: rightsizing-recommendations
+    tool: rightsizing-analyzer
+    lookback_period: 2w
+    utilization_threshold: 20% # Under 20% utilization
+    
+  - name: reserved-instance-optimizer
+    tool: ri-optimizer
+    savings_threshold: 15% # Only suggest if 15%+ savings
+    
+notifications:
+  - type: slack
+    channel: "#platform-cost-alerts"
+    message: "💰 Monthly savings achieved: $${cost_savings}"
+  - type: executive-report
+    recipients: [cto@company.com, cfo@company.com]
+    frequency: monthly
+```
+
+## ChatOps & Collaboration
+
+### **Slack/Teams Integration**
+
+Bring automation directly into team communication channels:
+
+<CardGroup cols={2}>
+  <Card title="Slash Commands" icon="slash">
+    `/kubiya deploy frontend v2.1.0 to staging`
+  </Card>
+  <Card title="Natural Language" icon="comments">
+    "Can you check if the payment service is healthy?"
+  </Card>
+  <Card title="Interactive Buttons" icon="hand-pointer">
+    Click to approve deployments or execute runbooks
+  </Card>
+  <Card title="Status Updates" icon="broadcast-tower">
+    Automated progress updates and completion notifications
+  </Card>
+</CardGroup>
+
+**Example ChatOps integration:**
+```yaml
+name: slack-ops-integration
+channels:
+  - name: "#deployments"
+    permissions: [deploy, rollback, status-check]
+    environments: [staging, production]
+    
+  - name: "#incidents"  
+    permissions: [investigate, remediate, escalate]
+    auto_response: true
+    
+  - name: "#platform-requests"
+    permissions: [create-environment, run-tests, access-logs]
+    approval_required: false
+
+interactive_commands:
+  - trigger: "/deploy {service} {version} to {environment}"
+    workflow: service-deployment
+    confirmations:
+      - condition: environment == "production"
+        message: "⚠️ This will deploy to production. Continue?"
+        
+  - trigger: "investigate {service} performance"
+    workflow: performance-investigation
+    auto_execute: true
+    
+  - trigger: "scale {service} to {replicas} replicas"
+    workflow: service-scaling
+    safety_checks: [resource-limits, blast-radius]
+```
+
+## Advanced Use Cases
+
+### **Multi-Cloud Orchestration**
+
+Manage resources across different cloud providers seamlessly:
+
+```yaml
+name: disaster-recovery-failover
+description: "Automated failover from AWS to GCP"
+
+steps:
+  - name: detect-aws-outage
+    tool: multi-cloud-health-checker
+    condition: "aws_availability < 90%"
+    
+  - name: backup-aws-data
+    tool: aws-backup-service
+    parallel: true # Run while switching traffic
+    
+  - name: scale-up-gcp-infrastructure  
+    tool: gcp-autoscaler
+    inputs:
+      target_capacity: ${aws_current_capacity}
+      regions: ["us-central1", "us-east1"]
+      
+  - name: migrate-database
+    tool: database-replicator
+    source: aws_rds_primary
+    destination: gcp_cloud_sql_replica
+    
+  - name: switch-dns
+    tool: route53-updater
+    inputs:
+      records: ["api.company.com", "app.company.com"]
+      new_targets: ${scale-up-gcp-infrastructure.endpoints}
+      
+  - name: notify-stakeholders
+    tool: multi-channel-notifier
+    channels: [slack, email, sms, status-page]
+    message: "🔄 DR failover completed: AWS → GCP"
+```
+
+### **Compliance Automation**
+
+Maintain regulatory compliance through automated processes:
+
+```yaml
+name: gdpr-data-retention-compliance
+schedule: "monthly on 1st day"
+
+steps:
+  - name: identify-expired-data
+    tool: data-retention-scanner
+    policies:
+      user_activity_logs: 2_years
+      payment_records: 7_years  
+      analytics_data: 1_year
+      
+  - name: data-anonymization
+    tool: gdpr-anonymizer
+    data_types: [user_profiles, behavioral_data]
+    anonymization_method: k_anonymity
+    
+  - name: secure-deletion
+    tool: secure-delete-service
+    confirmation_required: true
+    audit_trail: complete
+    
+  - name: compliance-reporting
+    tool: compliance-reporter
+    outputs: [gdpr_compliance_certificate, audit_log]
+    recipients: [dpo@company.com, legal@company.com]
+```
+
+## Measuring Success
+
+### **Key Metrics Teams Track**
+
+<CardGroup cols={2}>
+  <Card title="Operational Efficiency" icon="gauge">
+    - 70% reduction in deployment time
+    - 85% fewer manual interventions  
+    - 40% faster incident resolution
+    - 90% reduction in environment setup time
+  </Card>
+  <Card title="Quality & Reliability" icon="shield-check">
+    - 95% deployment success rate
+    - 60% fewer production incidents
+    - 99.9% automated workflow reliability
+    - Zero security policy violations
+  </Card>
+  <Card title="Team Productivity" icon="users">
+    - 4 hours/week saved per developer
+    - 80% of deployments are self-service
+    - 50% reduction in after-hours escalations
+    - 3x faster onboarding for new team members
+  </Card>
+  <Card title="Cost Optimization" icon="dollar-sign">
+    - 25% reduction in cloud spend
+    - 90% reduction in idle resources
+    - 60% better resource utilization
+    - ROI achieved within 3 months
+  </Card>
+</CardGroup>
+
+<img
+  src="/assets/images/activity_center_metrics.png"
+  alt="Success Metrics Dashboard"
+  caption="Track the impact of automation on your team and infrastructure"
+/>
+
+## Getting Started
+
+Ready to implement these use cases? Start with the patterns most relevant to your team's pain points:
+
+<CardGroup cols={2}>
+  <Card
+    title="DevOps Teams"
+    href="/quickstart/get-started"
+    icon="code-branch"
+  >
+    Begin with deployment automation and infrastructure provisioning
+  </Card>
+  <Card
+    title="SRE Teams"  
+    href="/quickstart/get-started"
+    icon="chart-line"
+  >
+    Start with incident response and automated runbooks
+  </Card>
+  <Card
+    title="Platform Teams"
+    href="/quickstart/get-started"  
+    icon="layer-group"
+  >
+    Focus on self-service workflows and cost optimization
+  </Card>
+  <Card
+    title="Security Teams"
+    href="/quickstart/get-started"
+    icon="shield"
+  >
+    Implement compliance automation and security scanning
+  </Card>
+</CardGroup>
+
+<Note>
+**Success Pattern**: Most teams start with read-only operations (monitoring, status checks) to build confidence, then gradually automate write operations (deployments, scaling) as they see the reliability and audit capabilities.
+</Note>
