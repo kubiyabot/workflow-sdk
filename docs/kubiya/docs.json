@@ -239,23 +239,41 @@
         "tab": "SDK",
         "groups": [
           {
-            "group": "SDK Reference",
+            "group": "Getting Started",
             "pages": [
               "sdk/overview",
-              "sdk/api-reference", 
-              "sdk/examples",
-              "sdk/contributing",
-              "sdk/changelog"
+              "sdk/installation",
+              "sdk/examples"
             ]
           },
           {
-            "group": "Tools Development",
+            "group": "Client SDK",
             "pages": [
-              "tools/overview",
-              "tools/installation",
-              "tools/docker-tools",
-              "tools/function-tools",
-              "tools/api-reference"
+              "sdk/client/overview",
+              "sdk/client/agents",
+              "sdk/client/workflows",
+              "sdk/client/integrations",
+              "sdk/client/secrets",
+              "sdk/client/knowledge"
+            ]
+          },
+          {
+            "group": "Workflow DSL",
+            "pages": [
+              "sdk/workflow-dsl/overview",
+              "sdk/workflow-dsl/steps",
+              "sdk/workflow-dsl/conditions",
+              "sdk/workflow-dsl/error-handling",
+              "sdk/workflow-dsl/testing"
+            ]
+          },
+          {
+            "group": "Tools SDK",
+            "pages": [
+              "sdk/tools/overview",
+              "sdk/tools/docker-tools",
+              "sdk/tools/function-tools",
+              "sdk/tools/community-tools"
             ]
           }
         ]
