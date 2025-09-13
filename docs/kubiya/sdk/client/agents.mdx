@@ -1,0 +1,516 @@
+---
+title: "Agents Service"
+description: "Complete guide to the Kubiya Agents service for managing AI agents"
+icon: "robot"
+tags: ["agents", "ai", "management"]
+---
+
+# Agents Service
+
+The Kubiya Agents service provides a comprehensive interface for managing AI agents through the Kubiya platform. 
+It enables you to create, configure, and manage agents with full access control, environment management, and tool integration.
+
+## Features
+
+- **Agent Lifecycle Management**: Create, update, delete, and configure agents
+- **Access Control**: Manage user and group permissions for agents
+- **Environment Management**: Configure environment variables and secrets
+- **Tool Integration**: Attach and manage tools for agent capabilities
+- **Prompt Management**: Set and update AI instructions for agents
+- **Real-time Operations**: Stream operations and monitor agent activities
+- **Comprehensive Error Handling**: Detailed error reporting with agent-specific context
+
+## Core Components
+
+### AgentService
+
+The main service class provides core agent management operations:
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Access the agents service
+agents = client.agents
+```
+
+### Sub-Services
+
+The AgentService includes specialized sub-services for managing different aspects of agents:
+
+- **`agents.access`**: Manage user and group access permissions
+- **`agents.env`**: Handle environment variables
+- **`agents.integrations`**: Manage agent integrations
+- **`agents.prompt`**: Configure AI instructions and prompts
+- **`agents.secrets`**: Manage agent secrets
+- **`agents.tools`**: Handle tool attachments and configurations
+
+## Quick Start
+
+### Basic Agent Creation
+
+```python
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+try:
+    # Create a new agent
+    agent = client.agents.create(
+        name="my-assistant",
+        description="A helpful AI assistant for DevOps tasks",
+        llm_model="claude-4-sonnet",
+        ai_instructions="You are a helpful DevOps assistant. Always be clear and concise.",
+        tools=["kubectl", "terraform"],
+        integrations=["slack", "github"],
+        environment={"LOG_LEVEL": "INFO", "REGION": "us-east-1"}
+    )
+    print(f"Created agent: {agent['name']} (UUID: {agent['uuid']})")
+    
+    # List all agents
+    agents_list = client.agents.list(
+        filter_term="assistant",
+        sort_by="created",
+        limit=10
+    )
+    print(f"Found {len(agents_list)} agents")
+    
+    # Get specific agent details
+    agent_details = client.agents.get(agent['uuid'])
+    print(f"Agent details: {agent_details}")
+    
+except AgentError as e:
+    print(f"Agent operation failed: {e}")
+```
+
+### Access Control Management
+
+```python
+# Manage agent access permissions
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # Show current access settings
+    access_info = client.agents.access.show(agent_uuid)
+    print(f"Current access: {access_info}")
+    
+    # Add users to allowed list
+    client.agents.access.add_user(agent_uuid, ["user1@company.com", "user2@company.com"])
+    
+    # Add groups to allowed list
+    client.agents.access.add_group(agent_uuid, ["devops-team", "engineering"])
+    
+    # Remove user access
+    client.agents.access.remove_user(agent_uuid, ["user1@company.com"])
+    
+    # Clear all access restrictions (open access)
+    client.agents.access.clear(agent_uuid)
+    
+except AgentError as e:
+    print(f"Access management failed: {e}")
+```
+
+### Environment Variables Management
+
+```python
+# Manage agent environment variables
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # List current environment variables
+    env_list = client.agents.env.list(agent_uuid)
+    print(f"Environment variables: {env_list}")
+    
+    # Set new environment variables
+    client.agents.env.set(agent_uuid, {
+        "API_ENDPOINT": "https://api.example.com",
+        "TIMEOUT": "30",
+        "DEBUG": "true"
+    })
+    
+    # Remove specific environment variables
+    client.agents.env.unset(agent_uuid, ["DEBUG", "OLD_VAR"])
+    
+except AgentError as e:
+    print(f"Environment management failed: {e}")
+```
+
+### AI Instructions (Prompt) Management
+
+```python
+# Manage agent AI instructions
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # Get current AI instructions
+    current_prompt = client.agents.prompt.get(agent_uuid)
+    print(f"Current instructions: {current_prompt}")
+    
+    # Set new AI instructions
+    client.agents.prompt.set(
+        agent_uuid,
+        content="""You are an expert DevOps engineer. 
+        Always follow these guidelines:
+        1. Prioritize security in all recommendations
+        2. Provide step-by-step instructions
+        3. Explain the reasoning behind each action
+        """
+    )
+    
+    # Append to existing instructions
+    client.agents.prompt.append(
+        agent_uuid,
+        content="\n\n4. Always validate configurations before applying changes"
+    )
+    
+    # Load instructions from file
+    client.agents.prompt.set(
+        agent_uuid,
+        file_path="./agent_instructions.txt"
+    )
+    
+    # Load instructions from URL
+    client.agents.prompt.set(
+        agent_uuid,
+        url="https://example.com/agent-instructions.txt"
+    )
+    
+    # Clear all instructions
+    client.agents.prompt.clear(agent_uuid)
+    
+except AgentError as e:
+    print(f"Prompt management failed: {e}")
+```
+
+### Tools and Integrations Management
+
+```python
+# Manage agent tools and integrations
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # List current tools
+    tools_list = client.agents.tools.list(agent_uuid)
+    print(f"Current tools: {tools_list}")
+    
+    # Add new tools
+    client.agents.tools.add(agent_uuid, ["docker", "helm", "git"])
+    
+    # Remove tools
+    client.agents.tools.remove(agent_uuid, ["old-tool"])
+    
+    # Describe a specific tool
+    tool_description = client.agents.tools.describe(agent_uuid, "kubectl")
+    print(f"Tool description: {tool_description}")
+    
+    # Manage integrations
+    integrations_list = client.agents.integrations.list(agent_uuid)
+    print(f"Current integrations: {integrations_list}")
+    
+    # Add integrations
+    client.agents.integrations.add(agent_uuid, ["jira", "datadog"])
+    
+    # Remove integrations
+    client.agents.integrations.remove(agent_uuid, ["old-integration"])
+    
+except AgentError as e:
+    print(f"Tools/integrations management failed: {e}")
+```
+
+### Secrets Management
+
+```python
+# Manage agent secrets
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # List current secrets
+    secrets_list = client.agents.secrets.list(agent_uuid)
+    print(f"Current secrets: {secrets_list}")
+    
+    # Add secrets
+    client.agents.secrets.add(agent_uuid, ["api-key", "database-password"])
+    
+    # Remove secrets
+    client.agents.secrets.remove(agent_uuid, ["old-secret"])
+    
+except AgentError as e:
+    print(f"Secrets management failed: {e}")
+```
+
+## Advanced Usage
+
+### Comprehensive Agent Configuration
+
+```python
+# Create a fully configured agent
+try:
+    agent = client.agents.create(
+        name="production-devops-agent",
+        description="Production DevOps automation agent",
+        llm_model="claude-4-sonnet",
+        instruction_type="natural_language",
+        ai_instructions="""
+        You are a senior DevOps engineer responsible for production infrastructure.
+        
+        Key responsibilities:
+        - Monitor and maintain production systems
+        - Automate deployment processes
+        - Ensure security best practices
+        - Provide incident response support
+        
+        Always:
+        - Verify before making changes
+        - Document your actions
+        - Follow change management procedures
+        """,
+        tools=["kubectl", "terraform", "helm", "docker", "ansible"],
+        integrations=["slack", "github", "datadog", "pagerduty"],
+        secrets=["aws-credentials", "github-token", "slack-webhook"],
+        environment={
+            "LOG_LEVEL": "INFO",
+            "AWS_REGION": "us-east-1",
+            "ENVIRONMENT": "production",
+            "NAMESPACE": "production"
+        },
+        runners=["production-runner"],
+        owners=["devops-team@company.com"],
+        allowed_groups=["devops-team", "sre-team"],
+        is_debug_mode=False
+    )
+    
+    print(f"Created production agent: {agent['uuid']}")
+    
+except AgentError as e:
+    print(f"Failed to create production agent: {e}")
+```
+
+### Agent Updates and Maintenance
+
+```python
+# Update existing agent configuration
+try:
+    agent_uuid = "your-agent-uuid"
+    
+    # Update basic properties
+    client.agents.edit(
+        agent_uuid,
+        description="Updated agent description",
+        llm_model="claude-4-opus",  # Upgrade model
+        add_tools=["new-tool"],
+        remove_tools=["deprecated-tool"],
+        add_env_vars={"NEW_FEATURE": "enabled"},
+        remove_env_vars=["OLD_CONFIG"]
+    )
+    
+    # Update LLM model specifically
+    client.agents.model(agent_uuid, "gpt-4o")
+    
+    # Update runner
+    client.agents.runner(agent_uuid, "new-production-runner")
+    
+    print("Agent updated successfully")
+    
+except AgentError as e:
+    print(f"Agent update failed: {e}")
+```
+
+### Filtering and Searching
+
+```python
+# Advanced agent listing with filtering
+try:
+    # Search for specific agents
+    devops_agents = client.agents.list(
+        filter_term="devops",
+        sort_by="name",
+        limit=50,
+        show_active=True
+    )
+    
+    # Sort by creation date
+    recent_agents = client.agents.list(
+        sort_by="created",
+        limit=10
+    )
+    
+    # Filter by update date
+    updated_agents = client.agents.list(
+        sort_by="updated",
+        limit=20
+    )
+    
+    print(f"Found {len(devops_agents)} DevOps agents")
+    
+except AgentError as e:
+    print(f"Agent listing failed: {e}")
+```
+
+## Error Handling
+
+The Agents service provides specialized error handling for different failure scenarios:
+
+### AgentError
+
+All agent operations can throw `AgentError` exceptions with detailed context:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError, ValidationError
+
+try:
+    agent = client.agents.create(name="test-agent")
+except AgentError as e:
+    print(f"Agent operation failed: {e}")
+    # AgentError includes detailed context about the failure
+    
+except ValidationError as e:
+    print(f"Validation failed: {e}")
+    # ValidationError for input validation issues
+```
+
+### Sub-service Error Handling
+
+Each sub-service provides specific error context:
+
+```python
+try:
+    # Access control operations
+    client.agents.access.add_user(agent_uuid, ["invalid-user"])
+except AgentError as e:
+    print(f"Access control failed: {e}")
+    
+try:
+    # Environment variable operations
+    client.agents.env.set(agent_uuid, {"INVALID": None})
+except AgentError as e:
+    print(f"Environment variable operation failed: {e}")
+    
+try:
+    # Prompt operations with file handling
+    client.agents.prompt.set(agent_uuid, file_path="nonexistent.txt")
+except ValidationError as e:
+    print(f"File operation failed: {e}")
+```
+
+## Best Practices
+
+### 1. Always Validate Agent Configuration
+
+```python
+# Validate agent exists before operations
+try:
+    agent = client.agents.get(agent_uuid)
+    print(f"Agent '{agent['name']}' found, proceeding...")
+    
+    # Perform operations
+    client.agents.tools.add(agent_uuid, ["new-tool"])
+    
+except AgentError as e:
+    print(f"Agent not found or inaccessible: {e}")
+    return
+```
+
+### 2. Use Descriptive Agent Names and Descriptions
+
+```python
+# Use clear, descriptive naming
+agent = client.agents.create(
+    name=f"{team}-{environment}-{purpose}-agent",  # e.g., "devops-prod-monitoring-agent"
+    description=f"Agent for {team} team {purpose} in {environment} environment",
+    # ...
+)
+```
+
+### 3. Manage Access Control Proactively
+
+```python
+# Set up proper access control from the start
+client.agents.create(
+    name="sensitive-operations-agent",
+    description="Agent with access to sensitive operations",
+    owners=["security-team@company.com"],
+    allowed_groups=["senior-devops", "security-team"],
+    # Don't leave agents with open access in production
+)
+```
+
+### 4. Use Environment-Specific Configurations
+
+```python
+# Configure agents per environment
+environments = {
+    "dev": {
+        "runners": ["dev-runner"],
+        "is_debug_mode": True,
+        "environment": {"LOG_LEVEL": "DEBUG"}
+    },
+    "prod": {
+        "runners": ["prod-runner"],
+        "is_debug_mode": False,
+        "environment": {"LOG_LEVEL": "WARN"}
+    }
+}
+
+env = "prod"
+config = environments[env]
+
+agent = client.agents.create(
+    name=f"app-{env}-agent",
+    runners=config["runners"],
+    is_debug_mode=config["is_debug_mode"],
+    environment=config["environment"]
+)
+```
+
+### 5. Handle Long-Running Operations
+
+```python
+# Handle operations that might take time
+import time
+
+try:
+    # Create agent
+    agent = client.agents.create(name="complex-agent")
+    agent_uuid = agent['uuid']
+    
+    # Give agent time to initialize before configuration
+    time.sleep(2)
+    
+    # Configure in steps
+    client.agents.tools.add(agent_uuid, ["tool1", "tool2"])
+    client.agents.integrations.add(agent_uuid, ["integration1"])
+    client.agents.env.set(agent_uuid, {"CONFIG": "value"})
+    
+    print("Agent fully configured")
+    
+except AgentError as e:
+    print(f"Configuration failed: {e}")
+```
+
+## Integration Examples
+
+The Agents service integrates seamlessly with other Kubiya services and workflows. 
+Check the API reference for detailed method signatures and the examples directory for comprehensive usage patterns.
+
+### Common Agent Patterns
+
+- **Multi-environment deployments**: Create environment-specific agents with appropriate access controls
+- **Team-based agents**: Organize agents by team responsibilities and access patterns
+- **Specialized agents**: Create agents for specific tasks (monitoring, deployment, incident response)
+- **Agent templates**: Use consistent configurations across similar agents
+
+## Next Steps
+
+- Review the [API Reference](./api-reference.mdx) for detailed method documentation
+- Explore the [examples directory](../../../examples/) for complete working examples
+- Check the [authentication guide](../../platform/authentication.mdx) for API setup

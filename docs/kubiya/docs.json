@@ -102,14 +102,28 @@
             "pages": [
               "composer/overview",
               "composer/getting-started",
+              "composer/agents",
+              "composer/agent-configuration",
+              "composer/sources",
+              "composer/tools",
+              "composer/context-graph",
               "composer/task-chat",
-              "composer/workflow-designer"
+              "composer/workflow-designer",
+              "composer/workflow-automation",
+              "composer/mcp-integration",
+              "composer/activity",
+              "composer/settings",
+              "composer/security"
             ]
           },
           {
             "group": "Workflows",
             "pages": [
-              "workflows/overview"
+              "workflows/overview",
+              "workflows/architecture",
+              "workflows/dsl-reference",
+              "workflows/examples",
+              "workflows/advanced"
             ]
           },
           {
@@ -129,7 +143,9 @@
             "group": "Reference",
             "pages": [
               "cli-reference",
-              "troubleshooting"
+              "troubleshooting",
+              "migration-guide",
+              "updates"
             ]
           }
         ]
@@ -141,7 +157,29 @@
             "group": "Platform APIs",
             "pages": [
               "api-reference/platform/overview",
-              "api-reference/platform/authentication"
+              "api-reference/platform/authentication",
+              "api-reference/platform/agents",
+              "api-reference/platform/tasks",
+              "api-reference/platform/sources",
+              "api-reference/platform/runners",
+              "api-reference/platform/knowledge"
+            ]
+          },
+          {
+            "group": "MCP Server APIs",
+            "pages": [
+              "api-reference/mcp/overview",
+              "api-reference/mcp/tools",
+              "api-reference/mcp/protocol"
+            ]
+          },
+          {
+            "group": "Agent Server APIs",
+            "pages": [
+              "api-reference/agent-servers/overview",
+              "api-reference/agent-servers/discovery",
+              "api-reference/agent-servers/orchestration",
+              "api-reference/agent-servers/compose"
             ]
           }
         ]
@@ -154,7 +192,10 @@
             "pages": [
               "sdk/overview",
               "sdk/installation",
-              "sdk/examples"
+              "sdk/api-reference",
+              "sdk/examples",
+              "sdk/contributing",
+              "sdk/changelog"
             ]
           },
           {
@@ -182,9 +223,7 @@
             "group": "Tools SDK",
             "pages": [
               "sdk/tools/overview",
-              "sdk/tools/docker-tools",
-              "sdk/tools/function-tools",
-              "sdk/tools/community-tools"
+              "sdk/tools/docker-tools"
             ]
           }
         ]

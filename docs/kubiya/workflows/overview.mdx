@@ -22,27 +22,22 @@ Workflows are sequences of automated steps that accomplish complex tasks safely 
 ## Basic workflow structure
 
 ```python
-from kubiya import workflow, step
+from kubiya_workflow_sdk.dsl import workflow
 
-@workflow
-def deploy_application():
-    # Step 1: Run tests in Node.js container
-    test_results = step.run_tests(
-        image="node:18",
-        script="npm test"
-    )
+# Define a deployment workflow
+deploy_workflow = (
+    workflow("deploy-application")
+    .description("Test, build, and deploy application")
     
-    # Step 2: Build Docker image
-    app_image = step.build_image(
-        dockerfile="./Dockerfile",
-        tag="myapp:latest"
-    )
+    # Step 1: Run tests
+    .step("test", "npm test")
+    
+    # Step 2: Build Docker image  
+    .step("build", "docker build -t myapp:latest .")
     
     # Step 3: Deploy to Kubernetes
-    step.deploy(
-        image=app_image.tag,
-        manifest="k8s/deployment.yaml"
-    )
+    .step("deploy", "kubectl apply -f k8s/deployment.yaml")
+)
 ```
 
 ## Key benefits

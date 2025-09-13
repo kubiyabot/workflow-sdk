@@ -4,110 +4,71 @@ description: "Complete Python client for Kubiya Platform APIs"
 icon: "code"
 ---
 
-The Kubiya Client SDK provides a comprehensive Python interface to all Kubiya platform services. Use it to programmatically manage agents, workflows, integrations, and more.
+The Kubiya Client SDK provides a comprehensive Python interface to all Kubiya platform services. Use it to programmatically manage agents, workflows, integrations, and more through the `KubiyaClient`.
 
 ## Installation
 
 ```bash
-pip install kubiya-sdk
+pip install kubiya-workflow-sdk
 ```
 
 ## Quick Start
 
 ```python
-from kubiya_sdk import Kubiya
+from kubiya_workflow_sdk import KubiyaClient
 
 # Initialize client
-client = Kubiya(
+client = KubiyaClient(
     api_key="your-api-key",
-    organization="your-org",
     base_url="https://api.kubiya.ai"
 )
 
 # Create an agent
-agent = client.agents.create({
-    "name": "DevOps Helper",
-    "description": "Automated DevOps operations",
-    "model": "gpt-4-turbo",
-    "tools": ["kubernetes", "docker", "github"]
-})
+agent = client.agents.create(
+    name="DevOps Helper",
+    description="Automated DevOps operations",
+    llm_model="claude-4-sonnet",
+    tools=["kubectl", "docker", "github"]
+)
 
 # Execute a workflow
-result = client.workflows.execute(
-    workflow_id="wf_123",
-    inputs={"environment": "production"}
-)
+for event in client.workflows.execute(
+    workflow_definition={
+        "name": "deploy-service",
+        "steps": [{"name": "deploy", "command": "kubectl apply -f deployment.yaml"}]
+    },
+    parameters={"environment": "production"},
+    stream=True
+):
+    print(f"Workflow event: {event}")
 ```
 
 ## Client Services
 
-The SDK provides access to all Kubiya platform services:
+The SDK provides access to all Kubiya platform services through the `KubiyaClient`:
 
 ### Core Services
 
 <CardGroup cols={2}>
-  <Card title="Agents" icon="robot">
+  <Card title="Agents" icon="robot" href="./agents">
     Create and manage AI agents with custom capabilities
   </Card>
-  <Card title="Workflows" icon="diagram-project">
+  <Card title="Workflows" icon="diagram-project" href="./workflows">
     Execute and manage automation workflows
   </Card>
-  <Card title="Tools" icon="wrench">
-    Register and manage custom tools
+  <Card title="Integrations" icon="plug" href="./integrations">
+    Connect to external services like GitHub App
   </Card>
-  <Card title="Runners" icon="server">
-    Deploy and manage execution runners
-  </Card>
-</CardGroup>
-
-### Integration Services
-
-<CardGroup cols={2}>
-  <Card title="Integrations" icon="plug">
-    Connect to external services and APIs
-  </Card>
-  <Card title="Sources" icon="folder">
-    Manage code repositories and data sources
-  </Card>
-  <Card title="Secrets" icon="key">
+  <Card title="Secrets" icon="key" href="./secrets">
     Secure credential and configuration management
-  </Card>
-  <Card title="Webhooks" icon="webhook">
-    Handle external event notifications
-  </Card>
-</CardGroup>
-
-### Management Services
-
-<CardGroup cols={2}>
-  <Card title="Projects" icon="folder-tree">
-    Organize resources into projects
-  </Card>
-  <Card title="Users" icon="users">
-    User and team management
-  </Card>
-  <Card title="Policies" icon="shield">
-    Security and access control
-  </Card>
-  <Card title="Audit" icon="file-text">
-    Activity logging and compliance
   </Card>
 </CardGroup>
 
 ### Knowledge Services
 
 <CardGroup cols={2}>
-  <Card title="Knowledge" icon="brain">
-    Manage knowledge bases and documentation
-  </Card>
-  <Card title="Documentation" icon="book">
-    Auto-generated documentation and guides
-  </Card>
-  <Card title="Triggers" icon="bolt">
-    Event-driven automation triggers
-  </Card>
-  <Card title="Stacks" icon="layer-group">
-    Infrastructure as Code management
+  <Card title="Knowledge" icon="brain" href="./knowledge">
+    Query the central knowledge base with AI search
   </Card>
 </CardGroup>
 
@@ -116,236 +77,190 @@ The SDK provides access to all Kubiya platform services:
 ### Agent Management
 
 ```python
-# List all agents
-agents = client.agents.list()
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.kubiya_services.exceptions import AgentError
 
-# Get specific agent
-agent = client.agents.get("agent_123")
+client = KubiyaClient(api_key="your-api-key", base_url="https://api.kubiya.ai")
 
-# Update agent configuration
-client.agents.update("agent_123", {
-    "model": "gpt-4-turbo",
-    "temperature": 0.7,
-    "tools": ["kubernetes", "docker", "github", "slack"]
-})
-
-# Delete agent
-client.agents.delete("agent_123")
+try:
+    # List all agents
+    agents_list = client.agents.list(limit=10)
+    
+    # Get specific agent
+    agent = client.agents.get("agent-uuid-here")
+    
+    # Update agent configuration
+    client.agents.edit(
+        "agent-uuid-here",
+        llm_model="claude-4-opus",
+        add_tools=["new-tool"],
+        remove_tools=["old-tool"]
+    )
+    
+    # Delete agent
+    client.agents.delete("agent-uuid-here")
+    
+except AgentError as e:
+    print(f"Agent operation failed: {e}")
 ```
 
 ### Workflow Execution
 
 ```python
-# Create workflow from natural language
-workflow = client.workflows.create_from_description(
-    description="Deploy frontend service to staging with health checks",
-    tools=["kubernetes", "github", "slack"]
-)
+from kubiya_workflow_sdk.kubiya_services.exceptions import WorkflowExecutionError
 
-# Execute workflow
-execution = client.workflows.execute(
-    workflow_id=workflow.id,
-    inputs={
-        "service_name": "frontend",
-        "version": "v1.2.0",
-        "environment": "staging"
-    },
-    wait=True  # Wait for completion
-)
+# Define workflow
+workflow_definition = {
+    "name": "deploy-frontend",
+    "steps": [
+        {
+            "name": "build",
+            "command": "docker build -t frontend:latest .",
+            "executor": {"type": "command", "config": {}}
+        },
+        {
+            "name": "deploy", 
+            "command": "kubectl apply -f k8s/",
+            "executor": {"type": "command", "config": {}}
+        }
+    ]
+}
 
-# Monitor execution
-status = client.workflows.get_execution_status(execution.id)
-logs = client.workflows.get_execution_logs(execution.id)
+try:
+    # Execute workflow with streaming
+    for event in client.workflows.execute(
+        workflow_definition=workflow_definition,
+        parameters={
+            "service_name": "frontend",
+            "version": "v1.2.0",
+            "environment": "staging"
+        },
+        stream=True
+    ):
+        print(f"Workflow progress: {event}")
+    
+    # List recent executions
+    executions = client.workflows.list(filter="completed", limit=10)
+    
+except WorkflowExecutionError as e:
+    print(f"Workflow execution failed: {e}")
 ```
 
 ### Integration Management
 
 ```python
-# Add new integration
-integration = client.integrations.create({
-    "name": "Production Kubernetes",
-    "type": "kubernetes",
-    "config": {
-        "kubeconfig": "/path/to/kubeconfig",
-        "context": "prod-cluster"
-    }
-})
+from kubiya_workflow_sdk.kubiya_services.exceptions import IntegrationError, IntegrationNotFoundError
 
-# List available integrations
-integrations = client.integrations.list(active_only=True)
-
-# Test integration connectivity
-test_result = client.integrations.test("integration_123")
+try:
+    # Activate GitHub App integration
+    result = client.integrations.activate("github_app")
+    
+    if result.get("success"):
+        print("✅ GitHub App integration activated successfully!")
+        install_url = result.get("install_url")
+        if install_url:
+            print(f"Complete installation at: {install_url}")
+    
+except IntegrationNotFoundError:
+    print("Integration already exists")
+except IntegrationError as e:
+    print(f"Integration activation failed: {e}")
 ```
 
 ### Secrets Management
 
 ```python
-# Store secret
-client.secrets.create({
-    "name": "github_token",
-    "value": "ghp_xxxxxxxxxxxx",
-    "description": "GitHub API token for CI/CD"
-})
+from kubiya_workflow_sdk.kubiya_services.exceptions import SecretError, SecretValidationError
 
-# Retrieve secret (returns reference, not value)
-secret_ref = client.secrets.get("github_token")
-
-# List secrets
-secrets = client.secrets.list()
-
-# Update secret
-client.secrets.update("github_token", {
-    "value": "new_token_value",
-    "expires_at": "2024-12-31T23:59:59Z"
-})
-```
-
-### Knowledge Management
-
-```python
-# Create knowledge base
-kb = client.knowledge.create({
-    "name": "DevOps Runbooks",
-    "description": "Standard operating procedures",
-    "sources": [
-        {"type": "github", "url": "https://github.com/company/runbooks"},
-        {"type": "confluence", "space": "DevOps"}
-    ]
-})
-
-# Add documentation
-doc = client.knowledge.add_document(
-    knowledge_base_id=kb.id,
-    title="Kubernetes Deployment Guide",
-    content="Step-by-step deployment procedures...",
-    tags=["kubernetes", "deployment", "production"]
-)
-
-# Search knowledge
-results = client.knowledge.search(
-    query="how to rollback deployment",
-    knowledge_base_id=kb.id,
-    limit=10
-)
-```
-
-### Project Organization
-
-```python
-# Create project
-project = client.projects.create({
-    "name": "E-commerce Platform",
-    "description": "Production e-commerce automation",
-    "team": "platform-engineering"
-})
-
-# Add resources to project
-client.projects.add_resources(project.id, {
-    "agents": ["agent_123", "agent_456"],
-    "workflows": ["wf_789"],
-    "integrations": ["int_001", "int_002"]
-})
-
-# Get project overview
-overview = client.projects.get_overview(project.id)
-```
-
-## Advanced Features
-
-### Async Support
-
-```python
-import asyncio
-from kubiya_sdk import AsyncKubiya
-
-async def main():
-    async_client = AsyncKubiya(api_key="your-api-key")
-    
-    # Execute multiple workflows concurrently
-    tasks = [
-        async_client.workflows.execute("wf_1", {"env": "staging"}),
-        async_client.workflows.execute("wf_2", {"env": "production"}),
-        async_client.workflows.execute("wf_3", {"env": "development"})
-    ]
-    
-    results = await asyncio.gather(*tasks)
-    
-    for result in results:
-        print(f"Workflow {result.id}: {result.status}")
-
-asyncio.run(main())
-```
-
-### Pagination
-
-```python
-# Handle large result sets
-all_agents = []
-page_token = None
-
-while True:
-    response = client.agents.list(
-        page_size=100,
-        page_token=page_token
+try:
+    # Create secret
+    create_result = client.secrets.create(
+        name="github-token",
+        value="ghp_xxxxxxxxxxxx",
+        description="GitHub API token for CI/CD"
     )
     
-    all_agents.extend(response.agents)
+    # List secrets (returns metadata only)
+    secrets_list = client.secrets.list()
     
-    if not response.next_page_token:
-        break
-        
-    page_token = response.next_page_token
-
-print(f"Total agents: {len(all_agents)}")
+    # Get secret metadata
+    secret_info = client.secrets.get("github-token")
+    
+    # Get actual secret value
+    secret_value = client.secrets.value("github-token")
+    
+    # Update secret
+    client.secrets.update(
+        name="github-token",
+        value="new-token-value",
+        description="Updated GitHub token"
+    )
+    
+    # Delete secret
+    client.secrets.delete("github-token")
+    
+except SecretValidationError as e:
+    print(f"Secret validation failed: {e}")
+except SecretError as e:
+    print(f"Secret operation failed: {e}")
 ```
 
-### Error Handling
+### Knowledge Search
 
 ```python
-from kubiya_sdk.exceptions import (
-    KubiyaAPIError,
-    AuthenticationError,
-    RateLimitError,
-    ResourceNotFoundError
+from kubiya_workflow_sdk.kubiya_services.exceptions import KnowledgeError
+
+try:
+    # Simple knowledge query
+    response = client.knowledge.query(
+        prompt="How do I deploy a Kubernetes application?"
+    )
+    print(f"Knowledge response: {response}")
+    
+    # Stream search results
+    for event in client.knowledge.query(
+        prompt="Best practices for container security",
+        stream=True
+    ):
+        print(f"Search event: {event}")
+        
+except KnowledgeError as e:
+    print(f"Knowledge query failed: {e}")
+```
+
+## Error Handling
+
+The SDK provides specialized exceptions for different failure scenarios:
+
+```python
+from kubiya_workflow_sdk.kubiya_services.exceptions import (
+    AgentError,
+    WorkflowExecutionError,
+    IntegrationError,
+    IntegrationNotFoundError,
+    SecretError,
+    SecretValidationError,
+    KnowledgeError
 )
 
 try:
-    agent = client.agents.get("non_existent_agent")
-except ResourceNotFoundError:
-    print("Agent not found")
-except AuthenticationError:
-    print("Invalid API key")
-except RateLimitError as e:
-    print(f"Rate limited. Retry after {e.retry_after} seconds")
-except KubiyaAPIError as e:
-    print(f"API error: {e.message} (status: {e.status_code})")
-```
+    agent = client.agents.get("non-existent-agent")
+except AgentError:
+    print("Agent operation failed")
 
-### Webhooks
+try:
+    workflow_result = client.workflows.execute(invalid_workflow)
+except WorkflowExecutionError as e:
+    print(f"Workflow execution failed: {e}")
+    if e.details.get("step"):
+        print(f"Failed at step: {e.details['step']}")
 
-```python
-# Register webhook for workflow completion
-webhook = client.webhooks.create({
-    "name": "workflow-completion",
-    "url": "https://myapp.com/webhook/kubiya",
-    "events": ["workflow.completed", "workflow.failed"],
-    "secret": "webhook_secret_key"
-})
-
-# Verify webhook signature (in your webhook handler)
-from kubiya_sdk.webhooks import verify_signature
-
-def handle_webhook(request):
-    signature = request.headers.get('X-Kubiya-Signature')
-    payload = request.body
-    
-    if verify_signature(payload, signature, "webhook_secret_key"):
-        # Process webhook
-        event_data = request.json()
-        print(f"Received event: {event_data['type']}")
-    else:
-        print("Invalid webhook signature")
+try:
+    integration_result = client.integrations.activate("invalid-integration")
+except IntegrationError as e:
+    print(f"Integration failed: {e}")
+except IntegrationNotFoundError as e:
+    print(f"Integration already exists: {e}")
 ```
 
 ## Configuration
@@ -354,65 +269,115 @@ def handle_webhook(request):
 
 ```bash
 export KUBIYA_API_KEY="your-api-key"
-export KUBIYA_ORG="your-organization"
 export KUBIYA_BASE_URL="https://api.kubiya.ai"
 ```
 
-### Configuration File
-
-```yaml
-# ~/.kubiya/config.yaml
-api_key: your-api-key
-organization: your-organization
-base_url: https://api.kubiya.ai
-timeout: 30
-retry_attempts: 3
-```
-
-### Client Options
+### Client Initialization
 
 ```python
-client = Kubiya(
+# Basic initialization
+client = KubiyaClient(
     api_key="your-api-key",
-    organization="your-org",
-    base_url="https://api.kubiya.ai",
-    timeout=60,  # Request timeout in seconds
-    retry_attempts=3,  # Number of retry attempts
-    retry_delay=1.0,  # Delay between retries
-    max_retry_delay=10.0,  # Maximum retry delay
-    user_agent="MyApp/1.0"  # Custom user agent
+    base_url="https://api.kubiya.ai"
 )
+
+# Using environment variables
+import os
+client = KubiyaClient(
+    api_key=os.getenv("KUBIYA_API_KEY"),
+    base_url=os.getenv("KUBIYA_BASE_URL", "https://api.kubiya.ai")
+)
+```
+
+## Best Practices
+
+### 1. Always Use Error Handling
+
+```python
+# Always wrap service calls in try-except blocks
+try:
+    result = client.agents.create(name="my-agent")
+except AgentError as e:
+    print(f"Failed to create agent: {e}")
+    # Handle the error appropriately
+```
+
+### 2. Use Descriptive Names
+
+```python
+# Use clear, descriptive names for resources
+agent = client.agents.create(
+    name="production-devops-agent",
+    description="Agent for production DevOps automation tasks",
+    llm_model="claude-4-sonnet"
+)
+```
+
+### 3. Handle Streaming Gracefully
+
+```python
+# Process streaming results with proper error handling
+try:
+    for event in client.workflows.execute(workflow_def, params, stream=True):
+        if isinstance(event, dict):
+            event_type = event.get("type", "unknown")
+            print(f"Event type: {event_type}")
+        else:
+            print(f"Event: {event}")
+except WorkflowExecutionError as e:
+    print(f"Streaming failed: {e}")
+```
+
+### 4. Validate Inputs
+
+```python
+# Validate workflow definitions before execution
+def validate_workflow(workflow_def):
+    if not isinstance(workflow_def, dict):
+        raise ValueError("Workflow definition must be a dictionary")
+    if "name" not in workflow_def:
+        raise ValueError("Workflow must have a name")
+    if "steps" not in workflow_def:
+        raise ValueError("Workflow must have steps")
+    return workflow_def
+
+# Use validation
+try:
+    validated_workflow = validate_workflow(my_workflow)
+    result = client.workflows.execute(validated_workflow, parameters)
+except ValueError as e:
+    print(f"Validation failed: {e}")
 ```
 
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card
-    title="Workflow DSL →"
-    href="/sdk/workflow-dsl/overview"
+    title="Agents Service →"
+    href="./agents"
+    icon="robot"
+  >
+    Learn how to create and manage AI agents
+  </Card>
+  <Card
+    title="Workflows Service →"
+    href="./workflows" 
     icon="diagram-project"
   >
-    Learn how to define workflows as code
+    Execute and manage automation workflows
   </Card>
   <Card
-    title="Tools SDK →"
-    href="/sdk/tools/overview" 
-    icon="wrench"
+    title="Integrations Service →"
+    href="./integrations"
+    icon="plug"
   >
-    Create custom tools for your automation needs
+    Connect to external services like GitHub
   </Card>
   <Card
-    title="API Reference →"
-    href="/api-reference/platform/overview"
-    icon="book"
+    title="Secrets Service →"
+    href="./secrets"
+    icon="key"
   >
-    Complete API documentation with all endpoints
-  </Card>
-  <Card
-    title="Examples →"
-    href="/sdk/examples"
-    icon="code"
-  >
-    Real-world SDK usage examples and patterns
+    Manage secure credentials and configuration
   </Card>
 </CardGroup>

@@ -1,333 +1,240 @@
 ---
 title: Workflow Examples
-description: Practical examples of automated workflows using containers and AI
+description: Practical examples of automated workflows using the Kubiya SDK
 icon: lightbulb
 ---
 
-Common workflow patterns using containers, AI agents, and automation tools.
+Real-world workflow patterns using the Kubiya Workflow SDK.
 
-## Simple deployment pipeline
+## Basic Deployment Pipeline
 
 Build, test, and deploy an application:
 
 ```python
-from kubiya import workflow, step
+from kubiya_workflow_sdk.dsl import workflow, shell_executor
+from kubiya_workflow_sdk import execute_workflow
 
-@workflow
-def deploy_app():
-    # Run tests in Node.js container
-    test = step("test").docker(
-        image="node:18",
-        command="npm test"
-    )
+# Create deployment workflow
+deploy_pipeline = (
+    workflow("deploy-app")
+    .description("Build, test, and deploy application")
+    .params(APP_NAME="myapp", VERSION="${BUILD_ID}")
+    
+    # Run tests
+    .step("test", "npm test")
     
     # Build Docker image
-    build = step("build").docker(
-        image="docker:latest",
-        command="docker build -t myapp:latest ."
-    ).depends("test")
+    .step("build", "docker build -t ${APP_NAME}:${VERSION} .")
     
     # Deploy to Kubernetes
-    step("deploy").docker(
-        image="kubectl:latest",
-        command="kubectl apply -f deployment.yaml"
-    ).depends("build")
+    .step("deploy", "kubectl set image deployment/${APP_NAME} ${APP_NAME}=${APP_NAME}:${VERSION}")
+)
+
+# Execute the workflow
+result = execute_workflow(deploy_pipeline.to_dict(), api_key="your-api-key")
 ```
 
-## Data processing workflow
+## Data Processing Pipeline
 
 Extract, transform, and load data:
 
 ```python
-@workflow
-def etl_pipeline():
-    # Extract data from database
-    extract = step("extract").docker(
-        image="postgres:15",
-        command="pg_dump -h $DB_HOST -t users > users.sql"
-    )
+from kubiya_workflow_sdk.dsl import workflow, python_executor
+
+# Create ETL workflow
+etl_pipeline = (
+    workflow("etl-pipeline")
+    .description("Extract, transform, and load data")
+    .env(DB_HOST="${DB_HOST}", DB_USER="${DB_USER}", DB_PASS="${DB_PASS}")
     
-    # Transform with Python
-    transform = step("transform").docker(
-        image="python:3.11",
-        script="""
+    # Extract data
+    .step("extract", "pg_dump -h ${DB_HOST} -U ${DB_USER} users > /tmp/users.sql")
+    
+    # Transform data
+    .step("transform")
+    .executor(python_executor("""
 import pandas as pd
-df = pd.read_sql_query("SELECT * FROM users", connection)
-df['processed'] = df['created_at'].dt.date
-df.to_csv('transformed_users.csv')
-"""
-    ).depends("extract")
+import os
+
+# Load data
+df = pd.read_csv('/tmp/users.sql', delimiter='\t')
+df['processed_date'] = pd.Timestamp.now()
+df.to_csv('/tmp/transformed_users.csv', index=False)
+print(f"Processed {len(df)} records")
+    """, packages=["pandas"]))
     
-    # Load to data warehouse
-    step("load").docker(
-        image="snowflake/snowcli:latest",
-        command="snow stage copy transformed_users.csv @warehouse"
-    ).depends("transform")
+    # Load to warehouse
+    .step("load", "aws s3 cp /tmp/transformed_users.csv s3://warehouse/data/")
+)
 ```
 
-## AI-powered code review
+## AI-Powered Code Review
 
 Use AI agents to analyze pull requests:
 
 ```python
-@workflow
-def ai_code_review(pr_number: int):
+from kubiya_workflow_sdk.dsl import workflow, inline_agent_executor
+
+# Create code review workflow
+code_review = (
+    workflow("ai-code-review")
+    .description("AI-powered code review for pull requests")
+    .params(PR_NUMBER="${PR_NUMBER}", REPO="${REPO}")
+    
     # Fetch PR changes
-    fetch = step("fetch-pr").docker(
-        image="alpine/git:latest",
-        command=f"git diff main..pr-{pr_number} > changes.diff"
-    ).output("PR_CHANGES")
+    .step("fetch-changes", "gh pr diff ${PR_NUMBER} > /tmp/pr-changes.diff")
     
-    # AI agent analyzes the code
-    review = step("analyze-code").inline_agent(
-        message="Review this code for quality, bugs, and best practices: ${PR_CHANGES}",
-        agent_name="code-reviewer",
-        tools=[
-            {
-                "name": "security-scanner",
-                "image": "securecodewarrior/semgrep:latest",
-                "command": "semgrep --config=auto ."
-            }
-        ]
-    ).depends("fetch-pr").output("REVIEW_RESULTS")
+    # AI analyzes the code
+    .step("analyze")
+    .executor(inline_agent_executor(
+        message="Review the code changes in /tmp/pr-changes.diff for quality, security, and best practices",
+        runners=["kubiya-hosted"],
+        ai_instructions="""You are an expert code reviewer. Analyze the changes and provide:
+        1. Code quality issues
+        2. Security vulnerabilities  
+        3. Performance concerns
+        4. Best practice recommendations"""
+    ))
     
-    # Post review comments
-    step("post-review").docker(
-        image="github/hub:latest",
-        command="hub api repos/:owner/:repo/pulls/${pr_number}/reviews -f body='${REVIEW_RESULTS}'"
-    ).depends("analyze-code")
-```
-
-## Custom Tool Integration
-
-Use custom Tool class instances for reusable, typed functionality:
-
-```python
-from kubiya_workflow_sdk.tools import Tool, Arg
-
-# Define custom tools
-url_validator = Tool(
-    name="url_validator",
-    description="Validate URL format and connectivity",
-    type="docker",
-    image="curlimages/curl:latest",
-    content="""
-#!/bin/sh
-echo "Validating URL: $url"
-if echo "$url" | grep -q '^https\\?://'; then
-    echo "✓ Valid URL format"
-    curl -s --head "$url" && echo "✓ URL is accessible"
-else
-    echo "✗ Invalid URL format"
-    exit 1
-fi
-    """,
-    args=[
-        Arg(name="url", type="str", description="URL to validate", required=True)
-    ]
-)
-
-json_processor = Tool(
-    name="json_processor",
-    description="Process and validate JSON data",
-    type="docker",
-    image="python:3.11-alpine",
-    content="""
-#!/bin/sh
-python3 -c "
-import json
-import sys
-
-try:
-    data = json.loads('$json_data')
-    if '$operation' == 'validate':
-        print('✓ Valid JSON')
-        print(f'Keys: {list(data.keys())}')
-    elif '$operation' == 'pretty':
-        print(json.dumps(data, indent=2))
-except json.JSONDecodeError as e:
-    print(f'✗ Invalid JSON: {e}')
-    sys.exit(1)
-"
-    """,
-    args=[
-        Arg(name="json_data", type="str", description="JSON data to process", required=True),
-        Arg(name="operation", type="str", description="Operation type", 
-            default="validate", options=["validate", "pretty"])
-    ]
+    # Post review comment
+    .step("post-review", "gh pr comment ${PR_NUMBER} --body-file /tmp/review-results.md")
 )
 ```
 
-## Incident response automation
+## Parallel Processing
 
-Automated response to system alerts:
+Process multiple items simultaneously:
 
 ```python
-@workflow
-def incident_response():
-    # Detect issue from monitoring
-    detect = step("detect").docker(
-        image="alpine:latest",
-        script="curl -s http://prometheus:9090/api/v1/alerts"
-    ).output("ALERTS")
+from kubiya_workflow_sdk.dsl import workflow
+
+# Process multiple services in parallel
+parallel_deployment = (
+    workflow("parallel-deploy")
+    .description("Deploy multiple services simultaneously")
+    .params(ENVIRONMENT="staging")
     
-    # AI agent determines severity and actions
-    assess = step("assess-incident").inline_agent(
-        message="Analyze these alerts and recommend actions: ${ALERTS}",
-        agent_name="incident-commander",
-        tools=[
-            {
-                "name": "check-logs",
-                "image": "elasticsearch/elasticsearch:8.0",
-                "command": "curl -X GET 'localhost:9200/_search'"
-            },
-            {
-                "name": "check-resources", 
-                "image": "kubernetes/kubectl:latest",
-                "command": "kubectl top nodes"
-            }
-        ]
-    ).depends("detect").output("RESPONSE_PLAN")
+    # Deploy services in parallel
+    .parallel_steps(
+        "deploy-services",
+        items=["api", "frontend", "worker"],
+        command="kubectl set image deployment/${ITEM} ${ITEM}:latest -n ${ENVIRONMENT}",
+        max_concurrent=3
+    )
     
-    # Execute remediation
-    step("remediate").docker(
-        image="ansible/ansible:latest",
-        command="ansible-playbook fix-${RESPONSE_PLAN.issue_type}.yml"
-    ).depends("assess-incident")
+    # Verify all deployments
+    .parallel_steps(
+        "verify-services", 
+        items=["api", "frontend", "worker"],
+        command="kubectl rollout status deployment/${ITEM} -n ${ENVIRONMENT}",
+        max_concurrent=3
+    )
+)
 ```
 
-## Parallel file processing
+## Database Migration with Backup
 
-Process multiple files simultaneously:
+Safely run database changes with backup:
 
 ```python
-@workflow
-def process_files():
-    # List files to process
-    list_files = step("list").shell(
-        "ls /data/*.csv > files.txt"
-    ).output("FILE_LIST")
+from kubiya_workflow_sdk.dsl import workflow
+
+# Safe database migration
+db_migration = (
+    workflow("db-migration")
+    .description("Run database migration with backup")
+    .env(DB_NAME="production_db", BACKUP_BUCKET="s3://backups/db/")
     
-    # Process each file in parallel
-    step("process").parallel(
-        items="${FILE_LIST}",
-        max_concurrent=3,
-        docker_config={
-            "image": "python:3.11",
-            "script": """
-import pandas as pd
-import sys
-filename = sys.argv[1]
-df = pd.read_csv(f'/data/{filename}')
-df['processed'] = True
-df.to_csv(f'/output/processed_{filename}')
-"""
-        }
-    ).depends("list")
-```
-
-## Database migration with validation
-
-Run database changes safely:
-
-```python
-@workflow
-def database_migration():
     # Backup database
-    backup = step("backup").docker(
-        image="postgres:15",
-        command="pg_dump production_db > backup_$(date +%Y%m%d).sql"
-    )
+    .step("backup", "pg_dump ${DB_NAME} | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz")
     
-    # Test migration on copy
-    test = step("test-migration").docker(
-        image="postgres:15",
-        script="""
-# Create test database from backup
-createdb test_migration
-psql test_migration < backup_*.sql
-# Run migration
-psql test_migration < migration.sql
-# Validate
-psql test_migration -c "SELECT COUNT(*) FROM users;"
-"""
-    ).depends("backup")
+    # Upload backup
+    .step("upload-backup", "aws s3 cp backup_*.sql.gz ${BACKUP_BUCKET}")
     
-    # Apply to production only if test passes
-    step("migrate-prod").docker(
-        image="postgres:15",
-        command="psql production_db < migration.sql"
-    ).depends("test").preconditions("${test.exit_code} == 0")
+    # Run migration
+    .step("migrate", "python manage.py migrate --database=${DB_NAME}")
+    
+    # Verify migration
+    .step("verify", "python manage.py showmigrations --database=${DB_NAME}")
+)
 ```
 
-## Error handling patterns
+## Error Handling with Retries
 
-Robust workflows with retry and cleanup:
+Build resilient workflows with retry logic:
 
 ```python
-@workflow
-def resilient_workflow():
-    # Step with retry logic
-    fetch = step("fetch-data").docker(
-        image="curlimages/curl:latest",
-        command="curl -f https://api.example.com/data"
-    ).retry(limit=3, backoff="exponential")
+from kubiya_workflow_sdk.dsl import workflow
+
+# Workflow with error handling
+resilient_workflow = (
+    workflow("resilient-api-call")
+    .description("API call with retries and fallback")
+    .params(API_URL="https://api.example.com/data", MAX_RETRIES="3")
     
-    # Process data with timeout
-    process = step("process").docker(
-        image="python:3.11",
-        script="process_data.py"
-    ).depends("fetch").timeout("10m")
+    # Main API call with retry
+    .step("fetch-data", """
+        for i in $(seq 1 ${MAX_RETRIES}); do
+            if curl -f ${API_URL} -o /tmp/data.json; then
+                echo "API call succeeded on attempt $i"
+                exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep $((i * 2))
+        done
+        exit 1
+    """)
     
-    # Cleanup that always runs
-    step("cleanup").shell(
-        "rm -rf /tmp/workspace/*"
-    ).continue_on_failure(True)
+    # Process data if fetch succeeded
+    .step("process-data", "python process_api_data.py /tmp/data.json")
+    
+    # Cleanup (always runs)
+    .step("cleanup", "rm -f /tmp/data.json")
+)
 ```
 
-## Multi-environment deployment
+## Using the Kubiya Client
 
-Deploy to different environments with conditions:
+Execute workflows using the KubiyaClient:
 
 ```python
-@workflow
-def multi_env_deploy(environment: str):
-    # Build once
-    build = step("build").docker(
-        image="docker:latest",
-        command="docker build -t myapp:${GIT_SHA} ."
-    )
-    
-    # Deploy to staging (always)
-    deploy_staging = step("deploy-staging").docker(
-        image="kubectl:latest",
-        command="kubectl apply -f staging.yaml"
-    ).depends("build")
-    
-    # Deploy to production (only if staging succeeds and env is prod)
-    step("deploy-production").docker(
-        image="kubectl:latest",
-        command="kubectl apply -f production.yaml"
-    ).depends("deploy-staging").preconditions(
-        "${deploy_staging.exit_code} == 0",
-        "${environment} == 'production'"
-    )
+from kubiya_workflow_sdk import KubiyaClient
+from kubiya_workflow_sdk.dsl import workflow
+
+# Initialize client
+client = KubiyaClient(
+    api_key="your-api-key",
+    base_url="https://api.kubiya.ai"
+)
+
+# Create workflow
+simple_workflow = (
+    workflow("hello-world")
+    .description("Simple greeting workflow")
+    .step("greet", "echo 'Hello from Kubiya!'")
+    .step("timestamp", "date")
+)
+
+# Execute with streaming
+for event in client.execute_workflow(simple_workflow.to_dict(), stream=True):
+    print(event)
+
+# Execute without streaming  
+result = client.execute_workflow(simple_workflow.to_dict(), stream=False)
+print(f"Workflow result: {result}")
 ```
 
-## Best practices
+## Best Practices
 
-**Use specific container images:** Pin versions for reproducibility (`node:18.17` not `node:latest`)
+- **Use clear step names** that describe what each step does
+- **Set environment variables** for configuration instead of hardcoding values
+- **Handle errors gracefully** with retry logic and fallback steps
+- **Use parallel processing** for independent operations to save time
+- **Keep workflows focused** - each workflow should have a single purpose
+- **Test workflows incrementally** starting simple and adding complexity
 
-**Handle failures gracefully:** Add retry logic and cleanup steps that always run
+## Next Steps
 
-**Pass data between steps:** Use `.output()` to capture results and reference them in later steps
-
-**Leverage parallel execution:** Independent steps will run simultaneously by default
-
-**Include AI where it adds value:** Use inline agents for analysis, decision-making, and dynamic responses
-
-**Test incrementally:** Start with simple workflows and add complexity gradually
-
----
-
-**Next:** Learn the [workflow syntax](/workflows/dsl-reference) or try the [quick start guide](/getting-started/quickstart) 
+- Learn the complete [DSL Reference](./dsl-reference) for all workflow features
+- Check out [SDK Examples](../sdk/examples) for more complex patterns  
+- Try the [Quick Start Guide](../quickstart/sdk-quickstart) to build your first workflow 
