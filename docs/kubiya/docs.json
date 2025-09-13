@@ -135,8 +135,7 @@
           {
             "group": "Administration", 
             "pages": [
-              "deployment/kubernetes",
-              "deployment/docker"
+              "deployment/kubernetes"
             ]
           },
           {
