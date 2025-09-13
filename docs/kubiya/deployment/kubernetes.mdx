@@ -1,288 +1,416 @@
 ---
-title: "Kubernetes Deployment"
-description: "Deploy Kubiya agents on Kubernetes clusters"
+title: "Deploy Kubiya runners to Kubernetes via Helm"
+description: "Deploy and manage Kubiya runners on Kubernetes clusters using the official Helm chart"
+icon: "dharmachakra"
 ---
 
-# Kubernetes Deployment
+# Deploy Kubiya runners to Kubernetes via Helm
 
-This guide covers deploying Kubiya agents on Kubernetes clusters.
+Deploy Kubiya runners to your Kubernetes cluster using our official Helm chart for scalable, production-ready automation.
 
-## Basic Deployment
+## Overview
 
-### Deployment Manifest
+Kubiya runners execute your workflows and agent tasks in secure, isolated environments. The Helm chart provides:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kubiya-agent
-  namespace: kubiya
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: kubiya-agent
-  template:
-    metadata:
-      labels:
-        app: kubiya-agent
-    spec:
-      containers:
-      - name: kubiya-agent
-        image: kubiya-agent:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: KUBIYA_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: kubiya-secrets
-              key: api-key
-        - name: KUBIYA_ENVIRONMENT
-          value: "production"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
-```
+- **Automatic scaling** based on workload demand
+- **Security-first configuration** with RBAC and network policies
+- **Production-ready monitoring** and logging
+- **Easy upgrades** and configuration management
 
-### Service
+## Before You Start
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: kubiya-agent-service
-  namespace: kubiya
-spec:
-  selector:
-    app: kubiya-agent
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8000
-  type: ClusterIP
-```
+**Requirements:**
+- Kubernetes cluster (v1.20+)
+- Helm 3.x installed
+- kubectl access to your cluster
+- Kubiya organization access
 
-### Ingress
+**What You'll Need:**
+- Your Kubiya API key
+- Organization name
+- Desired runner configuration
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kubiya-agent-ingress
-  namespace: kubiya
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: agent.your-domain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: kubiya-agent-service
-            port:
-              number: 80
-```
+## Step 1: Access the Runners Dashboard
 
-## Configuration Management
+Navigate to your Kubernetes runners management interface:
 
-### ConfigMap
+![Kubernetes Runners Dashboard](/assets/images/kubernetes-runners-dashboard.png)
+*Kubernetes Runners dashboard showing deployed runners with their health status*
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kubiya-config
-  namespace: kubiya
-data:
-  config.yaml: |
-    server:
-      port: 8000
-      host: "0.0.0.0"
-    logging:
-      level: INFO
-    features:
-      streaming: true
-      metrics: true
-```
+1. **Go to Resources** → **Local Runners** in your Kubiya organization
+2. **Click "Create Runner"** to start the setup wizard
+3. You'll see all your existing runners with their status (Healthy/Unknown)
 
-### Secret
+## Step 2: Create a New Runner
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: kubiya-secrets
-  namespace: kubiya
-type: Opaque
-data:
-  api-key: <base64-encoded-api-key>
-  jwt-secret: <base64-encoded-jwt-secret>
-```
+Configure your Kubernetes runner through the creation wizard:
 
-## Scaling
+![Runner Creation Basic Setup](/assets/images/runner-creation-basic-setup.png)
+*Basic Setup tab - Configure runner name, deployment target, and resource profile*
 
-### Horizontal Pod Autoscaler
+**Basic Setup Configuration:**
+1. **Runner Name:** Enter a unique name (e.g., "dev-cluster")
+2. **Deployment Target:** Select "Kubernetes" 
+3. **Resource Profile:** Choose "Standard (Production)" for resource limits
+4. **Basic Options:**
+   - ☐ **Cluster-wide access** - Grant permissions across all namespaces
+   - ☑ **Persistent storage** - Enable persistent volumes for state
+   - ☑ **Monitoring & telemetry** - Enable Azure Prometheus and Grafana
 
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: kubiya-agent-hpa
-  namespace: kubiya
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: kubiya-agent
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-```
+## Step 3: Advanced Configuration
 
-## Security
+Switch to the Advanced Configuration tab for detailed settings:
 
-### Service Account
+![Runner Creation Advanced Config](/assets/images/runner-creation-advanced-config.png)
+*Advanced Configuration tab - Detailed component and security settings*
 
-```yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kubiya-agent-sa
-  namespace: kubiya
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: kubiya-agent-role
-  namespace: kubiya
-rules:
-- apiGroups: [""]
-  resources: ["pods", "services"]
-  verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubiya-agent-binding
-  namespace: kubiya
-subjects:
-- kind: ServiceAccount
-  name: kubiya-agent-sa
-  namespace: kubiya
-roleRef:
-  kind: Role
-  name: kubiya-agent-role
-  apiGroup: rbac.authorization.k8s.io
-```
+**Advanced Configuration Options:**
 
-### Network Policy
+**Runner Configuration:**
+- **Runner Name:** Confirm your runner name
+- **Deployment Target:** Kubernetes (confirmed)
+- **Resource Profile:** Standard for production workloads
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: kubiya-agent-netpol
-  namespace: kubiya
-spec:
-  podSelector:
-    matchLabels:
-      app: kubiya-agent
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: ingress-nginx
-    ports:
-    - protocol: TCP
-      port: 8000
-  egress:
-  - to: []
-    ports:
-    - protocol: TCP
-      port: 443
-    - protocol: TCP
-      port: 80
-```
+**Security & RBAC:**
+- ☐ **Cluster-wide access** - Allow access to all namespaces
+- ☑ **Network policies** - Enable namespace isolation  
+- ☑ **Run as non-root** - Enhanced security context
 
-## Monitoring
+**Storage Configuration:**
+- ☑ **Persistent storage** - Enable PVCs for state
+- **Storage Class:** default (or specify your preferred class)
 
-### ServiceMonitor (Prometheus)
+**Components:**
+- ☑ **Workflow Engine** - Execute workflow automations
+- ☑ **Dagger Runtime** - Container-based tool execution  
+- ☐ **Image Updater** - Automatic component updates (optional)
 
-```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: kubiya-agent-metrics
-  namespace: kubiya
-spec:
-  selector:
-    matchLabels:
-      app: kubiya-agent
-  endpoints:
-  - port: metrics
-    interval: 30s
-    path: /metrics
-```
+**Monitoring & Telemetry:**
+- ☑ **Azure Prometheus** - Metrics collection and dashboards
+- ☑ **OpenTelemetry tracing** - Distributed tracing support
 
-## Deployment Commands
+5. **Click "Create Runner"** to generate your runner configuration and token
+
+## Step 4: Add the Kubiya Helm Repository
 
 ```bash
-# Create namespace
-kubectl create namespace kubiya
+# Add the Kubiya Helm repository
+helm repo add kubiya https://kubiyabot.github.io/helm-charts
 
-# Apply manifests
-kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
-kubectl apply -f ingress.yaml
-
-# Check status
-kubectl get pods -n kubiya
-kubectl get services -n kubiya
-
-# View logs
-kubectl logs -f deployment/kubiya-agent -n kubiya
-
-# Scale deployment
-kubectl scale deployment kubiya-agent --replicas=5 -n kubiya
+# Update your local chart repository cache
+helm repo update
 ```
 
-## Related Documentation
+## Step 5: Install the Runner
 
-- [Docker Deployment](/deployment/docker)
-- [Helm Chart](/concepts/runners/helm-chart)
-- [Server Overview](/servers/overview)
+### Quick Installation
+
+```bash
+# Install with basic configuration
+helm install my-kubiya-runner kubiya/kubiya-runner \
+  --set config.apiKey="your-api-key-here" \
+  --set config.organization="your-org-name" \
+  --set config.runnerToken="your-runner-token"
+```
+
+### Production Installation
+
+Create a `values.yaml` file for production configuration:
+
+```yaml
+# values.yaml
+config:
+  apiKey: "your-api-key-here"
+  organization: "your-org-name"
+  runnerToken: "your-runner-token"
+  environment: "production"
+
+# Resource configuration
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Security
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+# Networking
+service:
+  type: ClusterIP
+  port: 8080
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+```
+
+Install with the production configuration:
+
+```bash
+# Install with custom values
+helm install my-kubiya-runner kubiya/kubiya-runner \
+  --values values.yaml \
+  --namespace kubiya \
+  --create-namespace
+```
+
+## Step 6: Verify Installation
+
+Check that your runner is deployed and healthy:
+
+```bash
+# Check pod status
+kubectl get pods -n kubiya
+
+# View runner logs
+kubectl logs -f deployment/my-kubiya-runner -n kubiya
+
+# Check runner service
+kubectl get services -n kubiya
+```
+
+Once deployed, your runner will appear in the Kubernetes Runners dashboard with a "Healthy" status, and you can monitor its components (Runner, Tools, Agents) as shown in the dashboard screenshot above.
+
+## Configuration Options
+
+### Environment Variables
+
+```yaml
+config:
+  # Required
+  apiKey: "your-api-key"
+  organization: "your-org"
+  runnerToken: "your-runner-token"
+  
+  # Optional
+  environment: "production"
+  logLevel: "INFO"
+  maxConcurrentJobs: 10
+  jobTimeout: "30m"
+```
+
+### Resource Management
+
+```yaml
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+    ephemeral-storage: 10Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+    ephemeral-storage: 5Gi
+```
+
+### Security Configuration
+
+```yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  capabilities:
+    drop:
+    - ALL
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+### Networking
+
+```yaml
+networking:
+  # Network policies
+  networkPolicy:
+    enabled: true
+    ingress:
+      enabled: true
+      from: []
+    egress:
+      enabled: true
+      to: []
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+```
+
+## Advanced Configuration
+
+### Multiple Runner Types
+
+Deploy different runner configurations for different environments:
+
+```bash
+# Development runner
+helm install dev-runner kubiya/kubiya-runner \
+  --values values-dev.yaml \
+  --namespace kubiya-dev
+
+# Production runner  
+helm install prod-runner kubiya/kubiya-runner \
+  --values values-prod.yaml \
+  --namespace kubiya-prod
+```
+
+### High Availability Setup
+
+```yaml
+# values-ha.yaml
+replicaCount: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: kubiya-runner
+      topologyKey: kubernetes.io/hostname
+```
+
+### Persistent Storage
+
+```yaml
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  size: 50Gi
+  mountPath: "/data"
+```
+
+## Monitoring and Logging
+
+### Prometheus Integration
+
+```yaml
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      app: kubiya-runner
+```
+
+### Log Aggregation
+
+```yaml
+logging:
+  enabled: true
+  format: "json"
+  level: "info"
+  
+  # Forward logs to external system
+  fluent-bit:
+    enabled: true
+    output: "elasticsearch"
+    host: "elasticsearch.logging.svc.cluster.local"
+```
+
+## Upgrading
+
+### Update Runner Configuration
+
+```bash
+# Update with new values
+helm upgrade my-kubiya-runner kubiya/kubiya-runner \
+  --values values.yaml \
+  --namespace kubiya
+
+# Check upgrade status
+helm status my-kubiya-runner -n kubiya
+```
+
+### Version Management
+
+```bash
+# List available versions
+helm search repo kubiya/kubiya-runner --versions
+
+# Upgrade to specific version
+helm upgrade my-kubiya-runner kubiya/kubiya-runner \
+  --version 1.2.3 \
+  --namespace kubiya
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Runner Not Connecting:**
+```bash
+# Check runner logs
+kubectl logs deployment/my-kubiya-runner -n kubiya
+
+# Verify API key and token
+kubectl get secret my-kubiya-runner-config -n kubiya -o yaml
+```
+
+**Resource Constraints:**
+```bash
+# Check resource usage
+kubectl top pods -n kubiya
+
+# View resource limits
+kubectl describe pod <runner-pod-name> -n kubiya
+```
+
+**Network Issues:**
+```bash
+# Test connectivity
+kubectl exec -it <runner-pod-name> -n kubiya -- wget -O- https://api.kubiya.ai/health
+
+# Check network policies
+kubectl get networkpolicies -n kubiya
+```
+
+## Complete Helm Chart Reference
+
+For the complete list of configuration options, values, and advanced features, see the full chart documentation on Artifact Hub:
+
+**📚 [Kubiya Runner Helm Chart - Artifact Hub](https://artifacthub.io/packages/helm/kubiya-helm-charts/kubiya-runner)**
+
+The Artifact Hub documentation includes:
+- Complete values.yaml reference
+- All configuration options
+- Security best practices
+- Monitoring and alerting setup
+- Advanced deployment patterns
+- Troubleshooting guides
+
+## Next Steps
+
+- **[Configure Agents](../composer/agents)** to use your new runner
+- **[Create Workflows](../workflows/overview)** that leverage runner capabilities
+- **[Monitor Performance](../core-concepts/runners)** through the Kubiya dashboard
+- **[Set up CI/CD](../workflows/examples)** integration with your runner
