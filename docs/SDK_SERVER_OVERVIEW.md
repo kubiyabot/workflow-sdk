@@ -1,8 +1,8 @@
-# Kubiya Workflow SDK Server - Complete Implementation Overview
+# SDK Server Overview
 
 ## Summary
 
-The Kubiya Workflow SDK now includes a complete production-ready server implementation with AI-powered workflow generation through the ADK (Agent Development Kit) provider. This document provides an overview of what has been implemented.
+FastAPI-based REST server for the Kubiya Workflow SDK with basic workflow execution capabilities.
 
 ## Key Components Implemented
 

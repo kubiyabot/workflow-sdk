@@ -43,21 +43,47 @@ Transform deployment processes from error-prone manual steps to reliable, audita
 />
 
 **Real example workflow:**
-```yaml
-name: microservice-deployment
-trigger: slack_command("/deploy user-service v2.3.1")
+```python
+from kubiya_workflow_sdk import Workflow, Step
 
-steps:
-  - name: validate-prerequisites
-    checks: [no-blocking-incidents, green-build-status, approval-received]
-    
-  - name: canary-deployment
-    traffic_split: [5%, 25%, 50%, 100%]
-    health_checks: [http-200, avg-latency < 200ms, error-rate < 1%]
-    
-  - name: auto-rollback  
-    condition: health_checks.failed
-    rollback_to: previous_stable_version
+# Deployment workflow with proper validation and rollback
+deployment_workflow = Workflow(
+    name="microservice-deployment",
+    description="Deploy microservice with health checks and rollback"
+)
+
+# Pre-deployment validation
+deployment_workflow.add_step(
+    Step("validate-build")
+    .tool("github")
+    .command("gh api repos/myorg/user-service/actions/runs --jq '.workflow_runs[0].conclusion'")
+    .condition("== 'success'")
+)
+
+# Deploy to staging first
+deployment_workflow.add_step(
+    Step("deploy-staging")
+    .tool("kubectl")
+    .command("kubectl set image deployment/user-service user-service=user-service:v2.3.1 -n staging")
+    .depends(["validate-build"])
+)
+
+# Health check
+deployment_workflow.add_step(
+    Step("health-check")
+    .tool("curl")
+    .command("curl -f http://user-service.staging.svc.cluster.local/health")
+    .retry(3)
+    .depends(["deploy-staging"])
+)
+
+# Production deployment
+deployment_workflow.add_step(
+    Step("deploy-production")
+    .tool("kubectl")
+    .command("kubectl set image deployment/user-service user-service=user-service:v2.3.1 -n production")
+    .depends(["health-check"])
+)
 ```
 
 ### **Infrastructure Provisioning**

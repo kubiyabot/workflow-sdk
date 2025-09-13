@@ -1,48 +1,44 @@
 ---
-title: "Task Chat"
-description: "Chat with AI agents to execute tasks and automate workflows"
+title: "Task Chat Interface"
+description: "Chat interface for creating and executing workflows with AI agents"
 icon: "comments"
 ---
 
-Chat with AI agents using natural language to get work done - no commands to memorize.
+The Task Chat interface allows you to interact with AI agents to create and execute workflows using natural language. The agent processes your requests and generates executable workflows.
 
-![Task Creation Interface](/assets/screenshots/composer/task-chat/task-creation-main-interface.png)
+![Task Dashboard Main Interface](/assets/images/task_dashboard_main_interface.png)
 
-The task creation interface provides template categories and suggestions to help you get started quickly:
+## Starting a Chat Session
 
-![Task Creation with Details](/assets/screenshots/composer/task-chat/task-creation-with-details.png)
+1. Access the Tasks interface in the Kubiya Composer
+2. Enter your request in natural language
+3. The AI agent will process your request and generate a workflow
+4. Review and execute the generated workflow
 
-Once you submit a task, the agent begins processing your request:
+![Task Creation with AI Model Selection](/assets/images/task_creation_ai_model_selection.png)
 
-![Workflow Processing](/assets/screenshots/composer/task-chat/workflow-processing.png)
+## Example Requests
 
-The system generates workflow artifacts and displays the results:
+**Infrastructure Operations:**
+```
+List all pods in the production namespace
+Scale my web service to 5 replicas
+Deploy the latest version to staging
+```
 
-![Workflow Artifacts Generated](/assets/screenshots/composer/task-chat/workflow-artifacts-generated.png)
+**Development Workflows:**
+```
+Create a CI/CD pipeline for my Node.js app
+Run tests and generate a coverage report
+Build and push Docker image to registry
+```
 
-## How to start a chat
-
-1. **Click "Tasks" → "Create Task"** in the left sidebar
-2. **Type what you want to do** in plain English
-3. **Press Enter** and watch the agent work
-4. **Ask follow-up questions** or request changes
-
-## What you can ask for
-
-**Infrastructure tasks:**
-- *"List all pods in the production namespace"*
-- *"Scale up my web service to 5 replicas"*
-- *"Deploy the latest commit to staging"*
-
-**Development tasks:**
-- *"Create a pull request for my feature branch"*
-- *"Run the test suite and show me the results"*  
-- *"Find all TODO comments in the codebase"*
-
-**Monitoring tasks:**
-- *"Show me CPU usage for the last hour"*
-- *"Check if all services are healthy"*
-- *"Alert me when disk space is low"*
+**Monitoring and Alerts:**
+```
+Check system health across all services
+Generate performance metrics report
+Set up alerts for high CPU usage
+```
 
 ## Understanding agent responses
 
@@ -52,7 +48,7 @@ The agent will:
 - **Ask for confirmation** before making changes
 - **Provide suggestions** for follow-up tasks
 
-![Task Chat View](/assets/screenshots/composer/task-chat/chat-view-16.png)
+![Task Creation Tools Selection](/assets/images/task_creation_tools_selection.png)
 
 ## Advanced features
 
