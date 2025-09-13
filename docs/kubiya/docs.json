@@ -103,100 +103,33 @@
               "composer/overview",
               "composer/getting-started",
               "composer/task-chat",
-              "composer/workflow-designer",
-              "composer/workflow-automation",
-              "composer/context-graph",
-              "composer/agents",
-              "composer/agent-configuration",
-              "composer/tools",
-              "composer/sources",
-              "composer/activity",
-              "composer/security",
-              "composer/settings"
+              "composer/workflow-designer"
             ]
           },
           {
             "group": "Workflows",
             "pages": [
-              "workflows/overview",
-              "workflows/architecture", 
-              "workflows/dsl-reference",
-              "workflows/examples",
-              "workflows/advanced"
+              "workflows/overview"
             ]
           },
           {
             "group": "MCP Integration",
             "pages": [
-              "mcpserver/overview",
-              "mcpserver/quickstart",
-              "mcpserver/serverless-architecture",
-              "mcpserver/infrastructure-compatibility",
-              "mcpserver/agent-integration-examples",
-              "mcpserver/deployment-guide",
-              "mcpserver/agent-server",
-              "mcpserver/authentication",
-              "mcpserver/tools-reference",
-              "mcpserver/examples"
+              "mcpserver/connecting-via-mcp"
             ]
           },
           {
-            "group": "Full-Stack Agents",
+            "group": "Administration", 
             "pages": [
-              "mcpserver/full-stack-agents/overview",
-              "mcpserver/full-stack-agents/architecture",
-              "mcpserver/full-stack-agents/quickstart",
-              "mcpserver/full-stack-agents/examples",
-              {
-                "group": "Existing Frameworks",
-                "pages": [
-                  "mcpserver/full-stack-agents/existing-frameworks/overview",
-                  "mcpserver/full-stack-agents/existing-frameworks/langgraph"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Streaming UI",
-            "pages": [
-              "mcpserver/streaming-ui/overview", 
-              "mcpserver/streaming-ui/vercel-ai-sdk"
-            ]
-          },
-          {
-            "group": "Tutorials",
-            "pages": [
-              "tutorials/ai-powered-automation",
-              "tutorials/full-stack-ai"
-            ]
-          },
-          {
-            "group": "Administration & Deployment", 
-            "pages": [
-              "concepts/runners/helm-chart",
               "deployment/kubernetes",
-              "deployment/docker",
-              "mcpserver/deployment-guide",
-              "mcpserver/security-config",
-              "mcpserver/monitoring"
+              "deployment/docker"
             ]
           },
           {
             "group": "Reference",
             "pages": [
               "cli-reference",
-              "workflows/dsl-reference",
-              "mcpserver/tools-reference",
               "troubleshooting"
-            ]
-          },
-          {
-            "group": "Resources", 
-            "pages": [
-              "workflows/examples",
-              "changelog",
-              "migration-guide",
-              "updates"
             ]
           }
         ]
@@ -205,32 +138,10 @@
         "tab": "APIs",
         "groups": [
           {
-            "group": "Kubiya Platform APIs",
+            "group": "Platform APIs",
             "pages": [
               "api-reference/platform/overview",
-              "api-reference/platform/authentication",
-              "api-reference/platform/agents",
-              "api-reference/platform/tasks",
-              "api-reference/platform/sources",
-              "api-reference/platform/runners",
-              "api-reference/platform/knowledge"
-            ]
-          },
-          {
-            "group": "MCP Server APIs", 
-            "pages": [
-              "api-reference/mcp/overview",
-              "api-reference/mcp/tools",
-              "api-reference/mcp/protocol"
-            ]
-          },
-          {
-            "group": "Agent Server APIs",
-            "pages": [
-              "api-reference/agent-servers/overview", 
-              "api-reference/agent-servers/discovery",
-              "api-reference/agent-servers/orchestration",
-              "api-reference/agent-servers/compose"
+              "api-reference/platform/authentication"
             ]
           }
         ]

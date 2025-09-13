@@ -12,56 +12,9 @@ Workflows are where everything comes together. They transform AI understanding i
 
 Unlike traditional automation that requires manual scripting, Kubiya workflows start with natural language:
 
-<Tabs>
-  <Tab title="Natural Language Input">
-    ```text
-    "Deploy the latest version of our payment service to staging, 
-    run the integration tests, and if they pass, promote to 
-    production with a gradual rollout"
-    ```
-  </Tab>
-  
-  <Tab title="AI-Generated Workflow">
-    ```yaml
-    name: payment-service-deployment
-    description: "Safe deployment pipeline with automated testing"
-    
-    steps:
-      - name: validate-prerequisites
-        tool: deployment-validator
-        checks:
-          - staging_environment_healthy
-          - no_blocking_incidents
-          - deployment_window_active
-          
-      - name: deploy-to-staging
-        tool: kubernetes-deployer
-        inputs:
-          service: payment-service
-          environment: staging
-          image: payment-service:${BUILD_VERSION}
-          
-      - name: run-integration-tests
-        tool: test-runner
-        depends_on: [deploy-to-staging]
-        timeout: 10m
-        inputs:
-          test_suite: integration
-          target_environment: staging
-          
-      - name: production-deployment
-        tool: canary-deployer
-        condition: ${run-integration-tests.status} == "success"
-        inputs:
-          service: payment-service
-          environment: production  
-          image: payment-service:${BUILD_VERSION}
-          rollout_strategy: gradual
-          traffic_split: [10%, 50%, 100%]
-          rollback_threshold: 5% # error rate
-    ```
-  </Tab>
-</Tabs>
+**You say**: *"Deploy the payment service to staging and run tests"*
+
+**Kubiya creates**: A workflow that uses your existing tools (kubectl, helm, etc.) and follows your deployment patterns, but executes reliably every time.
 
 <img
   src="/assets/images/workflow_designer_ai_guidance.png"
@@ -80,34 +33,7 @@ Once generated, workflows execute the same way every time:
 
 ### **Context-Aware Intelligence**
 
-AI generates workflows that understand your specific environment:
-
-```yaml
-# AI automatically includes environment-specific details
-steps:
-  - name: scale-frontend
-    tool: kubernetes-scaler
-    # AI knows your cluster configuration
-    cluster: "prod-us-west-2"
-    namespace: "ecommerce"
-    deployment: "frontend-service"
-    # AI suggests scaling based on historical patterns  
-    target_replicas: 15  # Usually 3x during flash sale events
-    
-  - name: warm-cache
-    tool: redis-warmer
-    # AI knows your cache topology
-    redis_cluster: "prod-cache-cluster"
-    # AI includes dependencies it discovered
-    depends_on: [scale-frontend]
-    
-  - name: update-load-balancer
-    tool: aws-alb-controller
-    # AI knows your AWS configuration
-    load_balancer: "prod-frontend-alb"
-    # AI includes safety checks
-    health_check_grace_period: 30s
-```
+AI generates workflows that understand your specific environment by reading your existing configurations, deployment patterns, and infrastructure setup.
 
 ## Workflow Creation Methods
 
