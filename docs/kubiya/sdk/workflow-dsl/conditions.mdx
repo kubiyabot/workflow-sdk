@@ -1,0 +1,470 @@
+---
+title: "Conditions & Branching"
+description: "Control workflow execution flow with conditions and branching logic"
+icon: "code-branch"
+---
+
+Conditions and branching allow you to create dynamic workflows that adapt based on runtime data, environment variables, and previous step results.
+
+## Basic Conditions
+
+### Simple Conditional Execution
+
+```python
+from kubiya_sdk import Step, Condition, Branch
+
+# Step that only runs in production
+production_backup = Step("backup-production-db").tool("pg_dump").inputs(
+    database="production",
+    backup_location="/secure-backups/"
+).condition("${ENVIRONMENT} == 'production'")
+
+# Step that runs on failure
+cleanup_step = Step("cleanup-failed-deployment").tool("kubernetes-cleaner").inputs(
+    namespace="${ENVIRONMENT}",
+    deployment="${SERVICE_NAME}"
+).condition("${deploy_service.status} == 'failed'")
+```
+
+### Environment-Based Conditions
+
+```python
+# Different behavior per environment
+notification_step = Step("send-notification").tool("slack").inputs(
+    channel="#deployments",
+    message="Deployment completed"
+).condition("${ENVIRONMENT} in ['staging', 'production']")
+
+# Skip step in development
+security_scan = Step("security-vulnerability-scan").tool("security-scanner").inputs(
+    image="${DOCKER_IMAGE}:${TAG}",
+    severity_threshold="high"
+).condition("${ENVIRONMENT} != 'development'")
+```
+
+## Branch Structures
+
+### Basic Branching
+
+```python
+from kubiya_sdk import Branch, Condition
+
+# Branch based on environment
+environment_branch = Branch([
+    # Production branch - requires approval
+    Condition("${ENVIRONMENT} == 'production'").then([
+        Step("request-deployment-approval").tool("approval-gate").inputs(
+            approvers=["platform-team@company.com"],
+            timeout="2h"
+        ),
+        Step("deploy-to-production").tool("kubernetes-deployer").inputs(
+            environment="production",
+            replicas=5
+        )
+    ]),
+    
+    # Staging branch - automatic deployment
+    Condition("${ENVIRONMENT} == 'staging'").then([
+        Step("deploy-to-staging").tool("kubernetes-deployer").inputs(
+            environment="staging", 
+            replicas=2
+        )
+    ]),
+    
+    # Default branch for development
+    Condition.default().then([
+        Step("deploy-to-development").tool("kubernetes-deployer").inputs(
+            environment="development",
+            replicas=1
+        )
+    ])
+])
+```
+
+### Service-Based Branching
+
+```python
+# Different deployment strategies per service type
+service_deployment_branch = Branch([
+    Condition("${SERVICE_TYPE} == 'frontend'").then([
+        Step("build-frontend").tool("npm-builder").inputs(
+            build_command="npm run build:prod"
+        ),
+        Step("deploy-to-cdn").tool("cdn-deployer").inputs(
+            source_dir="./dist",
+            cache_duration="1h"
+        )
+    ]),
+    
+    Condition("${SERVICE_TYPE} == 'api'").then([
+        Step("run-api-tests").tool("test-runner").inputs(
+            test_suite="api-integration"
+        ),
+        Step("deploy-api-service").tool("kubernetes-deployer").inputs(
+            service_type="api",
+            health_check_path="/health"
+        )
+    ]),
+    
+    Condition("${SERVICE_TYPE} == 'worker'").then([
+        Step("deploy-worker-service").tool("kubernetes-deployer").inputs(
+            service_type="worker",
+            resource_limits={"memory": "2Gi", "cpu": "1000m"}
+        )
+    ])
+])
+```
+
+## Complex Condition Logic
+
+### Multiple Condition Operators
+
+```python
+# Complex boolean logic
+complex_condition = Step("high-priority-deployment").tool("priority-deployer").inputs(
+    service="${SERVICE_NAME}",
+    priority="high"
+).condition("""
+    (${ENVIRONMENT} == 'production' and ${URGENCY} == 'high') or
+    (${ENVIRONMENT} == 'staging' and ${TEST_RESULTS.success_rate} > 0.95) or
+    (${FORCE_DEPLOY} == 'true' and ${APPROVED_BY} != '')
+""")
+
+# Numeric comparisons
+performance_scaling = Step("scale-up-service").tool("kubernetes-scaler").inputs(
+    replicas="${CURRENT_REPLICAS * 2}"
+).condition("""
+    ${CURRENT_LOAD} > 80 and
+    ${RESPONSE_TIME} > 500 and
+    ${ERROR_RATE} < 0.01
+""")
+```
+
+### Time-Based Conditions
+
+```python
+# Maintenance window conditions
+maintenance_deployment = Step("maintenance-deployment").tool("maintenance-deployer").inputs(
+    service="${SERVICE_NAME}",
+    maintenance_mode=True
+).condition("""
+    ${CURRENT_HOUR} >= 2 and ${CURRENT_HOUR} <= 4 and
+    ${CURRENT_DAY_OF_WEEK} == 'Sunday'
+""")
+
+# Business hours condition
+business_hours_notification = Step("send-business-hours-alert").tool("slack").inputs(
+    channel="#business-critical",
+    message="Critical deployment during business hours"
+).condition("""
+    ${CURRENT_HOUR} >= 9 and ${CURRENT_HOUR} <= 17 and
+    ${CURRENT_DAY_OF_WEEK} not in ['Saturday', 'Sunday']
+""")
+```
+
+## Conditional Step Results
+
+### Branching on Step Outputs
+
+```python
+# Health check with conditional responses
+health_check = Step("service-health-check").tool("health-checker").inputs(
+    service_url="${SERVICE_URL}/health"
+)
+
+health_response_branch = Branch([
+    # Service is healthy - proceed with deployment
+    Condition("${health_check.status_code} == 200").then([
+        Step("proceed-with-deployment").tool("deployer").inputs(
+            service="${SERVICE_NAME}"
+        )
+    ]),
+    
+    # Service is degraded - deploy with caution
+    Condition("${health_check.status_code} == 503").then([
+        Step("cautious-deployment").tool("canary-deployer").inputs(
+            service="${SERVICE_NAME}",
+            traffic_percentage=10
+        )
+    ]),
+    
+    # Service is down - emergency procedures
+    Condition("${health_check.status_code} >= 500").then([
+        Step("trigger-incident").tool("incident-manager").inputs(
+            severity="high",
+            service="${SERVICE_NAME}",
+            description="Service unhealthy before deployment"
+        )
+    ])
+])
+```
+
+### Data-Driven Conditions
+
+```python
+# Database migration with data volume checks
+data_check = Step("check-data-volume").tool("postgres-query").inputs(
+    query="SELECT COUNT(*) as row_count FROM users"
+)
+
+migration_strategy_branch = Branch([
+    # Small dataset - direct migration
+    Condition("${data_check.row_count} < 10000").then([
+        Step("direct-migration").tool("flyway").inputs(
+            migration_location="db/migration",
+            migration_strategy="direct"
+        )
+    ]),
+    
+    # Medium dataset - batched migration  
+    Condition("${data_check.row_count} < 1000000").then([
+        Step("batched-migration").tool("migration-runner").inputs(
+            batch_size=1000,
+            migration_strategy="batched"
+        )
+    ]),
+    
+    # Large dataset - background migration
+    Condition("${data_check.row_count} >= 1000000").then([
+        Step("background-migration").tool("background-migrator").inputs(
+            migration_strategy="background",
+            estimated_duration="2h"
+        )
+    ])
+])
+```
+
+## Advanced Branching Patterns
+
+### Nested Conditions
+
+```python
+# Nested branching for complex decision trees
+deployment_strategy = Branch([
+    Condition("${ENVIRONMENT} == 'production'").then([
+        # Production sub-branches
+        Branch([
+            Condition("${SERVICE_CRITICALITY} == 'high'").then([
+                Step("high-criticality-production-deploy").tool("blue-green-deployer")
+            ]),
+            Condition("${SERVICE_CRITICALITY} == 'medium'").then([
+                Step("medium-criticality-production-deploy").tool("rolling-deployer")
+            ]),
+            Condition.default().then([
+                Step("standard-production-deploy").tool("standard-deployer")
+            ])
+        ])
+    ]),
+    
+    Condition("${ENVIRONMENT} == 'staging'").then([
+        # Staging sub-branches  
+        Branch([
+            Condition("${FEATURE_FLAGS_ENABLED} == 'true'").then([
+                Step("feature-flag-staging-deploy").tool("feature-flag-deployer")
+            ]),
+            Condition.default().then([
+                Step("standard-staging-deploy").tool("standard-deployer")
+            ])
+        ])
+    ])
+])
+```
+
+### Loop-like Conditions
+
+```python
+# Retry deployment with backoff
+def create_retry_deployment(max_attempts=3):
+    steps = []
+    
+    for attempt in range(1, max_attempts + 1):
+        deploy_step = Step(f"deploy-attempt-{attempt}").tool("deployer").inputs(
+            service="${SERVICE_NAME}",
+            attempt_number=attempt
+        )
+        
+        # Only run if previous attempts failed
+        if attempt > 1:
+            deploy_step = deploy_step.condition(
+                f"${{{deploy_step_name(attempt-1)}.status}} == 'failed'"
+            )
+        
+        # Add exponential backoff delay
+        if attempt > 1:
+            delay_step = Step(f"backoff-delay-{attempt}").tool("sleep").inputs(
+                duration=f"{2**(attempt-1) * 30}s"  # Exponential backoff
+            ).condition(
+                f"${{{deploy_step_name(attempt-1)}.status}} == 'failed'"
+            )
+            steps.append(delay_step)
+        
+        steps.append(deploy_step)
+    
+    return steps
+
+def deploy_step_name(attempt):
+    return f"deploy-attempt-{attempt}"
+```
+
+## Condition Functions and Helpers
+
+### Built-in Condition Functions
+
+```python
+# String operations
+string_conditions = Step("process-user-input").tool("input-processor").condition("""
+    startswith(${USER_INPUT}, 'deploy:') and
+    contains(${USER_INPUT}, ${SERVICE_NAME}) and
+    length(${USER_INPUT}) > 10
+""")
+
+# List operations  
+list_conditions = Step("multi-service-operation").tool("bulk-processor").condition("""
+    ${SERVICE_NAME} in ${ALLOWED_SERVICES} and
+    size(${AFFECTED_SERVICES}) <= 5
+""")
+
+# Numeric operations
+numeric_conditions = Step("resource-intensive-task").tool("heavy-processor").condition("""
+    ${AVAILABLE_MEMORY} > 4096 and
+    ${CPU_CORES} >= 4 and
+    round(${LOAD_AVERAGE}) < 2.0
+""")
+```
+
+### Custom Condition Functions
+
+```python
+# Define custom condition functions
+def is_business_critical(service_name):
+    critical_services = ["payment", "authentication", "checkout"]
+    return service_name in critical_services
+
+def within_maintenance_window(current_time):
+    import datetime
+    maintenance_start = datetime.time(2, 0)  # 2 AM
+    maintenance_end = datetime.time(4, 0)    # 4 AM
+    return maintenance_start <= current_time <= maintenance_end
+
+# Use in conditions
+critical_service_step = Step("critical-service-deployment").tool("blue-green-deployer").condition(
+    f"is_business_critical('${SERVICE_NAME}')"
+)
+```
+
+## Error Handling with Conditions
+
+### Conditional Error Recovery
+
+```python
+# Recovery strategy based on error type
+error_recovery_branch = Branch([
+    Condition("contains(${deployment.error_message}, 'insufficient resources')").then([
+        Step("scale-down-non-critical").tool("resource-manager").inputs(
+            action="scale_down",
+            target="non-critical-services"
+        ),
+        Step("retry-deployment").tool("deployer").inputs(
+            service="${SERVICE_NAME}",
+            retry_attempt=True
+        )
+    ]),
+    
+    Condition("contains(${deployment.error_message}, 'image not found')").then([
+        Step("build-missing-image").tool("docker-builder").inputs(
+            service="${SERVICE_NAME}",
+            tag="${IMAGE_TAG}"
+        ),
+        Step("retry-with-new-image").tool("deployer").inputs(
+            service="${SERVICE_NAME}",
+            force_pull=True
+        )
+    ]),
+    
+    # Default error handling
+    Condition.default().then([
+        Step("escalate-to-humans").tool("incident-manager").inputs(
+            severity="medium",
+            description="Deployment failed with unknown error"
+        )
+    ])
+])
+```
+
+### Graceful Degradation
+
+```python
+# Fallback deployment strategy
+primary_deployment = Step("primary-deployment-strategy").tool("advanced-deployer").inputs(
+    strategy="blue-green"
+)
+
+fallback_branch = Branch([
+    Condition("${primary_deployment.status} == 'success'").then([
+        Step("deployment-success-notification").tool("slack").inputs(
+            message="✅ Advanced deployment completed successfully"
+        )
+    ]),
+    
+    # Fallback to simpler strategy
+    Condition("${primary_deployment.status} == 'failed'").then([
+        Step("fallback-deployment").tool("simple-deployer").inputs(
+            strategy="rolling-update"
+        ),
+        Step("fallback-notification").tool("slack").inputs(
+            message="⚠️  Fell back to rolling deployment strategy"
+        )
+    ])
+])
+```
+
+## Performance Considerations
+
+### Lazy Evaluation
+
+```python
+# Expensive condition evaluation - use lazy evaluation
+expensive_condition = Step("resource-intensive-task").tool("heavy-processor").condition(
+    # Only evaluate expensive operations if basic conditions pass first
+    "${ENVIRONMENT} == 'production' and expensive_check(${DATA_VOLUME})"
+)
+```
+
+### Condition Caching
+
+```python
+# Cache condition results for reuse
+cached_health_check = Step("health-check-once").tool("health-checker").inputs(
+    service_url="${SERVICE_URL}"
+).cache_result(duration="5m")  # Cache for 5 minutes
+
+# Multiple steps can use the cached result
+step1 = Step("operation-1").condition("${cached_health_check.is_healthy}")
+step2 = Step("operation-2").condition("${cached_health_check.is_healthy}")
+```
+
+## Best Practices
+
+### Condition Design
+- Keep conditions simple and readable
+- Use meaningful variable names
+- Document complex logic
+- Test all condition branches
+
+### Performance
+- Avoid expensive operations in conditions
+- Use lazy evaluation when possible
+- Cache frequently used condition results
+- Consider condition evaluation order
+
+### Error Handling
+- Plan for condition evaluation failures
+- Provide meaningful error messages
+- Use default branches for unexpected cases
+- Test edge cases and boundary conditions
+
+### Maintainability
+- Extract complex conditions into functions
+- Use consistent condition patterns
+- Document business logic behind conditions
+- Version control condition changes carefully

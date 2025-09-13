@@ -7,9 +7,9 @@
   },
   "favicon": "/assets/favicon.png",
   "colors": {
-    "primary": "#1f2937",
-    "light": "#6b7280",
-    "dark": "#111827"
+    "primary": "#6366f1",
+    "light": "#8b5cf6", 
+    "dark": "#4f46e5"
   },
   "topbarLinks": [
     {
@@ -26,9 +26,12 @@
     "url": "https://compose.kubiya.ai",
     "style": "roundedRectangle"
   },
-
-
   "anchors": [
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.gg/kubiya"
+    },
     {
       "name": "Blog",
       "icon": "newspaper",
@@ -43,7 +46,7 @@
   "contextual": {
     "options": [
       "copy",
-      "view",
+      "view", 
       "chatgpt",
       "claude"
     ]
@@ -69,53 +72,48 @@
           {
             "group": "Introduction",
             "pages": [
-              "getting-started/welcome",
-              "getting-started/installation", 
-              "getting-started/quickstart"
+              "introduction/what-is-kubiya",
+              "introduction/why-kubiya"
             ]
           },
           {
-            "group": "Composer (Web Interface)",
+            "group": "Quick Start",
             "pages": [
-              "composer/overview",
-              "composer/getting-started",
-              "composer/task-chat",
-              "composer/workflow-designer", 
-              "composer/workflow-automation",
-              "composer/context-graph",
-              "composer/agents",
-              "composer/agent-configuration",
-              "composer/tools",
-              "composer/sources",
-              "composer/activity",
-              "composer/security",
-              "composer/settings",
-              "composer/mcp-integration",
-              {
-                "group": "Features",
-                "pages": [
-                  "composer/features/dashboard",
-                  "composer/features/integrations"
-                ]
-              }
+              "quickstart/get-started",
+              "quickstart/cli-quickstart",
+              "quickstart/web-composer-quickstart", 
+              "quickstart/sdk-quickstart"
             ]
           },
           {
             "group": "Core Concepts",
             "pages": [
-              "concepts/platform-overview",
-              "concepts/workflows",
-              "concepts/runners",
-              {
-                "group": "Runners",
-                "pages": [
-                  "concepts/runners/helm-chart"
-                ]
-              },
-              "concepts/integrations",
-              "concepts/deterministic-workflows",
-              "concepts/why-kubiya",
-              "concepts/agent-frameworks-comparison"
+              "core-concepts/integrations",
+              "core-concepts/context-graph",
+              "core-concepts/serverless-tools",
+              "core-concepts/runners",
+              "core-concepts/ai-models",
+              "core-concepts/workflows",
+              "core-concepts/use-cases"
+            ]
+          },
+          {
+            "group": "Using Kubiya",
+            "pages": [
+              "composer/overview",
+              "composer/getting-started",
+              "composer/agents",
+              "composer/agent-configuration",
+              "composer/sources",
+              "composer/tools",
+              "composer/context-graph",
+              "composer/task-chat",
+              "composer/workflow-designer",
+              "composer/workflow-automation",
+              "composer/mcp-integration",
+              "composer/activity",
+              "composer/settings",
+              "composer/security"
             ]
           },
           {
@@ -131,170 +129,21 @@
           {
             "group": "MCP Integration",
             "pages": [
-              "mcpserver/overview",
-              "mcpserver/quickstart",
-              "mcpserver/serverless-architecture",
-              "mcpserver/infrastructure-compatibility",
-              "mcpserver/agent-integration-examples",
-              "mcpserver/deployment-guide",
-              "mcpserver/agent-server",
-              "mcpserver/authentication",
-              "mcpserver/tools-reference",
-              "mcpserver/examples"
+              "mcpserver/connecting-via-mcp"
             ]
           },
           {
-            "group": "Full-Stack Agents",
+            "group": "Administration", 
             "pages": [
-              "mcpserver/full-stack-agents/overview",
-              "mcpserver/full-stack-agents/architecture",
-              "mcpserver/full-stack-agents/quickstart",
-              "mcpserver/full-stack-agents/examples",
-              {
-                "group": "Existing Frameworks",
-                "pages": [
-                  "mcpserver/full-stack-agents/existing-frameworks/overview",
-                  "mcpserver/full-stack-agents/existing-frameworks/langgraph"
-                ]
-              }
+              "deployment/kubernetes",
+              "deployment/docker"
             ]
           },
           {
-            "group": "Streaming UI",
-            "pages": [
-              "mcpserver/streaming-ui/overview",
-              "mcpserver/streaming-ui/vercel-ai-sdk"
-            ]
-          },
-          {
-            "group": "Tutorials",
-            "pages": [
-              "tutorials/ai-powered-automation",
-              "tutorials/full-stack-ai"
-            ]
-          },
-          {
-            "group": "Services",
-            "pages": [
-              {
-                "group": "Agents",
-                "pages": [
-                  "services/agents/overview",
-                  "services/agents/api-reference"
-                ]
-              },
-              {
-                "group": "Audit",
-                "pages": [
-                  "services/audit/overview",
-                  "services/audit/api-reference"
-                ]
-              },
-              {
-                "group": "Documentations",
-                "pages": [
-                  "services/documentations/overview",
-                  "services/documentations/api-reference"
-                ]
-              },
-              {
-                "group": "Integrations",
-                "pages": [
-                  "services/integrations/overview",
-                  "services/integrations/api-reference"
-                ]
-              },
-              {
-                "group": "Knowledge",
-                "pages": [
-                  "services/knowledge/overview",
-                  "services/knowledge/api-reference"
-                ]
-              },
-              {
-                "group": "Policies",
-                "pages": [
-                  "services/policies/overview",
-                  "services/policies/api-reference"
-                ]
-              },
-              {
-                "group": "Projects",
-                "pages": [
-                  "services/projects/overview",
-                  "services/projects/api-reference"
-                ]
-              },
-              {
-                "group": "Runners",
-                "pages": [
-                  "services/runners/overview",
-                  "services/runners/api-reference"
-                ]
-              },
-              {
-                "group": "Secrets",
-                "pages": [
-                  "services/secrets/overview",
-                  "services/secrets/api-reference"
-                ]
-              },
-              {
-                "group": "Sources",
-                "pages": [
-                  "services/sources/overview",
-                  "services/sources/api-reference"
-                ]
-              },
-              {
-                "group": "Stacks",
-                "pages": [
-                  "services/stacks/overview",
-                  "services/stacks/api-reference"
-                ]
-              },
-              {
-                "group": "Tools",
-                "pages": [
-                  "services/tools/overview",
-                  "services/tools/api-reference"
-                ]
-              },
-              {
-                "group": "Triggers",
-                "pages": [
-                  "services/triggers/overview",
-                  "services/triggers/api-reference"
-                ]
-              },
-              {
-                "group": "Users",
-                "pages": [
-                  "services/users/overview",
-                  "services/users/api-reference"
-                ]
-              },
-              {
-                "group": "Webhooks",
-                "pages": [
-                  "services/webhooks/overview",
-                  "services/webhooks/api-reference"
-                ]
-              },
-              {
-                "group": "Workflows",
-                "pages": [
-                  "services/workflows/overview",
-                  "services/workflows/api-reference"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Resources",
+            "group": "Reference",
             "pages": [
               "cli-reference",
-              "changelog",
+              "troubleshooting",
               "migration-guide",
               "updates"
             ]
@@ -305,7 +154,7 @@
         "tab": "APIs",
         "groups": [
           {
-            "group": "Kubiya Platform APIs",
+            "group": "Platform APIs",
             "pages": [
               "api-reference/platform/overview",
               "api-reference/platform/authentication",
@@ -339,13 +188,42 @@
         "tab": "SDK",
         "groups": [
           {
-            "group": "SDK Reference",
+            "group": "Getting Started",
             "pages": [
               "sdk/overview",
+              "sdk/installation",
               "sdk/api-reference",
               "sdk/examples",
               "sdk/contributing",
               "sdk/changelog"
+            ]
+          },
+          {
+            "group": "Client SDK",
+            "pages": [
+              "sdk/client/overview",
+              "sdk/client/agents",
+              "sdk/client/workflows",
+              "sdk/client/integrations",
+              "sdk/client/secrets",
+              "sdk/client/knowledge"
+            ]
+          },
+          {
+            "group": "Workflow DSL",
+            "pages": [
+              "sdk/workflow-dsl/overview",
+              "sdk/workflow-dsl/steps",
+              "sdk/workflow-dsl/conditions",
+              "sdk/workflow-dsl/error-handling",
+              "sdk/workflow-dsl/testing"
+            ]
+          },
+          {
+            "group": "Tools SDK",
+            "pages": [
+              "sdk/tools/overview",
+              "sdk/tools/docker-tools"
             ]
           }
         ]
@@ -365,7 +243,7 @@
             "group": "Resources",
             "pages": [
               "terraform/resources/agent",
-              "terraform/resources/runner",
+              "terraform/resources/runner", 
               "terraform/resources/integration",
               "terraform/resources/source",
               "terraform/resources/inline-source",
@@ -386,13 +264,12 @@
     "linkedin": "https://www.linkedin.com/company/kubiya",
     "twitter": "https://x.com/KubiyaDevOps"
   },
-
   "search": {
-    "prompt": "Search documentation..."
+    "prompt": "Ask me anything about Kubiya..."
   },
   "metadata": {
     "og:title": "Kubiya Documentation",
-    "og:description": "Build intelligent automation workflows with Kubiya's powerful SDK",
+    "og:description": "Build intelligent automation workflows with Kubiya's AI-powered platform",
     "og:image": "/assets/og-image.png",
     "twitter:card": "summary_large_image"
   },
@@ -416,6 +293,46 @@
   "theme": "mint",
   "redirects": [
     {
+      "source": "/getting-started",
+      "destination": "/introduction/what-is-kubiya"
+    },
+    {
+      "source": "/getting-started/welcome", 
+      "destination": "/introduction/what-is-kubiya"
+    },
+    {
+      "source": "/getting-started/installation",
+      "destination": "/quickstart/get-started"
+    },
+    {
+      "source": "/getting-started/quickstart",
+      "destination": "/quickstart/get-started"
+    },
+    {
+      "source": "/concepts/platform-overview",
+      "destination": "/introduction/what-is-kubiya"
+    },
+    {
+      "source": "/concepts/why-kubiya",
+      "destination": "/introduction/why-kubiya"
+    },
+    {
+      "source": "/concepts/workflows",
+      "destination": "/core-concepts/workflows"
+    },
+    {
+      "source": "/concepts/runners", 
+      "destination": "/core-concepts/runners"
+    },
+    {
+      "source": "/concepts/integrations",
+      "destination": "/core-concepts/integrations"
+    },
+    {
+      "source": "/concepts/deterministic-workflows",
+      "destination": "/core-concepts/workflows"
+    },
+    {
       "source": "/providers/adk",
       "destination": "/providers/adk/getting-started"
     },
@@ -428,26 +345,6 @@
       "destination": "/mcpserver/full-stack-agents/overview"
     },
     {
-      "source": "/full-stack-agents/overview",
-      "destination": "/mcpserver/full-stack-agents/overview"
-    },
-    {
-      "source": "/full-stack-agents/architecture",
-      "destination": "/mcpserver/full-stack-agents/architecture"
-    },
-    {
-      "source": "/full-stack-agents/quickstart",
-      "destination": "/mcpserver/full-stack-agents/quickstart"
-    },
-    {
-      "source": "/full-stack-agents/examples",
-      "destination": "/mcpserver/full-stack-agents/examples"
-    },
-    {
-      "source": "/agent-servers",
-      "destination": "/full-stack-agents/agent-servers"
-    },
-    {
       "source": "/streaming",
       "destination": "/providers/adk/streaming"
     },
@@ -456,11 +353,7 @@
       "destination": "/mcpserver/streaming-ui/overview"
     },
     {
-      "source": "/frontend/vercel-ai-sdk",
-      "destination": "/mcpserver/streaming-ui/vercel-ai-sdk"
-    },
-    {
-      "source": "/deployment/helm-chart",
+      "source": "/deployment/helm-chart", 
       "destination": "/concepts/runners/helm-chart"
     },
     {

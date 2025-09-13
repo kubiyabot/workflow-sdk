@@ -1,0 +1,297 @@
+---
+title: "Integrations"
+description: "Connect your tools and systems with Kubiya's secure integration layer"
+icon: "plug"
+---
+
+Integrations are the foundation of Kubiya's automation platform. They connect your existing tools and infrastructure to enable AI-powered workflows that understand your actual environment—not hypothetical examples.
+
+<img
+  src="/assets/images/workflow_platform_integrations.png"
+  alt="Platform Integration Overview"
+  caption="Kubiya connects to 100+ tools across your infrastructure stack"
+/>
+
+## Why Integrations Come First
+
+Before Kubiya can automate anything, it needs to understand your environment:
+
+- **What tools do you use?** (Kubernetes, AWS, GitHub, Slack, etc.)
+- **How are they configured?** (Cluster names, regions, API endpoints)
+- **What are the current states?** (Running services, recent deployments, active alerts)
+- **How do they relate to each other?** (Which services depend on which databases)
+
+This knowledge transforms generic AI suggestions into actionable, context-aware automation.
+
+## How Kubiya Integrations Work
+
+### 1. **Secure Authentication**
+
+Each integration uses industry-standard authentication methods:
+
+<Tabs>
+  <Tab title="API Keys">
+    For services like Datadog, PagerDuty, and GitHub
+    ```yaml
+    integration: datadog
+    auth_type: api_key
+    credentials:
+      api_key: "${DATADOG_API_KEY}"
+      app_key: "${DATADOG_APP_KEY}"
+    ```
+  </Tab>
+
+  <Tab title="OAuth 2.0">
+    For platforms like Google Cloud, Microsoft Azure
+    ```yaml
+    integration: google_cloud
+    auth_type: oauth2
+    scopes: 
+      - "https://www.googleapis.com/auth/compute"
+      - "https://www.googleapis.com/auth/container"
+    ```
+  </Tab>
+
+  <Tab title="Service Accounts">
+    For Kubernetes, AWS IAM roles
+    ```yaml  
+    integration: kubernetes
+    auth_type: service_account
+    kubeconfig: "${KUBECONFIG_PATH}"
+    context: "production-cluster"
+    ```
+  </Tab>
+</Tabs>
+
+<img
+  src="/assets/images/secrets_vault_management.png"
+  alt="Secure Credential Management"
+  caption="All credentials are encrypted and stored securely in Kubiya's vault"
+/>
+
+### 2. **Standardized Interfaces**
+
+Kubiya abstracts away API differences between similar tools:
+
+```python
+# Same interface works across cloud providers
+get_compute_instances(
+    provider="aws",        # or "gcp", "azure"
+    region="us-east-1",
+    filters={"status": "running"}
+)
+
+# Unified monitoring queries
+get_metrics(
+    provider="datadog",    # or "newrelic", "grafana" 
+    query="avg:cpu.utilization",
+    timeframe="1h"
+)
+```
+
+### 3. **Real-Time Context**
+
+Integrations continuously sync with your systems to provide up-to-date information:
+
+<img
+  src="/assets/images/context_resources_integration_cloud.png"
+  alt="Real-time Integration Context"
+  caption="Live data from all your integrated systems feeds into Kubiya's context graph"
+/>
+
+## Integration Categories
+
+### **Cloud Platforms**
+<CardGroup cols={3}>
+  <Card title="AWS" icon="aws">
+    EC2, EKS, RDS, Lambda, S3, CloudFormation
+  </Card>
+  <Card title="Google Cloud" icon="google">
+    GKE, Compute Engine, Cloud SQL, Cloud Functions
+  </Card>
+  <Card title="Azure" icon="microsoft">
+    AKS, Virtual Machines, Azure SQL, Functions
+  </Card>
+</CardGroup>
+
+### **Container Orchestration**
+<CardGroup cols={3}>
+  <Card title="Kubernetes" icon="dharmachakra">
+    Native kubectl, Helm, operators
+  </Card>
+  <Card title="Docker" icon="docker">
+    Container management and registries
+  </Card>
+  <Card title="OpenShift" icon="redhat">
+    Enterprise Kubernetes platform
+  </Card>
+</CardGroup>
+
+### **CI/CD & Version Control**
+<CardGroup cols={3}>
+  <Card title="GitHub" icon="github">
+    Repositories, Actions, Issues, PRs
+  </Card>
+  <Card title="GitLab" icon="gitlab">
+    Pipelines, merge requests, registries
+  </Card>
+  <Card title="Jenkins" icon="jenkins">
+    Build automation and deployments
+  </Card>
+</CardGroup>
+
+### **Monitoring & Observability**
+<CardGroup cols={3}>
+  <Card title="Datadog" icon="chart-line">
+    Metrics, logs, traces, alerts
+  </Card>
+  <Card title="Grafana" icon="chart-simple">
+    Dashboards and visualization
+  </Card>
+  <Card title="Prometheus" icon="fire">
+    Time-series metrics collection
+  </Card>
+</CardGroup>
+
+<img
+  src="/assets/images/workflow_datadog_integration.png"
+  alt="Datadog Integration Example"
+  caption="Rich integrations provide comprehensive access to platform capabilities"
+/>
+
+### **Communication & Collaboration**
+<CardGroup cols={3}>
+  <Card title="Slack" icon="slack">
+    Channels, messages, bot interactions
+  </Card>
+  <Card title="Microsoft Teams" icon="microsoft">
+    Chat, channels, notifications
+  </Card>
+  <Card title="PagerDuty" icon="bell">
+    Incident management and alerting
+  </Card>
+</CardGroup>
+
+### **Infrastructure as Code**
+<CardGroup cols={3}>
+  <Card title="Terraform" icon="terraform">
+    State management and provisioning
+  </Card>
+  <Card title="Pulumi" icon="code">
+    Modern infrastructure as code
+  </Card>
+  <Card title="Ansible" icon="ansible">
+    Configuration management
+  </Card>
+</CardGroup>
+
+<img
+  src="/assets/images/workflow_designer_terraform.png"
+  alt="Terraform Integration in Workflow Designer"
+  caption="Infrastructure as Code integrations enable automated provisioning workflows"
+/>
+
+## Setting Up Integrations
+
+### Via Web Interface
+
+1. Navigate to **Integrations** in the Composer
+2. Select the tool you want to connect
+3. Configure authentication and permissions
+4. Test the connection
+
+<img
+  src="/assets/images/tool_source_creation_dialog.png"
+  alt="Integration Creation Dialog"
+  caption="Simple interface for adding new tool integrations"
+/>
+
+### Via Configuration
+
+For automated setup, integrations can be defined as code:
+
+```yaml
+# kubiya-integrations.yaml
+integrations:
+  - name: prod-k8s-cluster
+    type: kubernetes
+    kubeconfig: /path/to/kubeconfig
+    context: production
+    
+  - name: aws-prod
+    type: aws
+    region: us-west-2
+    role_arn: arn:aws:iam::123456789012:role/KubiyaRole
+    
+  - name: github-repos
+    type: github
+    organization: myorg
+    api_token: "${GITHUB_TOKEN}"
+```
+
+## Security Model
+
+### **Encryption Everywhere**
+- Credentials encrypted at rest with AES-256
+- All API communication over TLS 1.3
+- Secrets never logged or exposed in plaintext
+
+### **Least Privilege Access**
+- Integrations granted only necessary permissions
+- Regular credential rotation supported
+- Fine-grained access controls per workflow
+
+### **Audit & Compliance**  
+- Complete audit trail of all API calls
+- Integration usage tracking and reporting
+- SOC2 compliant credential handling
+
+<img
+  src="/assets/images/secrets_vault_security_notice.png"
+  alt="Security Features Overview"
+  caption="Enterprise-grade security for all your integration credentials"
+/>
+
+## Error Handling & Reliability
+
+Kubiya's integration layer includes robust error handling:
+
+### **Automatic Retries**
+- Exponential backoff for transient failures
+- Circuit breaker pattern for failing services
+- Graceful degradation when services are unavailable
+
+### **Self-Healing**
+- Automatic detection of API changes
+- Dynamic adapter updates without downtime  
+- Fallback mechanisms for critical operations
+
+### **Monitoring**
+- Integration health dashboard
+- Performance metrics and SLA tracking
+- Proactive alerting for integration issues
+
+<Note>
+**Pro Tip**: Start by connecting your most critical systems first—usually your container orchestrator (Kubernetes), primary cloud provider, and main communication channel (Slack). This gives Kubiya the context it needs for the most impactful automations.
+</Note>
+
+## What's Next?
+
+With your integrations connected, Kubiya can begin building a [context graph](/core-concepts/context-graph) of your infrastructure relationships. This context enables AI agents to make intelligent decisions about automation that are specific to your environment.
+
+<CardGroup cols={2}>
+  <Card
+    title="Context Graph →"
+    href="/core-concepts/context-graph"
+    icon="project-diagram"
+  >
+    Learn how Kubiya maps relationships between your systems
+  </Card>
+  <Card
+    title="Set Up Integrations"
+    href="/how-to/web-composer#setting-up-integrations"
+    icon="gear"
+  >
+    Step-by-step guide to connecting your tools
+  </Card>
+</CardGroup>

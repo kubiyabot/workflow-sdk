@@ -1,0 +1,70 @@
+---
+title: "Connecting via MCP"
+description: "Connect external AI assistants to Kubiya through the Model Context Protocol"
+icon: "plug"
+---
+
+The Model Context Protocol (MCP) allows external AI assistants like Claude Desktop to connect to your Kubiya platform and execute workflows.
+
+## What is MCP?
+
+MCP is an open standard that lets AI assistants connect to external data sources and tools. When you connect Claude Desktop to Kubiya via MCP, Claude can:
+
+- Browse your workflows and agents
+- Execute workflows on your behalf  
+- Query your connected systems
+- Access your knowledge bases
+
+## Quick Setup
+
+1. **Install the Kubiya MCP Server**
+   ```bash
+   npm install -g @kubiya/mcp-server
+   ```
+
+2. **Configure Claude Desktop**
+   
+   Add to your Claude Desktop configuration:
+   ```json
+   {
+     "mcpServers": {
+       "kubiya": {
+         "command": "kubiya-mcp-server",
+         "env": {
+           "KUBIYA_API_KEY": "your-api-key",
+           "KUBIYA_ORG": "your-org"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Desktop**
+   
+   Claude will now have access to your Kubiya workflows and can execute them through natural conversation.
+
+## Usage Example
+
+Once connected, you can ask Claude:
+
+> "Deploy the frontend service to staging using the deployment workflow"
+
+Claude will:
+1. Find your deployment workflow
+2. Ask for any required parameters
+3. Execute the workflow through Kubiya
+4. Show you the results
+
+## Security
+
+- MCP connections use your existing Kubiya API keys
+- All executions go through Kubiya's normal security controls
+- You can revoke access anytime by removing the MCP server configuration
+
+## Troubleshooting
+
+**Connection Issues**: Verify your API key and organization name are correct
+
+**Permission Errors**: Ensure your API key has the necessary permissions for the workflows you want to execute
+
+**Workflow Not Found**: Check that the workflow name matches exactly (case-sensitive)

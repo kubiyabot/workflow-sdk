@@ -1,0 +1,461 @@
+---
+title: "Workflows"
+description: "AI-generated, deterministic automation that scales with your team"
+icon: "diagram-project"
+---
+
+Workflows are where everything comes together. They transform AI understanding into reliable, repeatable automation by combining [context awareness](/core-concepts/context-graph), [secure tool execution](/core-concepts/serverless-tools), and [intelligent orchestration](/core-concepts/runners) into structured processes your team can trust.
+
+## What Makes Kubiya Workflows Different
+
+### **AI-Generated, Human-Governed**
+
+Unlike traditional automation that requires manual scripting, Kubiya workflows start with natural language:
+
+**You say**: *"Deploy the payment service to staging and run tests"*
+
+**Kubiya creates**: A workflow that uses your existing tools (kubectl, helm, etc.) and follows your deployment patterns, but executes reliably every time.
+
+<img
+  src="/assets/images/workflow_designer_ai_guidance.png"
+  alt="AI-Guided Workflow Generation"
+  caption="AI understands your intent and generates structured workflows with safety checks"
+/>
+
+### **Deterministic Execution**
+
+Once generated, workflows execute the same way every time:
+
+- **Same input → Same output**: No variation between executions
+- **Predictable behavior**: Every step follows defined logic
+- **Reproducible results**: Easy to debug and troubleshoot
+- **Audit trail**: Complete record of every action taken
+
+### **Context-Aware Intelligence**
+
+AI generates workflows that understand your specific environment by reading your existing configurations, deployment patterns, and infrastructure setup.
+
+## Workflow Creation Methods
+
+### **1. Natural Language Generation**
+
+Start with a conversational description:
+
+<img
+  src="/assets/images/workflow_creation_ai_generator.png"
+  alt="AI Workflow Generation"
+  caption="Describe what you want in plain English - AI handles the rest"
+/>
+
+**Examples of effective prompts:**
+- *"Scale down development environments after 6 PM to save costs"*
+- *"When CPU usage exceeds 80% for 5 minutes, automatically scale up"*  
+- *"Create a runbook for investigating database connection issues"*
+- *"Set up automated testing for every pull request"*
+
+### **2. Visual Workflow Designer**
+
+Build complex workflows with drag-and-drop components:
+
+<img
+  src="/assets/images/workflow_designer_canvas.png"
+  alt="Visual Workflow Designer"
+  caption="Drag and drop components to build sophisticated workflows"
+/>
+
+<img
+  src="/assets/images/workflow_designer_node_library.png"
+  alt="Workflow Node Library"
+  caption="Rich library of pre-built components for common operations"
+/>
+
+The visual designer includes:
+
+<CardGroup cols={2}>
+  <Card title="Flow Control" icon="code-branch">
+    Conditions, loops, parallel execution, error handling
+  </Card>
+  <Card title="Tool Integration" icon="plug">
+    Direct access to all your connected systems and tools
+  </Card>
+  <Card title="Data Transformation" icon="exchange">
+    JSON processing, templating, data validation, formatting
+  </Card>
+  <Card title="Human Approval" icon="user-check">
+    Manual approval steps for sensitive operations
+  </Card>
+</CardGroup>
+
+### **3. Code-First Workflows**
+
+Define workflows as code for version control and automation:
+
+```python
+from kubiya_sdk import Workflow, Step
+
+# Python DSL for complex logic
+@workflow
+def incident_response(severity: str, service: str):
+    """Automated incident response workflow"""
+    
+    # Gather initial information
+    logs = Step("collect-logs").tool("log-aggregator").inputs(
+        service=service,
+        timeframe="30m"
+    )
+    
+    metrics = Step("get-metrics").tool("monitoring-client").inputs(
+        service=service,
+        metrics=["cpu", "memory", "error_rate"]
+    )
+    
+    # Parallel information gathering
+    info_gathering = Parallel([logs, metrics])
+    
+    # Analysis step that uses gathered data
+    analysis = Step("analyze-issue").tool("ai-analyzer").inputs(
+        logs=logs.outputs.log_content,
+        metrics=metrics.outputs.metric_data,
+        severity=severity
+    ).depends_on(info_gathering)
+    
+    # Conditional remediation based on analysis
+    if analysis.outputs.recommended_action == "scale":
+        remediation = Step("auto-scale").tool("scaler").inputs(
+            service=service,
+            scale_factor=analysis.outputs.scale_factor
+        )
+    elif analysis.outputs.recommended_action == "restart":
+        remediation = Step("rolling-restart").tool("restarter").inputs(
+            service=service,
+            strategy="rolling"
+        )
+    else:
+        remediation = Step("manual-intervention").tool("pager").inputs(
+            message=f"Manual intervention required: {analysis.outputs.details}"
+        )
+    
+    return Workflow([info_gathering, analysis, remediation])
+```
+
+### **4. Template-Based Creation**
+
+Start with proven patterns and customize:
+
+<img
+  src="/assets/images/workflow_templates_selection.png"
+  alt="Workflow Template Selection"
+  caption="Choose from battle-tested workflow templates"
+/>
+
+<CardGroup cols={2}>
+  <Card title="DevOps Templates">
+    Deployment pipelines, rollback procedures, health checks
+  </Card>
+  <Card title="SRE Templates">  
+    Incident response, capacity planning, chaos testing
+  </Card>
+  <Card title="Security Templates">
+    Vulnerability scanning, compliance checks, access reviews
+  </Card>
+  <Card title="Cost Optimization">
+    Resource cleanup, rightsizing, budget alerts
+  </Card>
+</CardGroup>
+
+## Advanced Workflow Features
+
+### **Error Handling & Recovery**
+
+Workflows include comprehensive error handling:
+
+```yaml
+steps:
+  - name: deploy-application
+    tool: kubernetes-deployer
+    retry:
+      max_attempts: 3
+      backoff: exponential
+      on_failure:
+        - name: collect-failure-logs
+          tool: log-collector
+        - name: rollback-deployment  
+          tool: kubernetes-rollback
+        - name: notify-team
+          tool: slack-notifier
+          inputs:
+            channel: "#incidents"
+            message: "Deployment failed, rolled back automatically"
+```
+
+### **Conditional Logic & Branching**
+
+Smart workflows adapt based on conditions:
+
+<img
+  src="/assets/images/workflow_designer_ai_automation.png"
+  alt="Conditional Workflow Logic"
+  caption="Build workflows that make intelligent decisions based on runtime conditions"
+/>
+
+```yaml
+steps:
+  - name: check-environment-load
+    tool: monitoring-check
+    
+  - name: choose-deployment-strategy
+    condition_branches:
+      - condition: ${check-environment-load.cpu_usage} > 80
+        steps:
+          - name: gradual-rollout
+            tool: canary-deployer
+            inputs:
+              traffic_split: [5%, 20%, 50%, 100%]
+              
+      - condition: ${check-environment-load.cpu_usage} < 40  
+        steps:
+          - name: fast-deployment
+            tool: blue-green-deployer
+            
+      - default: true
+        steps:
+          - name: standard-rollout
+            tool: rolling-deployer
+```
+
+### **Parallel Execution**
+
+Optimize performance with concurrent operations:
+
+```yaml
+# Run multiple health checks in parallel
+parallel_health_checks:
+  - name: database-health
+    tool: postgres-checker
+    
+  - name: cache-health  
+    tool: redis-checker
+    
+  - name: api-health
+    tool: http-checker
+    inputs:
+      endpoints: ["https://api.example.com/health"]
+      
+# Wait for all parallel tasks before proceeding      
+- name: aggregate-results
+  tool: health-aggregator
+  depends_on: [database-health, cache-health, api-health]
+```
+
+### **Human Approval Gates**
+
+Include manual checkpoints for sensitive operations:
+
+<img
+  src="/assets/images/workflow_designer_create_ticket.png"
+  alt="Human Approval Integration"
+  caption="Add approval gates for sensitive operations requiring human oversight"
+/>
+
+```yaml
+- name: request-production-approval
+  tool: approval-gate
+  inputs:
+    approvers: ["@platform-team", "@security-team"]
+    timeout: 2h
+    approval_message: |
+      Production deployment requested:
+      - Service: ${SERVICE_NAME}
+      - Version: ${BUILD_VERSION}  
+      - Impact: ${ESTIMATED_IMPACT}
+      - Rollback plan: Available
+    
+- name: deploy-to-production
+  tool: production-deployer
+  condition: ${request-production-approval.approved} == true
+  depends_on: [request-production-approval]
+```
+
+## Workflow Execution & Monitoring
+
+### **Real-Time Execution Tracking**
+
+Monitor workflows as they run:
+
+<img
+  src="/assets/images/workflow_execution_timeline.png"
+  alt="Workflow Execution Timeline"  
+  caption="Track workflow progress with detailed timeline and logs"
+/>
+
+<img
+  src="/assets/images/workflow_execution_details.png"
+  alt="Detailed Execution View"
+  caption="Drill down into each step for complete execution details"
+/>
+
+### **Performance Analytics**
+
+<img
+  src="/assets/images/activity_center_performance.png"
+  alt="Workflow Performance Analytics"
+  caption="Analyze workflow performance and identify optimization opportunities"
+/>
+
+Track key metrics:
+- **Execution time** per step and overall workflow
+- **Success rate** and failure patterns
+- **Resource usage** during execution  
+- **Cost per execution** across different environments
+
+### **Alerting & Notifications**
+
+Stay informed about workflow execution:
+
+```yaml
+notifications:
+  on_start:
+    - slack: "#deployments"
+      message: "🚀 Starting ${WORKFLOW_NAME}"
+      
+  on_success:  
+    - slack: "#deployments"
+      message: "✅ ${WORKFLOW_NAME} completed successfully"
+    - email: "platform-team@company.com"
+      
+  on_failure:
+    - slack: "#incidents" 
+      message: "❌ ${WORKFLOW_NAME} failed at step ${FAILED_STEP}"
+    - pagerduty:
+        service: "platform-automation"
+        severity: "warning"
+        
+  on_human_approval_needed:
+    - slack: "@channel in #approvals"
+      message: "🔒 Approval required for ${WORKFLOW_NAME}"
+```
+
+## Workflow Lifecycle Management
+
+### **Version Control Integration**
+
+<img
+  src="/assets/images/workflow_github_integration.png"  
+  alt="GitHub Integration"
+  caption="Version control workflows like code with full change history"
+/>
+
+```yaml
+# .kubiya/workflows/payment-deployment.yaml
+apiVersion: kubiya.ai/v1
+kind: Workflow
+metadata:
+  name: payment-service-deployment
+  version: "2.1.0"
+  labels:
+    team: payments
+    criticality: high
+    environment: production
+```
+
+### **Testing & Validation**
+
+Test workflows before production use:
+
+```python
+# Workflow testing framework
+import pytest
+from kubiya_sdk.testing import WorkflowTest
+
+class TestPaymentDeployment(WorkflowTest):
+    def setUp(self):
+        self.workflow = self.load_workflow('payment-deployment')
+        self.mock_environment('staging')
+    
+    def test_successful_deployment(self):
+        # Mock successful responses from all tools
+        self.mock_tool_success('kubernetes-deployer')
+        self.mock_tool_success('test-runner')
+        
+        result = self.workflow.execute()
+        
+        assert result.status == 'completed'
+        assert len(result.steps) == 4
+        assert result.steps[-1].name == 'production-deployment'
+    
+    def test_rollback_on_test_failure(self):
+        # Mock test failure
+        self.mock_tool_failure('test-runner', error='Integration tests failed')
+        
+        result = self.workflow.execute()
+        
+        assert result.status == 'failed'
+        assert 'rollback' in [step.name for step in result.executed_steps]
+```
+
+## Best Practices
+
+### **Workflow Design Principles**
+
+<CardGroup cols={2}>
+  <Card title="Idempotent Operations" icon="refresh">
+    Design steps that can be safely re-run without side effects
+  </Card>
+  <Card title="Fail Fast" icon="exclamation-triangle">
+    Check prerequisites early to avoid wasting time and resources
+  </Card>
+  <Card title="Clear Dependencies" icon="project-diagram">
+    Make step dependencies explicit for reliable execution order
+  </Card>
+  <Card title="Comprehensive Logging" icon="file-text">
+    Log all decisions and actions for debugging and audit
+  </Card>
+</CardGroup>
+
+### **Security Considerations**
+
+```yaml
+security:
+  # Least privilege - only necessary permissions
+  permissions:
+    - resource: "deployments"
+      namespace: "payment-service"
+      actions: ["get", "update", "patch"]
+    
+  # Sensitive data handling
+  secrets:
+    - name: database_password
+      source: vault://production/database/password
+      inject_as: environment_variable
+    
+  # Approval requirements for sensitive operations
+  approvals:
+    - condition: environment == "production"
+      required_approvers: 2
+      allowed_approvers: ["@platform-team", "@security-team"]
+```
+
+<Note>
+**Pro Tip**: Start with read-only workflows to build confidence, then gradually add write operations as your team becomes comfortable with the automation patterns.
+</Note>
+
+## What's Next?
+
+With workflows providing structured automation, explore real-world [use cases](/core-concepts/use-cases) that show how teams apply these concepts to solve common infrastructure and operations challenges.
+
+<CardGroup cols={2}>
+  <Card
+    title="Use Cases →"
+    href="/core-concepts/use-cases"
+    icon="lightbulb"
+  >
+    See how teams use workflows to automate common operations
+  </Card>
+  <Card
+    title="Build Your First Workflow"
+    href="/how-to/web-composer#creating-workflows"
+    icon="play"
+  >
+    Step-by-step guide to creating and running workflows
+  </Card>
+</CardGroup>

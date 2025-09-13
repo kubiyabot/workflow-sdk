@@ -1,0 +1,451 @@
+---
+title: "Runners"
+description: "Execution engine for containerized automation on your infrastructure"
+icon: "server"
+---
+
+Kubiya Runners are the execution engine that orchestrates [serverless tools](/core-concepts/serverless-tools) on your infrastructure. They manage container lifecycles, enforce security policies, and provide the bridge between Kubiya's AI-generated workflows and your actual systems.
+
+## Why Runners Matter for Production
+
+Runners solve critical challenges for production automation:
+
+### **Data Sovereignty**
+- All execution happens on your infrastructure
+- Sensitive data never leaves your environment  
+- Meet compliance requirements for regulated industries
+- Full control over data residency and processing
+
+### **Security & Isolation**
+- Network policies control tool access to systems
+- Resource limits prevent runaway processes
+- Security scanning of all container images
+- Audit logging of every operation
+
+### **Performance & Reliability**
+- Execute tools close to your data and services
+- Automatic retry and error recovery
+- Load balancing across multiple runner instances
+- Caching of frequently used tool images
+
+<img
+  src="/assets/images/tool_playground_runner_selection.png"
+  alt="Runner Selection Interface"
+  caption="Choose which runner executes your workflows based on location and capabilities"
+/>
+
+## Runner Architecture
+
+### **Core Components**
+
+<Tabs>
+  <Tab title="Container Engine">
+    **Manages tool execution lifecycle:**
+    - Pull and cache tool container images
+    - Create isolated execution environments
+    - Enforce resource limits and security policies
+    - Collect logs and metrics from running containers
+  </Tab>
+  
+  <Tab title="Network Proxy">
+    **Provides secure connectivity:**  
+    - Route traffic between tools and target systems
+    - Enforce network segmentation policies
+    - Load balance requests across multiple instances
+    - Terminate TLS connections with proper certificates
+  </Tab>
+  
+  <Tab title="Secret Manager">
+    **Handles credential injection:**
+    - Mount secrets as files or environment variables
+    - Rotate credentials according to policies
+    - Encrypt secrets at rest and in transit
+    - Audit all secret access and usage
+  </Tab>
+  
+  <Tab title="Resource Controller">
+    **Optimizes performance and cost:**
+    - Monitor CPU, memory, and storage usage
+    - Scale runner capacity based on demand
+    - Clean up completed executions automatically
+    - Cache frequently used images and dependencies
+  </Tab>
+</Tabs>
+
+## Deployment Options
+
+### **Self-Hosted Runners**
+
+Deploy runners on your own infrastructure for maximum control:
+
+<CardGroup cols={2}>
+  <Card title="Kubernetes" icon="dharmachakra">
+    Native Kubernetes deployment with Helm charts
+  </Card>
+  <Card title="Docker Compose" icon="docker">
+    Simple deployment for development and testing
+  </Card>
+  <Card title="VM/Bare Metal" icon="server">
+    Direct installation on Linux systems
+  </Card>
+  <Card title="Cloud Native" icon="cloud">
+    Optimized for AWS EKS, GCP GKE, Azure AKS
+  </Card>
+</CardGroup>
+
+#### **Kubernetes Deployment**
+
+```yaml
+# values.yaml for Kubiya Runner Helm chart
+runner:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+security:
+  networkPolicies: true
+  podSecurityStandards: restricted
+  runAsNonRoot: true
+
+storage:
+  cacheSize: 20Gi
+  logsRetention: 30d
+
+integrations:
+  kubernets:
+    inClusterConfig: true
+  aws:
+    roleArn: "arn:aws:iam::123456789012:role/KubiyaRunner"
+```
+
+#### **Benefits of Self-Hosted**
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield">
+    Complete control over network access, data processing, and credential handling
+  </Card>
+  <Card title="Compliance" icon="check-circle">
+    Meet SOC2, HIPAA, PCI-DSS requirements with on-premises execution
+  </Card>
+  <Card title="Performance" icon="rocket">
+    Low latency access to internal systems and databases
+  </Card>
+  <Card title="Cost" icon="dollar-sign">
+    No data transfer costs for large-scale operations
+  </Card>
+</CardGroup>
+
+### **Hosted Runners**
+
+Use Kubiya's managed infrastructure for quick setup:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="play">
+    No installation required - start automating immediately
+  </Card>
+  <Card title="Maintenance Free" icon="tools">
+    Automatic updates, scaling, and monitoring
+  </Card>
+  <Card title="Global Reach" icon="globe">
+    Runners available in multiple regions worldwide
+  </Card>
+  <Card title="Enterprise SLA" icon="handshake">
+    99.9% uptime guarantee with 24/7 support
+  </Card>
+</CardGroup>
+
+<Warning>
+Hosted runners are ideal for development and testing, but production workloads typically require self-hosted runners for security and compliance reasons.
+</Warning>
+
+## Cross-Environment Orchestration
+
+Runners enable seamless automation across different environments and clusters:
+
+### **Multi-Cluster Workflows**
+
+Deploy applications across multiple Kubernetes clusters:
+
+```yaml
+# Workflow that deploys to multiple environments
+name: multi-environment-deployment
+steps:
+  - name: deploy-to-staging
+    runner: staging-cluster-runner
+    tool: kubernetes-deployer
+    inputs:
+      namespace: myapp-staging
+      image: myapp:${BUILD_VERSION}
+      
+  - name: run-integration-tests
+    runner: testing-runner
+    tool: test-suite
+    depends_on: [deploy-to-staging]
+    
+  - name: deploy-to-production
+    runner: production-cluster-runner  
+    tool: kubernetes-deployer
+    inputs:
+      namespace: myapp-prod
+      image: myapp:${BUILD_VERSION}
+    condition: ${run-integration-tests.status} == "success"
+```
+
+### **Cross-Cloud Operations**
+
+Orchestrate operations spanning multiple cloud providers:
+
+```yaml
+# Disaster recovery workflow across clouds
+name: cross-cloud-failover
+steps:
+  - name: backup-aws-data
+    runner: aws-us-east-runner
+    tool: aws-backup
+    
+  - name: restore-to-gcp
+    runner: gcp-us-central-runner  
+    tool: gcp-restore
+    inputs:
+      backup_location: ${backup-aws-data.backup_url}
+    
+  - name: update-dns
+    runner: cloudflare-runner
+    tool: dns-updater
+    inputs:
+      record: api.myapp.com
+      target: ${restore-to-gcp.new_endpoint}
+```
+
+### **Intelligent Runner Selection**
+
+Kubiya automatically selects the best runner for each operation based on:
+
+- **Proximity** to target systems and data
+- **Available resources** and current load  
+- **Security policies** and network access rules
+- **Cost optimization** preferences
+
+<img
+  src="/assets/images/agent_playground_runner_config.png"
+  alt="Runner Configuration Interface"
+  caption="Configure runner selection policies and resource allocation"
+/>
+
+## Security & Compliance
+
+### **Network Security**
+
+Runners implement defense-in-depth networking:
+
+```yaml
+# Network policy for runner security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy  
+metadata:
+  name: kubiya-runner-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: kubiya-runner
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: kubiya-control-plane
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: allowed-namespaces
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS only
+```
+
+### **Resource Isolation**
+
+Each tool execution runs with strict resource controls:
+
+```yaml
+# Resource limits for tool execution
+limits:
+  cpu: "2000m"
+  memory: "4Gi"  
+  ephemeral-storage: "10Gi"
+  
+security_context:
+  runAsNonRoot: true
+  runAsUser: 65534
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  
+capabilities:
+  drop:
+  - ALL
+```
+
+### **Audit & Monitoring**
+
+Complete visibility into all runner operations:
+
+<img
+  src="/assets/images/activity_center_overview.png"
+  alt="Activity Center Dashboard"
+  caption="Monitor all runner activity with detailed audit trails"
+/>
+
+- **Execution logs**: Every command, API call, and file access
+- **Performance metrics**: Resource usage, execution time, error rates  
+- **Security events**: Failed authentication, policy violations, anomalies
+- **Compliance reports**: SOC2, GDPR, HIPAA compliance summaries
+
+## Advanced Configuration
+
+### **High Availability**
+
+Deploy runners with automatic failover:
+
+```yaml
+# HA runner configuration
+runner:
+  replicas: 5
+  antiAffinity: hard  # Spread across nodes
+  
+persistence:
+  storageClass: fast-ssd
+  replication: 3
+  
+loadBalancer:
+  enabled: true
+  sessionAffinity: ClientIP
+  
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention: 30d
+```
+
+### **Custom Resource Types**
+
+Define organization-specific resource types and policies:
+
+```yaml
+# Custom resource definitions for your infrastructure
+custom_resources:
+  - name: microservice
+    properties:
+      team: string
+      criticality: [low, medium, high, critical]
+      data_classification: [public, internal, confidential, restricted]
+    
+policies:
+  - name: critical_service_protection
+    selector:
+      criticality: critical
+    rules:
+      - require_approval: true
+      - max_concurrent_operations: 1
+      - rollback_required: true
+```
+
+### **Integration Plugins**
+
+Extend runner capabilities with custom plugins:
+
+```python
+# Custom plugin for specialized monitoring
+from kubiya_runner import Plugin
+
+class CustomMonitoringPlugin(Plugin):
+    def pre_execution(self, context):
+        """Called before each tool execution"""
+        self.start_monitoring(context.tool_name)
+        
+    def post_execution(self, context, result):
+        """Called after each tool execution"""
+        metrics = self.collect_metrics()
+        self.send_to_custom_system(metrics)
+        
+    def on_error(self, context, error):
+        """Called when tool execution fails"""
+        self.trigger_incident_response(context, error)
+```
+
+## Performance Optimization
+
+### **Image Caching**
+
+Runners aggressively cache tool images for fast startup:
+
+- **Multi-layer caching**: Share common base layers across tools
+- **Predictive pre-pulling**: Download images before they're needed
+- **Garbage collection**: Automatically clean up unused images
+- **Compression**: Reduce storage and transfer overhead
+
+### **Resource Scaling**
+
+Automatically scale runner capacity based on demand:
+
+```yaml
+# Horizontal Pod Autoscaler for runners
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kubiya-runner-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kubiya-runner
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Pods
+    pods:
+      metric:
+        name: active_executions
+      target:
+        type: AverageValue
+        averageValue: "5"
+```
+
+<Note>
+**Production Tip**: Start with 3 runner replicas for high availability, then use metrics to determine optimal scaling parameters for your workload patterns.
+</Note>
+
+## What's Next?
+
+With runners managing tool execution, you need [AI models](/core-concepts/ai-models) to generate the intelligent workflows that determine what tools to run and when. Kubiya's model-agnostic approach lets you choose the best AI for your use case.
+
+<CardGroup cols={2}>
+  <Card
+    title="AI Models →"  
+    href="/core-concepts/ai-models"
+    icon="brain"
+  >
+    Learn how AI models generate context-aware workflows
+  </Card>
+  <Card
+    title="Deploy Runners"
+    href="/admin/deployment-guide"
+    icon="rocket"
+  >
+    Step-by-step runner deployment guide
+  </Card>
+</CardGroup>

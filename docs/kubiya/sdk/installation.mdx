@@ -1,0 +1,311 @@
+---
+title: "Installation"
+description: "Install and set up the Kubiya SDK"
+icon: "download"
+---
+
+The Kubiya SDK provides everything you need to programmatically interact with the Kubiya platform, define workflows as code, and create custom tools.
+
+## Prerequisites
+
+- **Python 3.8+** - The SDK requires Python 3.8 or higher
+- **API Key** - Get your API key from the [Kubiya platform](https://compose.kubiya.ai)
+- **Organization ID** - Your organization identifier from Kubiya
+
+## Installation
+
+### Install via pip
+
+```bash
+pip install kubiya-sdk
+```
+
+### Install from source
+
+```bash
+git clone https://github.com/kubiyabot/workflow_sdk.git
+cd workflow_sdk
+pip install -e .
+```
+
+### Install with optional dependencies
+
+```bash
+# For async support
+pip install kubiya-sdk[async]
+
+# For development tools
+pip install kubiya-sdk[dev]
+
+# Install all extras
+pip install kubiya-sdk[all]
+```
+
+## Configuration
+
+### Environment Variables
+
+Set up your credentials using environment variables:
+
+```bash
+export KUBIYA_API_KEY="your-api-key-here"
+export KUBIYA_ORG="your-organization-id" 
+export KUBIYA_BASE_URL="https://api.kubiya.ai"  # Optional, defaults to this
+```
+
+### Configuration File
+
+Create a configuration file at `~/.kubiya/config.yaml`:
+
+```yaml
+api_key: your-api-key-here
+organization: your-organization-id
+base_url: https://api.kubiya.ai
+timeout: 30
+retry_attempts: 3
+```
+
+### Programmatic Configuration
+
+```python
+from kubiya_sdk import Kubiya
+
+# Initialize with explicit configuration
+client = Kubiya(
+    api_key="your-api-key",
+    organization="your-org",
+    base_url="https://api.kubiya.ai",
+    timeout=60,
+    retry_attempts=3
+)
+```
+
+## Verify Installation
+
+### Quick Test
+
+```python
+from kubiya_sdk import Kubiya
+
+# Test connection
+client = Kubiya()
+
+try:
+    # List workflows to test connection
+    workflows = client.workflows.list()
+    print(f"✅ Connected successfully! Found {len(workflows)} workflows.")
+except Exception as e:
+    print(f"❌ Connection failed: {e}")
+```
+
+### Version Check
+
+```python
+import kubiya_sdk
+
+print(f"Kubiya SDK version: {kubiya_sdk.__version__}")
+```
+
+### Feature Test
+
+```python
+from kubiya_sdk import Step, Workflow
+
+# Test DSL functionality
+step = Step("test-step").tool("echo").inputs(message="Hello Kubiya!")
+workflow = Workflow([step])
+
+print("✅ SDK components imported successfully!")
+```
+
+## IDE Setup
+
+### VS Code
+
+Install the Python extension and add these settings to your workspace:
+
+```json
+{
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "python.intelliSense.extraPaths": ["./kubiya_sdk"]
+}
+```
+
+### PyCharm
+
+1. Go to **File > Settings > Project > Python Interpreter**
+2. Add the kubiya-sdk package to your interpreter
+3. Enable type checking in **Settings > Editor > Inspections > Python**
+
+## Development Setup
+
+### Clone Repository
+
+```bash
+git clone https://github.com/kubiyabot/workflow_sdk.git
+cd workflow_sdk
+```
+
+### Create Virtual Environment
+
+```bash
+python -m venv kubiya-env
+source kubiya-env/bin/activate  # On Windows: kubiya-env\Scripts\activate
+```
+
+### Install Development Dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Run Tests
+
+```bash
+# Run unit tests
+pytest tests/unit/
+
+# Run integration tests (requires API key)
+pytest tests/integration/
+
+# Run all tests with coverage
+pytest --cov=kubiya_sdk tests/
+```
+
+## Docker Setup
+
+### Using Docker
+
+```dockerfile
+FROM python:3.11-slim
+
+# Install kubiya-sdk
+RUN pip install kubiya-sdk
+
+# Set environment variables
+ENV KUBIYA_API_KEY=your-api-key
+ENV KUBIYA_ORG=your-org
+
+# Copy your workflow code
+COPY workflows/ /app/workflows/
+WORKDIR /app
+
+CMD ["python", "workflows/main.py"]
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  kubiya-workflows:
+    build: .
+    environment:
+      - KUBIYA_API_KEY=${KUBIYA_API_KEY}
+      - KUBIYA_ORG=${KUBIYA_ORG}
+    volumes:
+      - ./workflows:/app/workflows
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Import Error
+```
+ImportError: No module named 'kubiya_sdk'
+```
+
+**Solution**: Ensure the SDK is installed in your current Python environment
+```bash
+pip list | grep kubiya-sdk
+pip install kubiya-sdk
+```
+
+#### Authentication Error
+```
+AuthenticationError: Invalid API key
+```
+
+**Solution**: Check your API key and organization settings
+```bash
+echo $KUBIYA_API_KEY
+echo $KUBIYA_ORG
+```
+
+#### Connection Timeout
+```
+ConnectionTimeoutError: Request timed out
+```
+
+**Solution**: Increase timeout or check network connectivity
+```python
+client = Kubiya(timeout=120)  # 2 minutes
+```
+
+#### SSL Certificate Error
+```
+SSLError: certificate verify failed
+```
+
+**Solution**: For development environments only
+```python
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+```
+
+### Debug Mode
+
+Enable debug logging to troubleshoot issues:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+from kubiya_sdk import Kubiya
+client = Kubiya(debug=True)
+```
+
+### Version Compatibility
+
+| Kubiya SDK | Python | Kubiya Platform |
+|------------|--------|-----------------|
+| 1.0.x      | 3.8+   | v2.0+          |
+| 0.9.x      | 3.7+   | v1.5+          |
+
+## Next Steps
+
+Now that you have the SDK installed:
+
+<CardGroup cols={2}>
+  <Card
+    title="Client SDK →"
+    href="/sdk/client/overview"
+    icon="code"
+  >
+    Learn how to interact with Kubiya platform APIs
+  </Card>
+  <Card
+    title="Workflow DSL →"
+    href="/sdk/workflow-dsl/overview"
+    icon="diagram-project"
+  >
+    Define workflows as code with Python
+  </Card>
+  <Card
+    title="Tools SDK →"
+    href="/sdk/tools/overview"
+    icon="wrench"
+  >
+    Create custom tools for your workflows
+  </Card>
+  <Card
+    title="Examples →"
+    href="/sdk/examples"
+    icon="folder"
+  >
+    Explore real-world examples and patterns
+  </Card>
+</CardGroup>

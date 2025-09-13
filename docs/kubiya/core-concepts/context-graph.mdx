@@ -1,0 +1,329 @@
+---
+title: "Context Graph"
+description: "Infrastructure awareness that makes AI automation intelligent"
+icon: "project-diagram"
+---
+
+Kubiya's Context Graph is what transforms generic AI agents into intelligent automation that understands your specific environment. It automatically maps relationships between your resources, services, and infrastructure components to provide situational awareness for safe, smart automation.
+
+<img
+  src="/assets/images/context_catalog_knowledge_graph.png"
+  alt="Knowledge Graph Visualization"
+  caption="The context graph reveals hidden relationships in your infrastructure"
+/>
+
+## Why Context Matters for AI Automation
+
+Traditional AI agents operate in a vacuum—they know about general concepts but nothing about your specific setup. This leads to:
+
+- **Generic suggestions** that don't match your environment
+- **Dangerous operations** without understanding dependencies
+- **Missed opportunities** for optimization based on actual usage patterns
+- **Poor troubleshooting** without knowledge of system relationships
+
+Kubiya's Context Graph solves this by giving AI agents deep knowledge of your actual infrastructure.
+
+## How the Context Graph Works
+
+### **Automatic Discovery**
+
+Once your [integrations](/core-concepts/integrations) are connected, Kubiya automatically discovers and maps:
+
+<Tabs>
+  <Tab title="Infrastructure Resources">
+    - Kubernetes clusters, namespaces, and pods  
+    - Cloud compute instances and networking
+    - Databases and storage systems
+    - Load balancers and ingress controllers
+  </Tab>
+
+  <Tab title="Application Dependencies">
+    - Service-to-service communication patterns
+    - Database connections and access patterns
+    - External API dependencies
+    - Resource consumption relationships
+  </Tab>
+
+  <Tab title="Deployment Relationships">
+    - Git repositories to deployed services
+    - CI/CD pipelines to target environments
+    - Infrastructure as Code to managed resources
+    - Configuration management relationships
+  </Tab>
+
+  <Tab title="Operational Context">
+    - Recent deployments and changes
+    - Current alert states and incidents
+    - Performance metrics and trends
+    - Team ownership and responsibility
+  </Tab>
+</Tabs>
+
+<img
+  src="/assets/images/context_catalog_resource_connections.png"
+  alt="Resource Connection Mapping"
+  caption="Kubiya automatically discovers how your resources connect and depend on each other"
+/>
+
+### **Multi-Dimensional Visualization**
+
+The context graph provides multiple views of your infrastructure:
+
+<img
+  src="/assets/images/context_catalog_3d_visualization.png"
+  alt="3D Infrastructure Context"
+  caption="Interactive 3D view helps you understand complex system relationships"
+/>
+
+<img
+  src="/assets/images/context_catalog_network_view.png"
+  alt="Network Topology View"
+  caption="Network-focused view shows traffic patterns and connectivity"
+/>
+
+## Real-Time Context Updates
+
+The context graph continuously updates as your infrastructure changes:
+
+### **Live State Monitoring**
+- Pod creation and termination in Kubernetes
+- Auto-scaling events and capacity changes
+- Configuration updates and deployments
+- Alert state changes and incident resolution
+
+### **Historical Context**
+- Deployment patterns and frequency
+- Performance trends over time
+- Incident correlation and patterns
+- Change success rates and rollback frequency
+
+<img
+  src="/assets/images/context_resources_logging_platform.png"
+  alt="Context-Aware Logging Integration"
+  caption="Real-time updates keep the context graph current with your infrastructure"
+/>
+
+## How AI Agents Use Context
+
+With rich context, Kubiya's AI agents can make intelligent decisions:
+
+### **Smart Suggestions**
+
+Instead of generic advice, get recommendations specific to your setup:
+
+<CodeGroup>
+
+```text Without Context
+User: "My app is slow"
+AI: "Try checking CPU and memory usage"
+```
+
+```text With Context  
+User: "My app is slow"
+AI: "I see your checkout-service pods are CPU throttled. 
+The recent deployment increased traffic by 40% but kept 
+the same resource limits. I can scale the deployment 
+and update the HPA thresholds based on current usage patterns."
+```
+
+</CodeGroup>
+
+### **Dependency Awareness**
+
+AI agents understand blast radius and can prevent dangerous operations:
+
+```yaml
+# AI knows this database powers 3 critical services
+operation: restart_database
+safety_check:
+  dependencies: ["payment-service", "user-service", "order-service"]
+  impact: "HIGH - affects checkout flow"  
+  recommendation: "Schedule during maintenance window"
+  alternatives: ["restart_replica", "rolling_restart"]
+```
+
+### **Environment-Specific Workflows**
+
+Generated workflows adapt to your actual infrastructure:
+
+<img
+  src="/assets/images/workflow_designer_infrastructure.png"
+  alt="Infrastructure-Aware Workflow Generation"
+  caption="Workflows automatically adapt to your specific infrastructure setup"
+/>
+
+## Context Categories
+
+### **Resource Context**
+Understanding what you have and how it's configured:
+
+<img
+  src="/assets/images/context_resources_database_config.png"
+  alt="Database Configuration Context"
+  caption="Detailed configuration context for all your resources"
+/>
+
+- Resource specifications and limits
+- Configuration drift detection
+- Compliance and security posture
+- Cost optimization opportunities
+
+### **Relationship Context**
+Mapping how everything connects:
+
+- Service dependencies and communication paths
+- Data flow between systems
+- Network topology and security boundaries  
+- Ownership and team responsibilities
+
+### **Operational Context**
+Current state and recent activity:
+
+<img
+  src="/assets/images/context_resources_oracle_monitoring.png"
+  alt="Operational Monitoring Context"
+  caption="Real-time operational context informs automation decisions"
+/>
+
+- Performance metrics and trends
+- Alert states and incident history
+- Change frequency and success rates
+- Capacity utilization and growth patterns
+
+### **Business Context**
+Higher-level understanding of purpose and impact:
+
+- Service criticality and SLA requirements
+- User impact and business value
+- Compliance and regulatory requirements
+- Cost centers and budget allocation
+
+## Using the Context Graph
+
+### **Interactive Exploration**
+
+Browse your infrastructure context through the web interface:
+
+1. **Search**: Find resources by name, type, or properties
+2. **Filter**: Focus on specific environments, teams, or services
+3. **Navigate**: Follow relationships between connected resources
+4. **Query**: Ask questions about dependencies and impacts
+
+<img
+  src="/assets/images/context_resources_cloud_guard.png"
+  alt="Context Resource Explorer"
+  caption="Explore your infrastructure context interactively"
+/>
+
+### **API Access**
+
+Query context programmatically for custom integrations:
+
+```python
+from kubiya_sdk import Kubiya
+
+client = Kubiya()
+
+# Find all services that depend on a database
+dependents = client.context.find_dependents(
+    resource="postgres-primary",
+    relationship_type="database_connection"
+)
+
+# Get recent changes that might impact performance
+recent_changes = client.context.get_timeline(
+    resource="payment-service",
+    timeframe="1h",
+    include_dependencies=True
+)
+
+# Check blast radius of a planned change
+impact_analysis = client.context.analyze_impact(
+    operation="restart_service",
+    target="auth-service"
+)
+```
+
+## Privacy and Security
+
+### **On-Premises Processing**
+- Context analysis runs on your infrastructure
+- Sensitive data never leaves your environment
+- Self-hosted runners maintain complete data sovereignty
+
+### **Encrypted Context Store**
+- All context data encrypted at rest and in transit
+- Role-based access controls for context queries
+- Audit trails for all context access
+
+### **Configurable Scope**
+- Control what data is included in context analysis
+- Exclude sensitive resources or environments
+- Set retention policies for historical context
+
+<Warning>
+The context graph only includes metadata and relationships—not actual data contents. For example, it knows you have a PostgreSQL database with specific connection patterns, but never accesses the actual data within those tables.
+</Warning>
+
+## Advanced Features
+
+### **Custom Resource Types**
+
+Define custom resources specific to your organization:
+
+```yaml
+# custom-resources.yaml
+resource_types:
+  - name: microservice
+    properties:
+      - team_owner
+      - sla_tier  
+      - deployment_strategy
+    relationships:
+      - depends_on: database
+      - exposes: api_endpoint
+      - monitored_by: dashboard
+```
+
+### **Context Policies**
+
+Define rules for how context should influence automation:
+
+```yaml
+# context-policies.yaml  
+policies:
+  - name: production_safety
+    condition: environment == "production"
+    requirements:
+      - dependency_analysis: required
+      - approval_needed: true
+      - rollback_plan: required
+
+  - name: cost_optimization
+    condition: cloud_cost > budget_threshold
+    actions:
+      - suggest: rightsizing
+      - alert: budget_owner
+      - recommend: reserved_instances
+```
+
+## What's Next?
+
+The context graph enables Kubiya to execute operations safely through [serverless tools](/core-concepts/serverless-tools) that understand your environment. These containerized tools leverage context to make intelligent decisions during execution.
+
+<CardGroup cols={2}>
+  <Card
+    title="Serverless Tools →"
+    href="/core-concepts/serverless-tools"
+    icon="box"
+  >
+    Learn how context-aware tools execute safely in containers
+  </Card>
+  <Card
+    title="Explore Your Context"
+    href="/how-to/web-composer#context-explorer"
+    icon="magnifying-glass"
+  >
+    Navigate your infrastructure context in the web interface
+  </Card>
+</CardGroup>

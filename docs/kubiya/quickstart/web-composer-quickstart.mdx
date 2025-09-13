@@ -1,0 +1,217 @@
+---
+title: "Web Composer Quickstart"
+description: "Get started with Kubiya's visual interface in 5 minutes"
+icon: "globe"
+---
+
+Experience Kubiya's full power through the web interface—no installation required. You'll create your first automation, see it execute in real-time, and save it as a reusable workflow.
+
+## Step 1: Access the Platform
+
+Visit [compose.kubiya.ai](https://compose.kubiya.ai) and sign in with your preferred method:
+
+<img
+  src="/assets/images/task_dashboard_main_interface.png"
+  alt="Kubiya Composer Main Interface"
+  caption="The Composer dashboard - your central hub for AI-powered automation"
+/>
+
+<Note>
+**First time signing up?** You'll get immediate access to explore the platform with sample integrations and a hosted runner. No credit card required.
+</Note>
+
+## Step 2: Create Your First Task
+
+Click **"New Task"** to open the AI chat interface where you can describe your automation in natural language.
+
+<img
+  src="/assets/images/task_creation_ai_model_selection.png"
+  alt="Task Creation with AI Model Selection"
+  caption="Choose your AI model and describe what you want to automate"
+/>
+
+Try one of these starter prompts:
+
+<Tabs>
+  <Tab title="Infrastructure Health">
+    ```
+    Check the health of my Kubernetes cluster and 
+    send a summary to the #devops Slack channel
+    ```
+  </Tab>
+  <Tab title="Application Deployment">
+    ```
+    Deploy the latest version of my app to staging
+    and run health checks to verify it's working
+    ```
+  </Tab>
+  <Tab title="Incident Response">
+    ```
+    Gather logs from the last 30 minutes for services
+    showing high error rates and create a summary report
+    ```
+  </Tab>
+</Tabs>
+
+## Step 3: Watch AI Generate Your Workflow
+
+As you type, Kubiya's AI understands your intent and begins generating a structured workflow. You'll see:
+
+1. **Available Integrations** - Tools and services Kubiya can access
+2. **Context Discovery** - Information about your infrastructure 
+3. **Workflow Generation** - Step-by-step automation plan
+
+<img
+  src="/assets/images/task_creation_integrations_dropdown.png"
+  alt="Available Integrations Dropdown"
+  caption="Kubiya automatically discovers available tools and integrations"
+/>
+
+<img
+  src="/assets/images/task_creation_tools_selection.png"
+  alt="Tools Selection Interface"
+  caption="Select which tools your workflow should use"
+/>
+
+## Step 4: Execute and Monitor
+
+Once your workflow is generated, click **"Run"** to execute it. You'll see:
+
+- **Real-time Progress**: Each step executes with live updates
+- **Execution Logs**: Detailed output from every operation
+- **Visual Timeline**: Clear view of workflow progression
+
+<img
+  src="/assets/images/workflow_execution_timeline.png"
+  alt="Workflow Execution Timeline"
+  caption="Track your workflow's progress with detailed timeline view"
+/>
+
+<img
+  src="/assets/images/workflow_step_output_logs.png"
+  alt="Step Output and Logs"
+  caption="View detailed logs and output from each workflow step"
+/>
+
+## Step 5: Save as Reusable Workflow
+
+When your task completes successfully, save it as a workflow for future use:
+
+<img
+  src="/assets/images/workflow_publisher_dialog.png"
+  alt="Workflow Publisher Dialog"
+  caption="Save your successful automation as a reusable workflow"
+/>
+
+Your saved workflow can be:
+- **Triggered manually** by team members
+- **Scheduled** to run automatically  
+- **Invoked via webhooks** from other systems
+- **Called from Slack/Teams** for ChatOps
+
+## Step 6: Explore the Visual Builder
+
+For more complex automations, use the drag-and-drop workflow designer:
+
+<img
+  src="/assets/images/workflow_designer_canvas.png"
+  alt="Visual Workflow Designer"
+  caption="Build complex workflows with the visual designer"
+/>
+
+<img
+  src="/assets/images/workflow_designer_node_library.png"
+  alt="Workflow Designer Node Library"
+  caption="Drag components from the library to build your workflow"
+/>
+
+The designer includes:
+- **Pre-built Components** for common operations
+- **Conditional Logic** for decision points
+- **Parallel Execution** for performance
+- **Error Handling** for reliability
+
+<img
+  src="/assets/images/workflow_designer_with_ai_assistant.png"
+  alt="Workflow Designer with AI Assistant"
+  caption="Get AI help while building workflows visually"
+/>
+
+## Understanding Your Infrastructure Context
+
+Kubiya automatically maps your infrastructure to provide intelligent suggestions:
+
+<img
+  src="/assets/images/context_catalog_network_view.png"
+  alt="Infrastructure Context Network View"
+  caption="Kubiya's context graph shows relationships between your systems"
+/>
+
+<img
+  src="/assets/images/context_catalog_3d_visualization.png"
+  alt="3D Infrastructure Visualization"
+  caption="Interactive 3D view of your infrastructure relationships"
+/>
+
+This context helps Kubiya:
+- Suggest relevant operations based on your setup
+- Understand dependencies between services
+- Provide safe automation with awareness of blast radius
+- Generate workflows specific to your environment
+
+## Managing Integrations and Secrets
+
+Set up connections to your tools through the integrations panel:
+
+<img
+  src="/assets/images/secrets_vault_overview.png"
+  alt="Secrets Management Overview"  
+  caption="Secure credential storage for all your integrations"
+/>
+
+<img
+  src="/assets/images/secrets_api_keys_list.png"
+  alt="API Keys Management"
+  caption="Manage API keys and credentials securely"
+/>
+
+## Next Steps
+
+🎉 **Congratulations!** You've created, executed, and saved your first Kubiya automation.
+
+**What to explore next:**
+
+<CardGroup cols={2}>
+  <Card
+    title="Try the CLI"
+    icon="terminal"
+    href="/quickstart/cli-quickstart"
+  >
+    Experience Kubiya from the command line for faster iteration
+  </Card>
+  <Card
+    title="Learn Core Concepts"
+    icon="book"
+    href="/core-concepts/integrations"
+  >
+    Understand how Kubiya's integrations and workflows work
+  </Card>
+  <Card
+    title="Explore Use Cases"
+    icon="lightbulb"
+    href="/core-concepts/use-cases"
+  >
+    See examples of what teams automate with Kubiya
+  </Card>
+  <Card
+    title="Set Up Your Environment"
+    icon="gear"
+    href="/admin/deployment-guide"
+  >
+    Deploy runners on your infrastructure for production use
+  </Card>
+</CardGroup>
+
+<Tip>
+**Pro tip**: Start with simple, read-only operations (like checking status) to get comfortable with Kubiya before automating changes to your infrastructure.
+</Tip>
