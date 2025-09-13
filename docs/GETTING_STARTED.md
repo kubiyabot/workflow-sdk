@@ -1,6 +1,6 @@
-# Getting Started with Kubiya Workflow SDK
+# Getting Started
 
-This guide will help you get up and running with the Kubiya Workflow SDK, including installation, configuration, and your first workflow.
+Quick start guide for the Kubiya Workflow SDK.
 
 ## Table of Contents
 

@@ -1,6 +1,6 @@
-# Kubiya Workflow SDK Documentation
+# Kubiya Platform Documentation
 
-This directory contains the documentation for the Kubiya Workflow SDK, hosted on [Mintlify Cloud](https://mintlify.com).
+This directory contains comprehensive documentation for the Kubiya platform, including the Workflow SDK, web interface, and API references.
 
 ## 🚀 Local Development
 
