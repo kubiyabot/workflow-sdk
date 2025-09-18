@@ -1,0 +1,449 @@
+---
+title: MCP Client Connection Guide
+description: Step-by-step instructions for connecting popular MCP clients to the Kubiya CLI MCP server
+icon: plug
+---
+
+# KUBIYA MCP CLIENT CONNECTION GUIDE
+
+This guide provides step-by-step instructions for connecting popular MCP clients
+like Claude Desktop and Cursor IDE to the Kubiya CLI MCP server.
+
+## Prerequisites
+
+Before setting up MCP clients, ensure you have:
+
+✓ Kubiya CLI installed
+✓ Valid Kubiya API key (get from [https://app.kubiya.ai](https://app.kubiya.ai))
+✓ MCP-compatible client (Claude Desktop, Cursor IDE, etc.)
+
+Verify installation:
+```bash
+# Check CLI version
+kubiya version
+
+# Set your API key:
+export KUBIYA_API_KEY="kb-your-api-key-here"
+```
+
+## Quick Start
+
+## Claude Desktop Configuration
+
+Claude Desktop is Anthropic's desktop application with MCP support.
+
+### Step 1: Locate Configuration File
+
+Find your Claude Desktop configuration file:
+
+- **macOS**:    ~/Library/Application Support/Claude/claude_desktop_config.json
+- **Linux**:    ~/.config/Claude/claude_desktop_config.json
+
+### Step 2: Basic Configuration
+
+Add this to your claude_desktop_config.json:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Advanced Configuration with Custom Settings
+
+For more control, create a custom MCP config file first:
+
+```bash
+# Run the interactive setup
+kubiya mcp setup
+
+# This will:
+# - Create default MCP server configuration
+# - Display client configuration snippets
+# - Show available tools and features
+
+# Update the config file created from the `kubiya mcp setup command` (example):
+cat > CONFIG_FILE_PATH_HERE << 'EOF'
+{
+  "allow_platform_apis": true,
+  "enable_opa_policies": false,
+  "enable_runners": true,
+  "whitelisted_tools": [
+    {
+      "name": "kubectl",
+      "tool_name": "kubectl",
+      "description": "Kubernetes command-line tool",
+      "integrations": ["kubernetes"]
+    },
+    {
+      "name": "helm",
+      "tool_name": "helm",
+      "description": "Kubernetes package manager",
+      "integrations": ["kubernetes"]
+    },
+    {
+      "name": "terraform",
+      "tool_name": "terraform",
+      "description": "Infrastructure as Code tool",
+      "integrations": ["aws", "gcp", "azure"]
+    },
+    {
+      "name": "aws-cli",
+      "tool_name": "aws",
+      "description": "AWS Command Line Interface",
+      "integrations": ["aws"]
+    }
+  ]
+}
+EOF
+```
+
+Then update `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here",
+        "KUBIYA_OPA_ENFORCE": "false"
+      }
+    }
+  }
+}
+```
+
+### Step 4: Verify Connection
+
+1. Restart Claude Desktop
+2. In Claude, type: "Can you list the available Kubiya tools?"
+3. Claude should respond with available tools
+
+## Cursor IDE Configuration
+
+Cursor is an AI-powered IDE with MCP support.
+
+### Step 1: Locate Settings File
+
+Find your Cursor settings file:
+
+- **macOS / Linux**: ~/.cursor/mcp.json
+
+### Step 2: Basic Configuration
+
+Add this to your Cursor `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Verify in Cursor
+
+1. Restart Cursor IDE
+2. Open the Chat panel
+3. In Chat Panel write: "Can you list the available Kubiya tools?"
+4. Cursor should respond with available tools
+
+
+## HTTP Mode Configuration
+
+By default, the MCP server runs in stdio mode for AI assistants. You can also run it in HTTP mode for custom integrations:
+
+```bash
+# Run MCP server in HTTP mode
+kubiya mcp serve --host 0.0.0.0 --port 8080
+
+# With custom host and port
+kubiya mcp serve --host localhost --port 3000 --allow-platform-apis
+```
+
+This is useful for:
+- Custom web applications
+- Remote MCP clients
+- Development and testing
+- Multi-user scenarios
+
+## Advanced Configuration Options
+
+### Command Line Arguments
+
+Available arguments for `kubiya mcp serve`:
+
+| Argument | Description |
+|----------|-------------|
+| `--config` | Path to MCP server configuration file |
+| `--allow-platform-apis` | Enable platform management tools |
+| `--port` | Server port (for HTTP mode) |
+| `--host` | Server host (for HTTP mode) |
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KUBIYA_API_KEY` | **Required** - Your Kubiya API key | None |
+| `KUBIYA_API_URL` | Kubiya API endpoint | `https://api.kubiya.ai` |
+| `KUBIYA_ORG` | Organization ID | None |
+| `KUBIYA_DEFAULT_RUNNER` | Default runner for tool execution | `auto` |
+| `KUBIYA_OPA_ENFORCE` | Enable OPA policy enforcement | `false` |
+| `KUBIYA_TOOL_TIMEOUT` | Default tool timeout in seconds | `300` |
+| `KUBIYA_TOOL_OUTPUT_FORMAT` | Default output format | `text` |
+| `KUBIYA_SKIP_HEALTH_CHECK` | Skip runner health checks | `false` |
+| `KUBIYA_DEBUG` | Enable debug logging | `false` |
+| `LOG_LEVEL` | Set logging level (DEBUG/INFO/WARN/ERROR) | `INFO` |
+
+### Production Configuration Example
+
+Create `~/.kubiya/mcp-server-production.json`:
+
+```json
+{
+  "server_name": "Kubiya Production MCP",
+  "server_version": "1.0.0",
+  "session_timeout": 3600,
+  "require_auth": true,
+  "enable_runners": true,
+  "allow_platform_apis": false,
+  "enable_opa_policies": true,
+  "allow_dynamic_tools": false,
+  "verbose_logging": true,
+  "rate_limit": {
+    "requests_per_second": 10.0,
+    "burst": 20
+  },
+  "max_response_size": 51200,
+  "max_tools_in_response": 50,
+  "default_page_size": 20,
+  "whitelisted_tools": [
+    {
+      "name": "kubectl",
+      "description": "Kubernetes management",
+      "tool_name": "kubectl",
+      "timeout": 300,
+      "integrations": ["kubernetes"]
+    },
+    {
+      "name": "terraform",
+      "description": "Infrastructure as Code",
+      "tool_name": "terraform",
+      "timeout": 600,
+      "integrations": ["aws", "gcp", "azure"]
+    }
+  ],
+  "tool_permissions": {
+    "kubectl": ["read", "write"],
+    "terraform": ["read", "write", "delete"]
+  },
+  "tool_timeouts": {
+    "kubectl": 300,
+    "terraform": 600
+  }
+}
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+1. Verify Kubiya CLI is installed:
+   ```bash
+   which kubiya
+   kubiya version
+   ```
+
+2. Check API key:
+   ```bash
+   echo $KUBIYA_API_KEY
+   kubiya auth status
+   ```
+
+3. Test MCP server manually:
+   ```bash
+   # With debug logging enabled
+   KUBIYA_DEBUG=true kubiya mcp serve
+   ```
+
+### Common Problems and Solutions
+
+#### Problem: "MCP server not found"
+**Solution**:
+- Ensure full path to kubiya binary in config
+- Check file permissions: `chmod +x $(which kubiya)`
+
+#### Problem: "Authentication failed"
+**Solution**:
+- Verify API key is correct
+- Check if key has proper permissions
+- Regenerate API key from the web interface
+
+#### Problem: "Tools not available"
+**Solution**:
+- Check tool whitelist configuration
+- Verify runners are enabled
+- List available tools: `kubiya tool list`
+
+#### Problem: "Timeout errors"
+**Solution**:
+- Increase tool timeouts in configuration
+- Check network connectivity
+- Verify runner health: `kubiya runner list`
+
+### Debug Mode
+
+Enable detailed logging for troubleshooting:
+
+In client config:
+```json
+{
+  "servers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key",
+        "KUBIYA_DEBUG": "true",
+        "LOG_LEVEL": "DEBUG"
+      }
+    }
+  }
+}
+```
+
+Check logs:
+- **macOS/Linux**: `~/.kubiya/logs/mcp-server.log`
+- **Windows**: `%USERPROFILE%\.kubiya\logs\mcp-server.log`
+
+## Security Best Practices
+
+### 1. Use Tool Whitelisting
+
+Always whitelist specific tools in production:
+
+```json
+{
+  "whitelisted_tools": [
+    {
+      "name": "kubectl",
+      "tool_name": "kubectl",
+      "integrations": ["kubernetes"]
+    }
+  ]
+}
+```
+
+### 2. Enable OPA Policies
+
+Create policy file `~/.kubiya/policies/mcp-policies.rego`:
+
+```rego
+package kubiya.mcp
+
+default allow = false
+
+# Allow read operations
+allow {
+  input.tool == "kubectl"
+  startswith(input.args.command, "get")
+}
+
+# Deny destructive operations
+deny {
+  input.tool == "kubectl"
+  contains(input.args.command, "delete")
+}
+```
+
+Enable in config:
+```json
+{
+  "enable_opa_policies": true,
+  "opa_policy_file": "~/.kubiya/policies/mcp-policies.rego"
+}
+```
+
+### 3. Limit Platform API Access
+
+For production, disable platform APIs:
+
+```json
+{
+  "allow_platform_apis": false
+}
+```
+
+### 4. Use Separate API Keys
+
+Create dedicated API keys for MCP:
+- Limited permissions
+- Separate from main account
+- Rotate regularly
+
+### 5. Monitor Usage
+
+Enable audit logging:
+
+```json
+{
+  "audit_logging": {
+    "enabled": true,
+    "log_file": "~/.kubiya/audit/mcp-audit.log",
+    "include_request_body": true
+  }
+}
+```
+
+## Quick Reference
+
+```bash
+# Start MCP server (basic)
+kubiya mcp serve
+
+# Start with platform APIs enabled
+kubiya mcp serve --allow-platform-apis
+
+# Start with policy enforcement
+KUBIYA_OPA_ENFORCE=true kubiya mcp serve
+
+# Start with custom configuration
+kubiya mcp serve --config ~/.kubiya/mcp-server.json
+
+# Start in HTTP mode
+kubiya mcp serve --host 0.0.0.0 --port 8080
+
+# Setup MCP for specific assistant
+kubiya mcp setup claude
+
+# List available tools
+kubiya tool list
+
+# Check runner status
+kubiya runner list
+
+# Get help
+kubiya mcp serve --help
+```
+
+## Support
+
+- **Documentation**: [https://docs.kubiya.ai/mcp](https://docs.kubiya.ai/mcp)
+- **Support**: support@kubiya.ai
+- **Community**: [https://community.kubiya.ai](https://community.kubiya.ai)
