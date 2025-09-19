@@ -129,7 +129,8 @@
           {
             "group": "MCP Integration",
             "pages": [
-              "mcpserver/connecting-via-mcp"
+              "mcpserver/connecting-via-mcp",
+              "mcpserver/client-connection"
             ]
           },
           {

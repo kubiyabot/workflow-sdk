@@ -1,0 +1,325 @@
+---
+title: MCP Client Connection Guide
+description: Step-by-step instructions for connecting popular MCP clients to the Kubiya CLI MCP server
+icon: plug
+---
+
+# KUBIYA MCP CLIENT CONNECTION GUIDE
+
+This guide provides step-by-step instructions for connecting popular MCP clients
+like Claude Desktop and Cursor IDE to the Kubiya CLI MCP server.
+
+## Prerequisites
+
+Before setting up MCP clients, ensure you have:
+
+✓ Kubiya CLI installed
+✓ Valid Kubiya API key (get from [https://app.kubiya.ai](https://app.kubiya.ai))
+✓ MCP-compatible client (Claude Desktop, Cursor IDE, etc.)
+
+Verify installation:
+```bash
+# Check CLI version
+kubiya version
+
+# Set your API key:
+export KUBIYA_API_KEY="kb-your-api-key-here"
+```
+
+## Quick Start
+
+## Claude Desktop Configuration
+
+Claude Desktop is Anthropic's desktop application with MCP support.
+
+### Step 1: Locate Configuration File
+
+Find your Claude Desktop configuration file:
+
+- **macOS**:    ~/Library/Application Support/Claude/claude_desktop_config.json
+- **Linux**:    ~/.config/Claude/claude_desktop_config.json
+
+### Step 2: Basic Configuration
+
+Add this to your claude_desktop_config.json:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Advanced Configuration with Custom Settings
+
+For more control, create a custom MCP config file first:
+
+```bash
+# Run the interactive setup
+kubiya mcp setup
+
+# This will:
+# - Create default MCP server configuration
+# - Display client configuration snippets
+# - Show available tools and features
+
+# Update the config file created from the `kubiya mcp setup command` (example):
+cat > CONFIG_FILE_PATH_HERE << 'EOF'
+{
+  "allow_platform_apis": true,
+  "enable_opa_policies": false,
+  "enable_runners": true,
+  "whitelisted_tools": [
+    {
+      "name": "kubectl",
+      "tool_name": "kubectl",
+      "description": "Kubernetes command-line tool",
+      "integrations": ["kubernetes"]
+    },
+    {
+      "name": "helm",
+      "tool_name": "helm",
+      "description": "Kubernetes package manager",
+      "integrations": ["kubernetes"]
+    },
+    {
+      "name": "terraform",
+      "tool_name": "terraform",
+      "description": "Infrastructure as Code tool",
+      "integrations": ["aws", "gcp", "azure"]
+    },
+    {
+      "name": "aws-cli",
+      "tool_name": "aws",
+      "description": "AWS Command Line Interface",
+      "integrations": ["aws"]
+    }
+  ]
+}
+EOF
+```
+
+Then update `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here",
+        "KUBIYA_OPA_ENFORCE": "false"
+      }
+    }
+  }
+}
+```
+
+### Step 4: Verify Connection
+
+1. Restart Claude Desktop
+2. In Claude, type: "Can you list the available Kubiya tools?"
+3. Claude should respond with available tools
+
+## Cursor IDE Configuration
+
+Cursor is an AI-powered IDE with MCP support.
+
+### Step 1: Locate Settings File
+
+Find your Cursor settings file:
+
+- **macOS / Linux**: ~/.cursor/mcp.json
+
+### Step 2: Basic Configuration
+
+Add this to your Cursor `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kubiya": {
+      "command": "kubiya",
+      "args": ["mcp", "serve"],
+      "env": {
+        "KUBIYA_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Verify in Cursor
+
+1. Restart Cursor IDE
+2. Open the Chat panel
+3. In Chat Panel write: "Can you list the available Kubiya tools?"
+4. Cursor should respond with available tools
+
+
+## Custom MCP Client Connection
+
+You can connect any custom MCP client to the Kubiya MCP server by implementing the Model Context Protocol. Here's an example of how to create and connect a custom client:
+
+### Example: Python MCP Client
+
+```python
+import asyncio
+from contextlib import AsyncExitStack
+from typing import Any, Dict, Optional
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+
+class KubiyaMCPClient:
+    def __init__(self, api_key: str, command: str = "kubiya"):
+        self.api_key = api_key
+        self.command = command
+        self.session: Optional[ClientSession] = None
+        self.exit_stack = AsyncExitStack()
+
+    async def connect(self) -> None:
+        """Start the Kubiya MCP server and establish connection."""
+        server_params = StdioServerParameters(
+            command=self.command,
+            args=["mcp", "serve"],
+            env={"KUBIYA_API_KEY": self.api_key},
+        )
+
+        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+        self.stdio, self.write = stdio_transport
+        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+
+        await self.session.initialize()
+
+    async def list_tools(self):
+        """List available tools."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        resp = await self.session.list_tools()
+        return resp.tools
+
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]):
+        """Call a specific tool."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        return await self.session.call_tool(tool_name, arguments)
+
+    async def list_prompts(self):
+        """List available prompts."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        resp = await self.session.list_prompts()
+        return resp.prompts
+
+    async def get_prompt(self, prompt_name: str, arguments: Optional[Dict[str, Any]] = None):
+        """Get a specific prompt."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        return await self.session.get_prompt(prompt_name, arguments or {})
+
+    async def disconnect(self):
+        """Close the connection and exit the stdio context."""
+        await self.exit_stack.aclose()
+
+
+# Usage example
+async def main():
+    client = KubiyaMCPClient("your-api-key-here")
+
+    try:
+        await client.connect()
+        print("Connected successfully")
+
+        tools = await client.list_tools()
+        print(f"Available tools: {[t.name for t in tools]}")
+
+        # Example tool call (adjust the tool name/args to what your server exposes)
+        result = await client.call_tool("kubectl", {"command": "get pods -n default"})
+        print(f"Tool result: {result}")
+
+        prompts = await client.list_prompts()
+        print(f"Available prompts: {[p.name for p in prompts]}")
+
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+    finally:
+        await client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Key Points for Custom Clients
+
+1. **MCP Package**: Use the official `mcp` Python package for robust client implementation
+2. **StdioServerParameters**: Configure server startup parameters including command, args, and environment variables
+3. **Async/Await**: The MCP client uses async operations for all communication
+4. **Authentication**: Pass `KUBIYA_API_KEY` as environment variable in server parameters
+5. **Session Management**: Initialize the session after creating the stdio client
+6. **Available Methods**:
+   - `initialize()`: Initialize the connection
+   - `list_tools()`: List available tools
+   - `call_tool()`: Execute a tool
+   - `list_prompts()`: List available prompts
+   - `get_prompt()`: Get a specific prompt
+
+### Installation Requirements
+
+To use the MCP client, install the required package:
+
+```bash
+pip install mcp
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+1. Verify Kubiya CLI is installed:
+   ```bash
+   which kubiya
+   kubiya version
+   ```
+
+2. Check API key:
+   ```bash
+   echo $KUBIYA_API_KEY
+   ```
+
+## Quick Reference
+
+```bash
+# Start MCP server (basic)
+kubiya mcp serve
+
+# Start with platform APIs enabled
+kubiya mcp serve --allow-platform-apis
+
+# Start with policy enforcement
+KUBIYA_OPA_ENFORCE=true kubiya mcp serve
+
+# Start with custom configuration
+kubiya mcp serve --config ~/.kubiya/mcp-server.json
+
+# Setup MCP
+kubiya mcp setup
+
+# List available tools
+kubiya tool list
+
+# Check runner status
+kubiya runner list
+
+# Get help
+kubiya mcp serve --help
+```
