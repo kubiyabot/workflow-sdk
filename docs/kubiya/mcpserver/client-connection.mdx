@@ -165,99 +165,120 @@ Add this to your Cursor `mcp.json`:
 4. Cursor should respond with available tools
 
 
-## HTTP Mode Configuration
+## Custom MCP Client Connection
 
-By default, the MCP server runs in stdio mode for AI assistants. You can also run it in HTTP mode for custom integrations:
+You can connect any custom MCP client to the Kubiya MCP server by implementing the Model Context Protocol. Here's an example of how to create and connect a custom client:
 
-```bash
-# Run MCP server in HTTP mode
-kubiya mcp serve --host 0.0.0.0 --port 8080
+### Example: Python MCP Client
 
-# With custom host and port
-kubiya mcp serve --host localhost --port 3000 --allow-platform-apis
+```python
+import asyncio
+from contextlib import AsyncExitStack
+from typing import Any, Dict, Optional
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+
+class KubiyaMCPClient:
+    def __init__(self, api_key: str, command: str = "kubiya"):
+        self.api_key = api_key
+        self.command = command
+        self.session: Optional[ClientSession] = None
+        self.exit_stack = AsyncExitStack()
+
+    async def connect(self) -> None:
+        """Start the Kubiya MCP server and establish connection."""
+        server_params = StdioServerParameters(
+            command=self.command,
+            args=["mcp", "serve"],
+            env={"KUBIYA_API_KEY": self.api_key},
+        )
+
+        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+        self.stdio, self.write = stdio_transport
+        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+
+        await self.session.initialize()
+
+    async def list_tools(self):
+        """List available tools."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        resp = await self.session.list_tools()
+        return resp.tools
+
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]):
+        """Call a specific tool."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        return await self.session.call_tool(tool_name, arguments)
+
+    async def list_prompts(self):
+        """List available prompts."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        resp = await self.session.list_prompts()
+        return resp.prompts
+
+    async def get_prompt(self, prompt_name: str, arguments: Optional[Dict[str, Any]] = None):
+        """Get a specific prompt."""
+        if not self.session:
+            raise RuntimeError("Not connected. Call connect() first.")
+        return await self.session.get_prompt(prompt_name, arguments or {})
+
+    async def disconnect(self):
+        """Close the connection and exit the stdio context."""
+        await self.exit_stack.aclose()
+
+
+# Usage example
+async def main():
+    client = KubiyaMCPClient("your-api-key-here")
+
+    try:
+        await client.connect()
+        print("Connected successfully")
+
+        tools = await client.list_tools()
+        print(f"Available tools: {[t.name for t in tools]}")
+
+        # Example tool call (adjust the tool name/args to what your server exposes)
+        result = await client.call_tool("kubectl", {"command": "get pods -n default"})
+        print(f"Tool result: {result}")
+
+        prompts = await client.list_prompts()
+        print(f"Available prompts: {[p.name for p in prompts]}")
+
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+    finally:
+        await client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-This is useful for:
-- Custom web applications
-- Remote MCP clients
-- Development and testing
-- Multi-user scenarios
+### Key Points for Custom Clients
 
-## Advanced Configuration Options
+1. **MCP Package**: Use the official `mcp` Python package for robust client implementation
+2. **StdioServerParameters**: Configure server startup parameters including command, args, and environment variables
+3. **Async/Await**: The MCP client uses async operations for all communication
+4. **Authentication**: Pass `KUBIYA_API_KEY` as environment variable in server parameters
+5. **Session Management**: Initialize the session after creating the stdio client
+6. **Available Methods**:
+   - `initialize()`: Initialize the connection
+   - `list_tools()`: List available tools
+   - `call_tool()`: Execute a tool
+   - `list_prompts()`: List available prompts
+   - `get_prompt()`: Get a specific prompt
 
-### Command Line Arguments
+### Installation Requirements
 
-Available arguments for `kubiya mcp serve`:
+To use the MCP client, install the required package:
 
-| Argument | Description |
-|----------|-------------|
-| `--config` | Path to MCP server configuration file |
-| `--allow-platform-apis` | Enable platform management tools |
-| `--port` | Server port (for HTTP mode) |
-| `--host` | Server host (for HTTP mode) |
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `KUBIYA_API_KEY` | **Required** - Your Kubiya API key | None |
-| `KUBIYA_API_URL` | Kubiya API endpoint | `https://api.kubiya.ai` |
-| `KUBIYA_ORG` | Organization ID | None |
-| `KUBIYA_DEFAULT_RUNNER` | Default runner for tool execution | `auto` |
-| `KUBIYA_OPA_ENFORCE` | Enable OPA policy enforcement | `false` |
-| `KUBIYA_TOOL_TIMEOUT` | Default tool timeout in seconds | `300` |
-| `KUBIYA_TOOL_OUTPUT_FORMAT` | Default output format | `text` |
-| `KUBIYA_SKIP_HEALTH_CHECK` | Skip runner health checks | `false` |
-| `KUBIYA_DEBUG` | Enable debug logging | `false` |
-| `LOG_LEVEL` | Set logging level (DEBUG/INFO/WARN/ERROR) | `INFO` |
-
-### Production Configuration Example
-
-Create `~/.kubiya/mcp-server-production.json`:
-
-```json
-{
-  "server_name": "Kubiya Production MCP",
-  "server_version": "1.0.0",
-  "session_timeout": 3600,
-  "require_auth": true,
-  "enable_runners": true,
-  "allow_platform_apis": false,
-  "enable_opa_policies": true,
-  "allow_dynamic_tools": false,
-  "verbose_logging": true,
-  "rate_limit": {
-    "requests_per_second": 10.0,
-    "burst": 20
-  },
-  "max_response_size": 51200,
-  "max_tools_in_response": 50,
-  "default_page_size": 20,
-  "whitelisted_tools": [
-    {
-      "name": "kubectl",
-      "description": "Kubernetes management",
-      "tool_name": "kubectl",
-      "timeout": 300,
-      "integrations": ["kubernetes"]
-    },
-    {
-      "name": "terraform",
-      "description": "Infrastructure as Code",
-      "tool_name": "terraform",
-      "timeout": 600,
-      "integrations": ["aws", "gcp", "azure"]
-    }
-  ],
-  "tool_permissions": {
-    "kubectl": ["read", "write"],
-    "terraform": ["read", "write", "delete"]
-  },
-  "tool_timeouts": {
-    "kubectl": 300,
-    "terraform": 600
-  }
-}
+```bash
+pip install mcp
 ```
 
 ## Troubleshooting
@@ -273,143 +294,7 @@ Create `~/.kubiya/mcp-server-production.json`:
 2. Check API key:
    ```bash
    echo $KUBIYA_API_KEY
-   kubiya auth status
    ```
-
-3. Test MCP server manually:
-   ```bash
-   # With debug logging enabled
-   KUBIYA_DEBUG=true kubiya mcp serve
-   ```
-
-### Common Problems and Solutions
-
-#### Problem: "MCP server not found"
-**Solution**:
-- Ensure full path to kubiya binary in config
-- Check file permissions: `chmod +x $(which kubiya)`
-
-#### Problem: "Authentication failed"
-**Solution**:
-- Verify API key is correct
-- Check if key has proper permissions
-- Regenerate API key from the web interface
-
-#### Problem: "Tools not available"
-**Solution**:
-- Check tool whitelist configuration
-- Verify runners are enabled
-- List available tools: `kubiya tool list`
-
-#### Problem: "Timeout errors"
-**Solution**:
-- Increase tool timeouts in configuration
-- Check network connectivity
-- Verify runner health: `kubiya runner list`
-
-### Debug Mode
-
-Enable detailed logging for troubleshooting:
-
-In client config:
-```json
-{
-  "servers": {
-    "kubiya": {
-      "command": "kubiya",
-      "args": ["mcp", "serve"],
-      "env": {
-        "KUBIYA_API_KEY": "your-api-key",
-        "KUBIYA_DEBUG": "true",
-        "LOG_LEVEL": "DEBUG"
-      }
-    }
-  }
-}
-```
-
-Check logs:
-- **macOS/Linux**: `~/.kubiya/logs/mcp-server.log`
-- **Windows**: `%USERPROFILE%\.kubiya\logs\mcp-server.log`
-
-## Security Best Practices
-
-### 1. Use Tool Whitelisting
-
-Always whitelist specific tools in production:
-
-```json
-{
-  "whitelisted_tools": [
-    {
-      "name": "kubectl",
-      "tool_name": "kubectl",
-      "integrations": ["kubernetes"]
-    }
-  ]
-}
-```
-
-### 2. Enable OPA Policies
-
-Create policy file `~/.kubiya/policies/mcp-policies.rego`:
-
-```rego
-package kubiya.mcp
-
-default allow = false
-
-# Allow read operations
-allow {
-  input.tool == "kubectl"
-  startswith(input.args.command, "get")
-}
-
-# Deny destructive operations
-deny {
-  input.tool == "kubectl"
-  contains(input.args.command, "delete")
-}
-```
-
-Enable in config:
-```json
-{
-  "enable_opa_policies": true,
-  "opa_policy_file": "~/.kubiya/policies/mcp-policies.rego"
-}
-```
-
-### 3. Limit Platform API Access
-
-For production, disable platform APIs:
-
-```json
-{
-  "allow_platform_apis": false
-}
-```
-
-### 4. Use Separate API Keys
-
-Create dedicated API keys for MCP:
-- Limited permissions
-- Separate from main account
-- Rotate regularly
-
-### 5. Monitor Usage
-
-Enable audit logging:
-
-```json
-{
-  "audit_logging": {
-    "enabled": true,
-    "log_file": "~/.kubiya/audit/mcp-audit.log",
-    "include_request_body": true
-  }
-}
-```
 
 ## Quick Reference
 
@@ -426,11 +311,8 @@ KUBIYA_OPA_ENFORCE=true kubiya mcp serve
 # Start with custom configuration
 kubiya mcp serve --config ~/.kubiya/mcp-server.json
 
-# Start in HTTP mode
-kubiya mcp serve --host 0.0.0.0 --port 8080
-
-# Setup MCP for specific assistant
-kubiya mcp setup claude
+# Setup MCP
+kubiya mcp setup
 
 # List available tools
 kubiya tool list
@@ -441,9 +323,3 @@ kubiya runner list
 # Get help
 kubiya mcp serve --help
 ```
-
-## Support
-
-- **Documentation**: [https://docs.kubiya.ai/mcp](https://docs.kubiya.ai/mcp)
-- **Support**: support@kubiya.ai
-- **Community**: [https://community.kubiya.ai](https://community.kubiya.ai)
